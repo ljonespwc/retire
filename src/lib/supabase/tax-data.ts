@@ -288,7 +288,7 @@ export async function calculateTFSARoom(
 }
 
 /**
- * Get tax credits for a specific year
+ * Get federal tax credits for a specific year
  */
 export async function getTaxCredits(
   client: TypedSupabaseClient,
@@ -301,7 +301,8 @@ export async function getTaxCredits(
   const { data, error } = await client
     .from('tax_credits')
     .select('credit_type, data')
-    .eq('year', year);
+    .eq('year', year)
+    .is('province_code', null); // Federal credits only
 
   if (error) return { data: null, error };
 
@@ -315,7 +316,36 @@ export async function getTaxCredits(
 }
 
 /**
- * Get Basic Personal Amount for a specific year
+ * Get provincial tax credits for a specific year and province
+ */
+export async function getProvincialTaxCredits(
+  client: TypedSupabaseClient,
+  province: Province,
+  year: number = 2025
+) {
+  const cacheKey = getCacheKey('provincial_tax_credits', year, province);
+  const cached = getFromCache<any>(cacheKey);
+  if (cached) return { data: cached, error: null };
+
+  const { data, error } = await client
+    .from('tax_credits')
+    .select('credit_type, data')
+    .eq('year', year)
+    .eq('province_code', province);
+
+  if (error) return { data: null, error };
+
+  const credits: Record<string, any> = {};
+  data.forEach((row: any) => {
+    credits[row.credit_type] = row.data;
+  });
+
+  setCache(cacheKey, credits);
+  return { data: credits, error: null };
+}
+
+/**
+ * Get federal Basic Personal Amount for a specific year
  */
 export async function getBasicPersonalAmount(
   client: TypedSupabaseClient,
@@ -326,7 +356,19 @@ export async function getBasicPersonalAmount(
 }
 
 /**
- * Get Age Amount credit for a specific year
+ * Get provincial Basic Personal Amount for a specific year and province
+ */
+export async function getProvincialBasicPersonalAmount(
+  client: TypedSupabaseClient,
+  province: Province,
+  year: number = 2025
+): Promise<number> {
+  const { data } = await getProvincialTaxCredits(client, province, year);
+  return data?.BASIC_PERSONAL_AMOUNT?.amount || 0;
+}
+
+/**
+ * Get federal Age Amount credit for a specific year
  */
 export async function getAgeAmount(
   client: TypedSupabaseClient,
@@ -334,6 +376,18 @@ export async function getAgeAmount(
 ) {
   const { data } = await getTaxCredits(client, year);
   return data?.AGE_AMOUNT || { max_credit: 8790, income_threshold: 43906, reduction_rate: 0.15 };
+}
+
+/**
+ * Get provincial Age Amount credit for a specific year and province (if available)
+ */
+export async function getProvincialAgeAmount(
+  client: TypedSupabaseClient,
+  province: Province,
+  year: number = 2025
+) {
+  const { data } = await getProvincialTaxCredits(client, province, year);
+  return data?.AGE_AMOUNT || null; // Not all provinces have age amounts
 }
 
 /**

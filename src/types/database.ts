@@ -217,6 +217,7 @@ export interface Database {
           id: string;
           year: number;
           credit_type: CreditType;
+          province_code: ProvinceCode | null;
           data: Json;
           created_at: string;
           updated_at: string;
@@ -225,6 +226,7 @@ export interface Database {
           id?: string;
           year: number;
           credit_type: CreditType;
+          province_code?: ProvinceCode | null;
           data: Json;
           created_at?: string;
           updated_at?: string;
@@ -233,6 +235,7 @@ export interface Database {
           id?: string;
           year?: number;
           credit_type?: CreditType;
+          province_code?: ProvinceCode | null;
           data?: Json;
           created_at?: string;
           updated_at?: string;
