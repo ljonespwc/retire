@@ -27,6 +27,78 @@ A voice-driven Canadian retirement income calculator that combines conversationa
 **Project ID**: `xrtlrsovgqgivpbumany`
 Always use this project_id when interacting with Supabase MCP tools.
 
+### Tax Data Storage (Database-Backed)
+
+**Important**: As of Sprint 1, all Canadian tax data is stored in Supabase database, NOT in hardcoded constants.
+
+#### Database Tables
+
+1. **tax_years**: Master table for available tax years
+   - Columns: year, is_active, effective_date
+   - Current: 2025
+
+2. **federal_tax_brackets**: Federal tax brackets by year
+   - Columns: year, bracket_index, income_limit, rate
+   - 5 brackets for 2025
+
+3. **provincial_tax_brackets**: Provincial/territorial brackets
+   - Columns: year, province_code, bracket_index, income_limit, rate
+   - All 13 provinces/territories (AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT)
+
+4. **government_benefits**: CPP and OAS data
+   - Columns: year, benefit_type, data (JSONB)
+   - Types: CPP, OAS
+
+5. **rrif_minimums**: RRIF withdrawal percentages
+   - Columns: age (55-95), percentage
+   - Age-based, doesn't change by year
+
+6. **tfsa_limits**: Historical TFSA contribution limits
+   - Columns: year (2009-2025), annual_limit
+
+7. **tax_credits**: Federal tax credits
+   - Columns: year, credit_type, data (JSONB)
+   - Types: BASIC_PERSONAL_AMOUNT, AGE_AMOUNT
+
+#### Query Functions
+
+Location: `src/lib/supabase/tax-data.ts`
+
+Key functions:
+- `getTaxYears(client)` - Get all available tax years
+- `getFederalTaxBrackets(client, year)` - Get federal brackets
+- `getProvincialTaxBrackets(client, province, year)` - Get provincial brackets
+- `getCPPAmounts(client, year)` - Get CPP data
+- `getOASAmounts(client, year)` - Get OAS data
+- `getRRIFMinimums(client)` - Get RRIF percentages
+- `getTFSALimits(client)` - Get TFSA limits
+- `getTaxCredits(client, year)` - Get tax credits
+
+**Caching**: All queries use in-memory caching (24-hour TTL) to reduce database load.
+
+#### Adding New Tax Years
+
+When 2026 tax data becomes available:
+
+1. Insert new tax year: `INSERT INTO tax_years (year, is_active, effective_date) VALUES (2026, true, '2026-01-01')`
+2. Add federal brackets for 2026
+3. Add provincial brackets for all provinces
+4. Add CPP/OAS amounts for 2026
+5. Add TFSA limit for 2026
+6. Add tax credits for 2026
+
+This can be done via Supabase SQL editor or a migration script without code deployment.
+
+#### Type Definitions
+
+Location: `src/types/constants.ts`
+
+Contains only TypeScript types and interfaces:
+- `Province` enum (AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT)
+- `TaxBracket` interface
+
+**Note**: All hardcoded constant values have been removed from this file. Use query functions instead.
+
 ## Tech Stack
 
 ### Core Framework
