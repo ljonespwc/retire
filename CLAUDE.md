@@ -286,3 +286,227 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - Production build and Vercel deployment successful
 
 **Achievement**: Complete, tested calculation engine ready for UI integration. All Canadian retirement income calculations (federal/provincial taxes, CPP/OAS, RRSP/RRIF/TFSA) implemented with 100% test coverage and successfully deployed to production.
+
+### Sprint 3: Voice Interface & Data Collection ⏳ IN PROGRESS
+
+**Timeline**: 9.5 days total (2.5 days completed, 7 days remaining)
+
+**Goal**: Build voice-first data collection interface with LLM-based parsing, create 3 UX prototypes, and implement production-ready voice/form hybrid UI.
+
+---
+
+#### ✅ COMPLETED: Section 1 - Layercode Voice Foundation (1 day)
+
+**Created Files**:
+- `/src/lib/ai-provider.ts` (159 lines) - Switchable OpenAI/Gemini provider
+- `/src/app/api/layercode/authorize/route.ts` (70 lines) - Secure session authorization
+- `/src/app/api/layercode/webhook/route.ts` (270 lines) - SSE webhook handler
+- `/src/hooks/useLayercodeVoice.ts` (95 lines) - React hook for voice connection
+- `/src/app/test-voice/page.tsx` (32 lines) - Test page wrapper (SSR disabled)
+- `/src/app/test-voice/TestVoiceContent.tsx` (280+ lines) - Test UI component
+- `.env.example` (31 lines) - Environment variable documentation
+
+**Key Features**:
+- WebRTC voice connection via Layercode SDK
+- Automatic speech-to-text (Layercode cloud STT)
+- Automatic text-to-speech (Layercode cloud TTS)
+- Voice activity detection (VAD) - hands-free conversation
+- Connection state management and audio level visualization
+- Test page at `/test-voice` for development
+
+**AI Provider Configuration**:
+- OpenAI: GPT-4.1-mini (`gpt-4-1106-preview`)
+- Gemini: Flash Lite (`gemini-2.5-flash-lite`) - faster, recommended
+- Switchable via `AI_PROVIDER` environment variable
+- Temperature: 0.7 for conversational responses
+
+**Architecture**:
+```
+User speaks → Layercode WebRTC → Layercode Cloud STT →
+Webhook POST (transcribed text) → Backend AI (OpenAI/Gemini) →
+stream.tts("response") → Layercode Cloud TTS →
+Layercode WebRTC → User hears AI
+```
+
+**Deployment**: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
+
+---
+
+#### ✅ COMPLETED: Section 2 - Conversation Intelligence (2.5 days)
+
+**Major Architectural Decision**: Replaced regex pattern matching with LLM-based data extraction for superior natural language understanding.
+
+**Created Files**:
+- `/src/lib/conversation/llm-parser.ts` (200+ lines) - LLM-based extraction
+- `/src/lib/conversation/question-flow-manager.ts` (380+ lines) - State machine
+- ~~`/src/lib/conversation/number-parser.ts`~~ (deprecated - replaced with LLM parser)
+
+**LLM Parser Functions** (all async):
+1. `extractAge(text)` - Extracts ages from natural language
+   - Handles: "I'm 58", "probably 62", "mid-fifties", "around 65"
+   - Returns: number (18-120) or null
+
+2. `extractAmount(text)` - Extracts dollar amounts
+   - Handles: "$500,000", "500k", "half a million", "1.5m", "about 300,000"
+   - Returns: number (0+) or null
+
+3. `extractProvince(text)` - Extracts Canadian province/territory
+   - Handles: "Ontario", "BC", "British Columbia", "I live in Alberta"
+   - Returns: Province code (AB, BC, etc.) or null
+
+4. `extractPercentage(text)` - Extracts percentages
+   - Handles: "5%", "five percent", "about 6.5%", "0.05"
+   - Returns: number (0-100) or null
+
+5. `extractYesNo(text)` - Natural yes/no detection
+   - Handles: "yeah", "I do", "nope", "I don't"
+   - Returns: true, false, or null
+
+6. `detectSkipIntent(text)` - Detects skip/decline intent
+   - Handles: "skip", "pass", "I don't know", "rather not say"
+   - Returns: boolean
+
+**Question Flow State Machine**:
+- **11 questions total** (Basic Tier)
+- **Conditional branching**: Only asks for account amounts if user has that account type
+- **In-memory state storage**: Map-based (production will use Redis/database)
+- **Progress tracking**: Current question / Total questions
+- **Validation**: Age ranges (18-100, 50-80), amount limits
+
+**Question Flow**:
+1. Current age (required)
+2. Retirement age (required)
+3. Province (required)
+4. Has RRSP? → If yes: RRSP amount (conditional)
+5. Has TFSA? → If yes: TFSA amount (conditional)
+6. Has non-registered? → If yes: Non-registered amount (conditional)
+7. Monthly retirement spending (required)
+8. Expected investment return (optional, defaults to 5%)
+
+**Conditional Logic** (Fixed in latest deployment):
+- `followUp` function on yes/no questions (not amount questions)
+- Checks answer immediately after user responds
+- Skips amount question if user said "no"
+- Example: "Do you have RRSP?" → "No" → Skip "RRSP amount?" → Jump to "Do you have TFSA?"
+
+**Webhook Integration**:
+- `session.start`: Initialize conversation → Ask first question
+- `message`: Parse user response → Validate → Next question or clarify
+- `session.end`: Clean up conversation state
+- Progress updates sent via `stream.data()` for UI display
+- Completion sends full `collectedData` object
+
+**Data Output Format**:
+```typescript
+{
+  currentAge: number,
+  retirementAge: number,
+  province: Province,
+  rrsp?: number,
+  tfsa?: number,
+  non_registered?: number,
+  monthlySpending: number,
+  investmentReturn: number  // defaults to 5.0
+}
+```
+
+**UI Enhancements**:
+- Real-time progress bar (X/11 questions)
+- Debug section showing conversation flow
+- Parsed values displayed in real-time
+- Green "Data Collection Complete!" panel
+- All collected data displayed in grid format
+
+**Performance**:
+- LLM extraction: ~200-500ms per question (Gemini Flash)
+- Total conversation: ~2-3 minutes for 11 questions
+- Acceptable latency for superior parsing accuracy
+
+**Key Bug Fixes**:
+1. **Data Message Unwrapping**: Layercode wraps messages in `{type: 'response.data', content: {...}}` structure - fixed extraction logic
+2. **Conditional Logic Placement**: Moved `followUp` from amount questions to yes/no questions for proper skipping behavior
+
+---
+
+#### ⏳ REMAINING: Sprint 3 Sections (7 days)
+
+**Section 3: UX Prototype A - Form-First (1 day)**
+- `/app/calculator/test-form-first/page.tsx`
+- Traditional form layout with floating voice assistant button
+- Fields update from voice OR manual typing
+- Voice provides convenience, form provides control
+
+**Section 4: UX Prototype B - Voice-First (1 day)**
+- `/app/calculator/test-voice-first/page.tsx`
+- Two-panel layout: Conversation (left) + Live form preview (right)
+- Voice is primary, form shows real-time data being collected
+- Can switch to manual editing if needed
+
+**Section 5: UX Prototype C - Wizard (1 day)**
+- `/app/calculator/test-wizard/page.tsx`
+- Multi-step wizard with progress indicator
+- Each step: Choose voice OR form input method
+- Clear navigation between steps
+
+**Section 6: Reusable Production Components (2 days)**
+Voice Components:
+- `VoiceButton` - Start/stop voice with visual state
+- `VoiceVisualizer` - Audio level bars
+- `ConversationDisplay` - Chat-style message history
+- `VoiceStatus` - Connection indicator
+
+Form Components:
+- `CurrencyInput` - Formatted dollar input
+- `AgeInput` - Age selector with validation
+- `PercentageInput` - % input with slider
+- `ProvinceSelect` - Canadian province dropdown
+- `ScenarioSummary` - Data recap card
+
+Hybrid Components:
+- `VoiceOrFormField` - Toggle between input methods
+- `InputMethodToggle` - Voice/keyboard switcher
+- `FieldValidation` - Real-time validation UI
+
+**Section 7: Production Implementation & Polish (1 day)**
+- User tests 3 prototypes → Choose best approach
+- Create `/app/calculator/page.tsx` with chosen UX
+- Replace prototype components with production components
+- Styling and polish
+- Connect to calculation engine from Sprint 2
+- Display results with charts/visualizations
+
+**Final Deliverable**: Production-ready voice-first retirement calculator collecting data through natural conversation, feeding into Sprint 2 calculation engine.
+
+---
+
+#### Sprint 3 Test URL
+- Test Voice: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
+- Vercel Auto-Deploy: Pushes to `main` branch trigger deployment
+
+#### Sprint 3 Key Files
+**Voice Integration**:
+- `/src/lib/ai-provider.ts` - AI provider abstraction
+- `/src/lib/conversation/llm-parser.ts` - LLM-based extraction
+- `/src/lib/conversation/question-flow-manager.ts` - Conversation state machine
+- `/src/hooks/useLayercodeVoice.ts` - React voice hook
+- `/src/app/api/layercode/authorize/route.ts` - Session authorization
+- `/src/app/api/layercode/webhook/route.ts` - Webhook handler
+
+**Test Pages**:
+- `/src/app/test-voice/page.tsx` - Voice test wrapper
+- `/src/app/test-voice/TestVoiceContent.tsx` - Test UI
+
+**Dependencies Added**:
+- `@layercode/react-sdk@^2.1.3`
+- `@layercode/node-server-sdk@^1.2.1`
+- (OpenAI and Gemini already installed in Sprint 1)
+
+#### Next Steps
+1. Build UX Prototype A (Form-First)
+2. Build UX Prototype B (Voice-First)
+3. Build UX Prototype C (Wizard)
+4. User testing to choose best approach
+5. Build reusable production components
+6. Implement production calculator page
+7. Connect to Sprint 2 calculation engine
+8. Deploy and polish
