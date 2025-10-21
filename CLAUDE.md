@@ -148,22 +148,24 @@ retire/
 │   │   └── globals.css   # Global styles with Tailwind
 │   ├── components/       # React components
 │   ├── lib/              # Business logic utilities
+│   │   └── supabase/     # Supabase client and queries
 │   ├── hooks/            # Custom React hooks
+│   ├── services/         # API integrations
 │   └── types/            # TypeScript type definitions
 ├── public/               # Static assets
-├── docs/                 # Documentation
-└── .env.local.example    # Environment variable template
+├── docs/                 # Product documentation
+└── .env.local            # Environment variables (not committed)
 ```
 
 ## Environment Setup
 
-1. Copy `.env.local.example` to `.env.local`
-2. Fill in your API keys and credentials:
-   - **Layercode**: Pipeline ID and API keys from https://layercode.com
-   - **OpenAI**: API key from https://platform.openai.com/api-keys
-   - **Gemini**: API key from https://ai.google.dev/
-   - **Supabase**: URL and keys from your Supabase project
-3. Run `npm run dev` to start development
+Environment variables are configured in `.env.local` (already exists):
+- **Layercode**: Pipeline ID and API keys from https://layercode.com
+- **OpenAI**: API key from https://platform.openai.com/api-keys
+- **Gemini**: API key from https://ai.google.dev/
+- **Supabase**: URL and keys from your Supabase project
+
+Run `npm run dev` to start development.
 
 ## Path Aliases
 
@@ -172,115 +174,41 @@ This project uses TypeScript path aliases:
 
 Example: `import { MyComponent } from '@/components/MyComponent'`
 
-## Development Sprints
+## Development Progress
 
-### Sprint 1: Foundation & Infrastructure Setup
+### Sprint 1: Foundation & Infrastructure Setup ✅ COMPLETED
 
-**Goal**: Establish project foundation with proper configuration, database setup, and comprehensive type definitions.
+**Accomplished**:
 
-#### Task 1.1: Project Initialization & Configuration
+**1. Project Configuration**
+- Next.js 14 with TypeScript (strict mode) and App Router
+- Tailwind CSS with custom PRD design system (primary, secondary, accent colors)
+- shadcn/ui CLI configured with components infrastructure
+- Dependencies: zod, date-fns, @supabase/ssr, clsx, tailwind-merge
+- Folder structure: app/, components/, lib/, services/, hooks/, types/
 
-**Objective**: Set up Next.js 14 project with TypeScript, Tailwind, and essential configurations.
+**2. Supabase Database Schema**
+- **Core Tables**: users, scenarios with RLS policies and indexes
+- **Tax Data Tables** (7 tables): tax_years, federal_tax_brackets, provincial_tax_brackets, government_benefits, rrif_minimums, tfsa_limits, tax_credits
+- **2025 Canadian Tax Data**: Seeded 5 federal brackets, 57 provincial brackets (13 jurisdictions), CPP/OAS benefits, RRIF rules, TFSA limits
+- **Query Layer**: `src/lib/supabase/tax-data.ts` with 15+ functions and 24-hour in-memory caching
+- **Supabase Clients**: Browser (`client.ts`), server (`server.ts`), middleware (`middleware.ts`) using @supabase/ssr
 
-**Key Requirements**:
-- TypeScript strict mode enabled
-- Tailwind CSS configured with custom theme (PRD design system):
-  - Primary: #1E3A8A (deep blue)
-  - Secondary: #14B8A6 (warm teal)
-  - Accent: #F59E0B (amber)
-  - Success: #10B981, Warning: #F97316, Error: #EF4444
-- ESLint and Prettier configured
-- Folder structure:
-  - `/app` - Next.js 14 app directory
-  - `/components` - UI components
-  - `/lib` - Utilities, types, helpers
-  - `/services` - API integrations
-  - `/hooks` - Custom React hooks
-  - `/types` - TypeScript definitions
-- shadcn/ui CLI configured
-- Install dependencies: zod (validation), clsx (classnames), date-fns
-- Create `.env.local.example` with placeholder environment variables
+**3. TypeScript Type System**
+- **Calculator Types** (`src/types/calculator.ts`): 400+ lines covering BasicInputs, Assets, IncomeSources, Expenses, Assumptions, YearByYearResult, CalculationResults, Scenario
+- **Voice Types** (`src/types/voice.ts`): VoiceIntent, ConversationState, VoiceResponse, VoiceSession
+- **Constants** (`src/types/constants.ts`): Province enum, TaxBracket interface (data moved to database)
+- **Database Types** (`src/types/database.ts`): Complete schema types for all 9 tables
+- **Barrel Export**: `src/types/index.ts` for clean imports
 
-**Acceptance Criteria**:
-- ✅ Project builds successfully with `npm run build`
-- ✅ Development server runs on `npm run dev`
-- ✅ Tailwind classes work with custom colors
-- ✅ TypeScript strict mode enabled, no errors
-- ✅ Folder structure matches specification
+**4. Database Optimizations**
+- Fixed RLS policies for optimal performance (using `SELECT` subqueries)
+- Secured functions with fixed `search_path`
+- Public read-only access to tax data tables
 
----
+**5. Deployment**
+- Vercel deployment configured and working
+- Build succeeds with zero TypeScript errors
+- `.npmrc` configured with `legacy-peer-deps` for dependency resolution
 
-#### Task 1.2: Supabase Configuration & Database Schema
-
-**Objective**: Set up Supabase project and create database schema for users and scenarios.
-
-**Key Requirements**:
-- Install `@supabase/supabase-js` and `@supabase/auth-helpers-nextjs`
-- Create `/lib/supabase/` folder with:
-  - `client.ts` (browser client)
-  - `server.ts` (server-side client)
-  - `middleware.ts` (auth middleware)
-- Database migration file (`supabase/migrations/001_initial_schema.sql`):
-  - `users` table (id, email, tier, created_at, preferences JSONB)
-  - `scenarios` table (id, user_id, name, inputs JSONB, results JSONB, created_at, updated_at)
-  - RLS policies for user-owned data
-  - Indexes on user_id and created_at
-- Create TypeScript types in `/types/database.ts` matching schema
-- Environment variables in `.env.local.example`:
-  - NEXT_PUBLIC_SUPABASE_URL
-  - NEXT_PUBLIC_SUPABASE_ANON_KEY
-  - SUPABASE_SERVICE_ROLE_KEY
-- Utility functions in `/lib/supabase/queries.ts`:
-  - saveScenario()
-  - getScenarios()
-  - updateScenario()
-  - deleteScenario()
-
-**Acceptance Criteria**:
-- ✅ Supabase client initializes without errors
-- ✅ Database schema created with proper types
-- ✅ RLS policies protect user data
-- ✅ Query functions have proper TypeScript types
-- ✅ Can create and retrieve test data
-
----
-
-#### Task 1.3: Type Definitions & Data Models
-
-**Objective**: Create comprehensive TypeScript types for all calculator inputs, outputs, and intermediate data structures.
-
-**Key Requirements**:
-
-**1. `/types/calculator.ts` - Core calculation types**:
-- BasicInputs (current_age, retirement_age, longevity_age, province)
-- Assets (rrsp, tfsa, non_registered with nested details)
-- IncomeSources (employment, cpp, oas, other_income)
-- Expenses (fixed_monthly, variable_annual, indexed_to_inflation, age_based_changes)
-- Assumptions (pre_retirement_return, post_retirement_return, inflation_rate, etc.)
-- YearByYearResult (age, balances, withdrawals, income, tax, etc.)
-- CalculationResults (summary, year_by_year, charts)
-- Scenario (complete scenario type combining all above)
-
-**2. `/types/voice.ts` - Voice interaction types**:
-- VoiceIntent (type, confidence, extracted_data)
-- ConversationState (current_step, collected_data, pending_clarifications)
-- VoiceResponse (text, audio_url, should_wait_for_response)
-
-**3. `/types/constants.ts` - Canadian financial constants**:
-- PROVINCES (enum with all 13)
-- FEDERAL_TAX_BRACKETS_2025
-- PROVINCIAL_TAX_BRACKETS (by province)
-- CPP_AMOUNTS (max, average, 2025 values)
-- OAS_AMOUNTS (max, 2025 values)
-- RRIF_MINIMUM_PERCENTAGES (by age)
-
-**4. Additional Requirements**:
-- Add comprehensive JSDoc comments for all types
-- Export all types from `/types/index.ts` barrel file
-
-**Acceptance Criteria**:
-- ✅ All types compile without errors
-- ✅ Types match PRD specifications exactly
-- ✅ Canadian tax constants accurate for 2025
-- ✅ JSDoc comments provide clear documentation
-- ✅ Barrel export works for easy imports
+**Key Achievement**: Migrated Canadian tax data from hardcoded constants to database-backed system, enabling multi-year support and dynamic updates without code deployment.
