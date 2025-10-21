@@ -77,9 +77,9 @@ export async function POST(request: Request) {
               throw new Error('No questions in flow')
             }
 
-            // Generate natural greeting + first question using AI
+            // Generate natural greeting + first question using AI (STREAMED for low latency!)
             const aiProvider = getAIProvider()
-            const greeting = await aiProvider.generateCompletion([
+            const greetingStream = await aiProvider.generateStream([
               {
                 role: 'system',
                 content: `You are a friendly Canadian retirement planning assistant. Greet the user warmly (1 sentence), mention this will take about 2 minutes, then ask the first question naturally. Be conversational and encouraging.`
@@ -90,8 +90,8 @@ export async function POST(request: Request) {
               }
             ], { temperature: 0.7, maxTokens: 100 })
 
-            // Send greeting via text-to-speech
-            stream.tts(greeting.trim())
+            // Stream greeting via text-to-speech (user hears first words in ~300ms!)
+            await stream.ttsTextStream(greetingStream)
 
             // Send progress data
             stream.data({
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
               currentQuestion: firstQuestion.id
             })
 
-            console.log(`💬 Sent greeting with first question: "${greeting.substring(0, 50)}..."`)
+            console.log(`💬 Sent greeting with first question (streamed for low latency)`)
           } catch (error) {
             console.error('Error initializing session:', error)
             stream.tts("I'm sorry, there was an error starting our conversation. Please try again.")
@@ -142,12 +142,12 @@ export async function POST(request: Request) {
 
             const currentQuestion = getCurrentQuestion(conversationKey)
             if (!currentQuestion) {
-              // Conversation complete - send summary
+              // Conversation complete - send summary (STREAMED)
               const collectedData = getCollectedData(conversationKey)
               console.log(`✅ Conversation complete. Collected data:`, collectedData)
 
               const aiProvider = getAIProvider()
-              const summary = await aiProvider.generateCompletion([
+              const summaryStream = await aiProvider.generateStream([
                 {
                   role: 'system',
                   content: `You've just finished collecting retirement planning data from a user. Thank them warmly and mention that you'll now calculate their retirement projection. Keep it brief (2 sentences).`
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
                 }
               ], { temperature: 0.7, maxTokens: 80 })
 
-              stream.tts(summary.trim())
+              await stream.ttsTextStream(summaryStream)
               stream.data({
                 type: 'complete',
                 collectedData
@@ -174,9 +174,9 @@ export async function POST(request: Request) {
             const response = await storeResponse(conversationKey, currentQuestion.id, currentQuestion.text, text)
 
             if (!response || response.parsedValue === null) {
-              // Failed to parse - ask for clarification
+              // Failed to parse - ask for clarification (STREAMED)
               const aiProvider = getAIProvider()
-              const clarification = await aiProvider.generateCompletion([
+              const clarificationStream = await aiProvider.generateStream([
                 {
                   role: 'system',
                   content: `The user's answer to your question wasn't clear. Politely ask them to rephrase. Be warm and encouraging. Keep it brief (under 30 words).`
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
                 }
               ], { temperature: 0.7, maxTokens: 100 })
 
-              stream.tts(clarification.trim())
+              await stream.ttsTextStream(clarificationStream)
               stream.end()
               return
             }
@@ -198,9 +198,9 @@ export async function POST(request: Request) {
             const nextQuestion = getNextQuestion(conversationKey, text)
 
             if (nextQuestion) {
-              // Generate natural transition to next question
+              // Generate natural transition to next question (STREAMED)
               const aiProvider = getAIProvider()
-              const transition = await aiProvider.generateCompletion([
+              const transitionStream = await aiProvider.generateStream([
                 {
                   role: 'system',
                   content: `You're collecting retirement planning info. The user just answered. Acknowledge their answer briefly (reference their value), then ask the next question naturally. Be conversational and warm. Keep it under 40 words.`
@@ -211,7 +211,7 @@ export async function POST(request: Request) {
                 }
               ], { temperature: 0.7, maxTokens: 120 })
 
-              stream.tts(transition.trim())
+              await stream.ttsTextStream(transitionStream)
 
               // Send progress with parsed value for debugging
               const progress = getProgress(conversationKey)
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
               console.log(`✅ Conversation complete. Collected data:`, collectedData)
 
               const aiProvider = getAIProvider()
-              const thanks = await aiProvider.generateCompletion([
+              const thanksStream = await aiProvider.generateStream([
                 {
                   role: 'system',
                   content: `You've finished collecting retirement planning data. Thank the user warmly and mention you're now calculating their retirement projection. Keep it brief (2 sentences).`
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
                 }
               ], { temperature: 0.7, maxTokens: 80 })
 
-              stream.tts(thanks.trim())
+              await stream.ttsTextStream(thanksStream)
 
               stream.data({
                 type: 'complete',

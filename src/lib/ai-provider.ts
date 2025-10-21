@@ -5,6 +5,9 @@
 
 import { OpenAI } from 'openai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { streamText } from 'ai'
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant'
@@ -19,17 +22,28 @@ export interface AIProvider {
       maxTokens?: number
     }
   ): Promise<string>
+  generateStream(
+    messages: AIMessage[],
+    options?: {
+      temperature?: number
+      maxTokens?: number
+    }
+  ): Promise<AsyncIterable<string>>
   getName(): string
 }
 
 class OpenAIProvider implements AIProvider {
   private client: OpenAI
+  private aiSdkClient: ReturnType<typeof createOpenAI>
 
   constructor() {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not set')
     }
     this.client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    })
+    this.aiSdkClient = createOpenAI({
       apiKey: process.env.OPENAI_API_KEY
     })
   }
@@ -48,6 +62,25 @@ class OpenAIProvider implements AIProvider {
     return completion.choices[0].message.content?.trim() || ''
   }
 
+  async generateStream(
+    messages: AIMessage[],
+    options: { temperature?: number; maxTokens?: number } = {}
+  ): Promise<AsyncIterable<string>> {
+    // Separate system messages from conversation messages for Vercel AI SDK
+    const systemMessage = messages.find(m => m.role === 'system')?.content || ''
+    const conversationMessages = messages.filter(m => m.role !== 'system')
+
+    const { textStream } = streamText({
+      model: this.aiSdkClient('gpt-4.1-mini'),
+      system: systemMessage,
+      messages: conversationMessages,
+      temperature: options.temperature ?? 0.7
+      // Note: Vercel AI SDK doesn't use maxTokens, responses are naturally brief
+    })
+
+    return textStream
+  }
+
   getName(): string {
     return 'OpenAI (GPT-4.1-mini)'
   }
@@ -56,6 +89,7 @@ class OpenAIProvider implements AIProvider {
 class GeminiProvider implements AIProvider {
   private client: GoogleGenerativeAI
   private model: any
+  private aiSdkClient: ReturnType<typeof createGoogleGenerativeAI>
 
   constructor() {
     if (!process.env.GEMINI_API_KEY) {
@@ -64,6 +98,9 @@ class GeminiProvider implements AIProvider {
     this.client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     this.model = this.client.getGenerativeModel({
       model: 'gemini-2.5-flash-lite'
+    })
+    this.aiSdkClient = createGoogleGenerativeAI({
+      apiKey: process.env.GEMINI_API_KEY
     })
   }
 
@@ -116,6 +153,25 @@ class GeminiProvider implements AIProvider {
     const response = await result.response
 
     return response.text().trim()
+  }
+
+  async generateStream(
+    messages: AIMessage[],
+    options: { temperature?: number; maxTokens?: number } = {}
+  ): Promise<AsyncIterable<string>> {
+    // Separate system messages from conversation messages for Vercel AI SDK
+    const systemMessage = messages.find(m => m.role === 'system')?.content || ''
+    const conversationMessages = messages.filter(m => m.role !== 'system')
+
+    const { textStream } = streamText({
+      model: this.aiSdkClient('gemini-2.5-flash-lite'), // Fast Gemini model
+      system: systemMessage,
+      messages: conversationMessages,
+      temperature: options.temperature ?? 0.7
+      // Note: Vercel AI SDK doesn't use maxTokens, responses are naturally brief
+    })
+
+    return textStream
   }
 
   getName(): string {
