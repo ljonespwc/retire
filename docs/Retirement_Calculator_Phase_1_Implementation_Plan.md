@@ -377,6 +377,183 @@ Add unit tests with multiple realistic scenarios from the PRD.
 
 ---
 
+## SPRINT 2: COMPLETION SUMMARY ✅
+
+**Status**: COMPLETED
+**Date Completed**: 2025-10-21
+**Total Tests**: 126 passing (100% pass rate)
+
+### What Was Accomplished
+
+**Architecture Change**: Database-Backed Tax Data
+- Instead of hardcoded constants, all Canadian tax data is stored in Supabase database
+- Enables multi-year support and dynamic updates without code deployment
+- Added 7 database tables (tax_years, federal_tax_brackets, provincial_tax_brackets, government_benefits, rrif_minimums, tfsa_limits, tax_credits)
+- Created query layer with in-memory caching (24-hour TTL)
+
+**Task 2.1: Tax Calculation Engine** ✅
+- **File**: `/src/lib/calculations/tax-calculator.ts` (433 lines)
+- **Tests**: 31 passing
+- **Functions Implemented**:
+  - `calculateProgressiveTax()` - Pure progressive tax calculation
+  - `calculateFederalTax()` - Federal tax with credits (basic personal amount + age amount)
+  - `calculateProvincialTax()` - Provincial tax with province-specific credits
+  - `calculateTaxableIncome()` - Income treatment by source (RRSP 100%, capital gains 50%, dividends 138% gross-up)
+  - `calculateOASClawback()` - OAS recovery tax (15% above $86,912)
+  - `calculateTotalTax()` - Master orchestration with detailed breakdown
+- **Database Integration**: All functions accept Supabase client as first parameter
+- **Coverage**: Federal + all 13 provinces/territories with accurate 2025 data
+
+**Task 2.2: Government Benefits Calculator** ✅
+- **File**: `/src/lib/calculations/government-benefits.ts` (344 lines)
+- **Tests**: 38 passing
+- **Functions Implemented**:
+  - `calculateCPPAdjustmentFactor()` - CPP adjustment by age (60-70)
+    - Age 60: 64% (36% reduction)
+    - Age 65: 100% (baseline)
+    - Age 70: 142% (42% enhancement)
+  - `calculateOASAdjustmentFactor()` - OAS deferral bonus (65-70)
+    - Age 65: 100% (baseline)
+    - Age 70: 136% (36% enhancement)
+  - `calculateCPP()` - CPP with age adjustment and database validation
+  - `calculateOAS()` - OAS with age adjustment and database validation
+  - `estimateCPPFromEarnings()` - Estimate CPP from career earnings
+  - `findOptimalCPPStartAge()` - Lifetime benefit optimization
+  - `findOptimalOASStartAge()` - Lifetime benefit optimization
+- **Database Integration**: Uses government_benefits table for CPP/OAS amounts
+
+**Task 2.3: Account Management Functions** ✅
+- **File**: `/src/lib/calculations/accounts.ts` (438 lines)
+- **Tests**: 36 passing
+- **Functions Implemented**:
+  - `getRRIFMinimumPercentage()` - Age-based RRIF minimums from database
+  - `calculateRRIFMinimumWithdrawal()` - Mandatory withdrawal calculation
+  - `projectAccountGrowth()` - Single-year account projection
+  - `calculateWithdrawalSequence()` - Tax-efficient withdrawal order:
+    1. Non-registered first (50% capital gains inclusion)
+    2. RRSP/RRIF second (100% taxable)
+    3. TFSA last (preserve tax-free growth)
+  - `projectYearForward()` - Complete year projection with contributions, withdrawals, and growth
+  - `shouldConvertToRRIF()` - RRSP to RRIF conversion at age 71
+  - `calculateTotalBalance()` - Helper for account summation
+- **Database Integration**: Uses rrif_minimums table for withdrawal percentages
+
+**Task 2.4: Main Calculation Engine** ✅
+- **File**: `/src/lib/calculations/engine.ts` (401 lines)
+- **Tests**: 21 passing
+- **Functions Implemented**:
+  - `calculateRetirementProjection()` - Master orchestration function:
+    - **Phase 1**: Pre-retirement accumulation (contributions + growth)
+    - **Phase 2**: Retirement drawdown (withdrawals + taxes + benefits + growth)
+    - Year-by-year simulation from current age to longevity
+    - Integrates tax calculator, benefits calculator, and account management
+    - Returns detailed breakdown and summary statistics
+  - `compareScenarios()` - Multi-scenario comparison for what-if analysis
+- **Integration**: Ties together all calculation modules
+- **Output**: Complete CalculationResults with year-by-year breakdown
+
+### Database Updates
+
+**New Migration**: `004_add_provincial_tax_credits.sql`
+- Added `province_code` column to `tax_credits` table
+- Supports both federal and provincial tax credits in same table
+- Updated constraints and indexes
+
+**New Migration**: `005_seed_provincial_tax_credits.sql`
+- Seeded 2025 provincial basic personal amounts for all 13 provinces:
+  - AB: $21,885, BC: $12,580, MB: $15,780, NB: $13,044, NL: $10,382
+  - NT: $16,593, NS: $8,744, NU: $17,925, ON: $11,865, PE: $13,500
+  - QC: $18,056, SK: $18,491, YT: $15,705
+- Seeded provincial age amounts for ON and BC
+
+### Testing Infrastructure
+
+**Vitest Setup** ✅
+- **Config**: `vitest.config.ts` with Next.js/React compatibility
+- **Test Setup**: `src/lib/test-setup.ts` with globals
+- **Test Utils**: `src/lib/test-utils.ts` for React component testing
+- **Test Fixtures**: `src/lib/test-fixtures.ts` with:
+  - Sample scenarios (modest and substantial)
+  - Sample tax data (2025 federal and Ontario)
+  - Sample CPP/OAS amounts
+  - Mock Supabase client for database-free testing
+
+**Test Coverage** ✅
+- **Tax Calculator**: 31 tests covering progressive tax, federal/provincial tax, income treatment, OAS clawback
+- **Government Benefits**: 38 tests covering CPP/OAS adjustments, estimations, optimization
+- **Accounts**: 36 tests covering RRIF minimums, withdrawal sequencing, projections
+- **Engine**: 21 tests covering full simulations, integration, realistic scenarios
+
+**Test Results**: 126/126 passing (100%)
+
+### Key Architectural Decisions
+
+**1. Dependency Injection Pattern**
+- All calculation functions accept Supabase client as first parameter
+- Enables easy testing with mock clients
+- Supports multiple database instances (production, staging, testing)
+
+**2. Database-Backed Tax Data**
+- Tax data stored in Supabase instead of hardcoded
+- Enables multi-year support (2025, 2026, etc.)
+- Allows updates without code deployment
+- Supports historical comparisons
+
+**3. Pure Functions Where Possible**
+- `calculateProgressiveTax()`, `calculateTaxableIncome()`, `calculateOASClawback()` are pure
+- No database queries for calculation logic, only for data retrieval
+- Easier to test and reason about
+
+**4. Comprehensive Type Safety**
+- All functions use strict TypeScript types
+- Database types auto-generated from Supabase schema
+- Calculator types in `src/types/calculator.ts`
+
+### Files Created (13 files)
+
+**Configuration**:
+- `vitest.config.ts`
+- `.npmrc` (updated with test scripts)
+
+**Testing Infrastructure**:
+- `src/lib/test-setup.ts`
+- `src/lib/test-utils.ts`
+- `src/lib/test-fixtures.ts`
+- `src/lib/calculations/__tests__/test-helpers.ts`
+
+**Calculation Engines**:
+- `src/lib/calculations/tax-calculator.ts`
+- `src/lib/calculations/government-benefits.ts`
+- `src/lib/calculations/accounts.ts`
+- `src/lib/calculations/engine.ts`
+
+**Tests**:
+- `src/lib/calculations/__tests__/tax-calculator.test.ts`
+- `src/lib/calculations/__tests__/government-benefits.test.ts`
+- `src/lib/calculations/__tests__/accounts.test.ts`
+- `src/lib/calculations/__tests__/engine.test.ts`
+
+**Migrations**:
+- `supabase/migrations/004_add_provincial_tax_credits.sql`
+- `supabase/migrations/005_seed_provincial_tax_credits.sql`
+
+### Files Updated (3 files)
+
+- `src/lib/supabase/tax-data.ts` - Added provincial credit queries
+- `src/types/database.ts` - Added province_code column to tax_credits
+- `package.json` - Added test scripts
+
+### Ready for Next Sprint
+
+Sprint 2 provides the complete calculation foundation needed for Sprint 3 (Voice Integration) and Sprint 4 (UI Components). All core business logic is implemented, tested, and ready for integration with the user interface.
+
+**Next Steps**:
+- Sprint 3: Voice integration with Layercode SDK
+- Sprint 4: UI components to display calculation results
+- Sprint 5: Integration, testing, and deployment
+
+---
+
 # SPRINT 3: Voice Integration & Conversation Flow
 
 ## Task 3.1: Layercode SDK Integration

@@ -301,12 +301,26 @@ export interface ChartData {
  * Complete calculation results
  */
 export interface CalculationResults {
-  /** Summary statistics */
-  summary: CalculationSummary;
+  /** Scenario name */
+  scenario_name: string;
+  /** Whether the retirement plan is successful (portfolio lasts until longevity age) */
+  success: boolean;
+  /** Final portfolio value at end of simulation */
+  final_portfolio_value: number;
+  /** Age at which portfolio is depleted (if applicable) */
+  portfolio_depleted_age?: number;
+  /** First year retirement income */
+  first_year_retirement_income: number;
+  /** Average tax rate in retirement */
+  average_tax_rate_in_retirement: number;
+  /** Total taxes paid in retirement */
+  total_taxes_paid_in_retirement: number;
+  /** Total CPP received over retirement */
+  total_cpp_received: number;
+  /** Total OAS received over retirement */
+  total_oas_received: number;
   /** Year-by-year detailed results */
   year_by_year: YearByYearResult[];
-  /** Chart data for visualizations */
-  charts: ChartData;
 }
 
 /**

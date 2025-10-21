@@ -196,39 +196,128 @@ export const sampleRRIFMinimums: Record<number, number> = {
  * Returns sample data without making real database calls
  */
 export const createMockSupabaseClient = () => {
+  // Store query filters
+  let queryFilters: Record<string, any> = {};
+  let isNullFilter: string | null = null;
+
+  const createQueryBuilder = (table: string, columns: string) => {
+    const getData = () => {
+      // Determine what data to return based on table and filters
+      let data: any[] = [];
+
+      if (table === 'federal_tax_brackets') {
+        data = sample2025FederalBrackets.map((b, i) => ({
+          income_limit: b.limit,
+          rate: b.rate,
+          bracket_index: i,
+        }));
+      } else if (table === 'provincial_tax_brackets') {
+        data = sample2025OntarioBrackets.map((b, i) => ({
+          income_limit: b.limit,
+          rate: b.rate,
+          bracket_index: i,
+          province_code: 'ON',
+        }));
+      } else if (table === 'rrif_minimums') {
+        // Return RRIF minimums as array of {age, percentage} objects
+        data = Object.entries(sampleRRIFMinimums).map(([age, percentage]) => ({
+          age: parseInt(age),
+          percentage,
+        }));
+      } else if (table === 'tax_credits') {
+        // Return federal or provincial credits based on province_code filter
+        if (isNullFilter === 'province_code') {
+          // Federal credits
+          data = [
+            {
+              credit_type: 'BASIC_PERSONAL_AMOUNT',
+              data: { amount: 15705 },
+            },
+            {
+              credit_type: 'AGE_AMOUNT',
+              data: {
+                max_credit: 8790,
+                income_threshold: 43906,
+                reduction_rate: 0.15,
+              },
+            },
+          ];
+        } else if (queryFilters['province_code']) {
+          // Provincial credits
+          data = [
+            {
+              credit_type: 'BASIC_PERSONAL_AMOUNT',
+              data: { amount: 11865 }, // Ontario
+            },
+            {
+              credit_type: 'AGE_AMOUNT',
+              data: {
+                max_credit: 6040,
+                income_threshold: 45365,
+                reduction_rate: 0.15,
+              },
+            },
+          ];
+        }
+      }
+
+      // Reset filters for next query
+      queryFilters = {};
+      isNullFilter = null;
+
+      return data;
+    };
+    const builder: any = {
+      eq: (column: string, value: any) => {
+        queryFilters[column] = value;
+        // Return builder with lazy data evaluation for chained eq() queries
+        return {
+          ...builder,
+          error: null,
+          // Getter for data that calls getData() when accessed
+          get data() {
+            return getData();
+          },
+        };
+      },
+      is: (column: string, value: null) => {
+        isNullFilter = column;
+        // Return data immediately (for queries that don't call .order())
+        return {
+          ...builder,
+          data: getData(),
+          error: null,
+        };
+      },
+      order: (orderColumn: string, options?: any) => {
+        return { data: getData(), error: null };
+      },
+      single: () => {
+        let data: any = null;
+
+        if (table === 'government_benefits') {
+          if (queryFilters['benefit_type'] === 'CPP') {
+            // Return data directly, not wrapped in another data property
+            data = { data: sample2025CPPAmounts };
+          } else if (queryFilters['benefit_type'] === 'OAS') {
+            data = { data: sample2025OASAmounts };
+          }
+        }
+
+        // Reset filters for next query
+        queryFilters = {};
+        isNullFilter = null;
+
+        return { data, error: null };
+      },
+    };
+
+    return builder;
+  };
+
   return {
     from: (table: string) => ({
-      select: (columns: string) => ({
-        eq: (column: string, value: any) => ({
-          order: (orderColumn: string, options?: any) => ({
-            data:
-              table === 'federal_tax_brackets'
-                ? sample2025FederalBrackets.map((b, i) => ({
-                    income_limit: b.limit,
-                    rate: b.rate,
-                    bracket_index: i,
-                  }))
-                : table === 'provincial_tax_brackets'
-                  ? sample2025OntarioBrackets.map((b, i) => ({
-                      income_limit: b.limit,
-                      rate: b.rate,
-                      bracket_index: i,
-                      province_code: 'ON',
-                    }))
-                  : [],
-            error: null,
-          }),
-          single: () => ({
-            data:
-              table === 'government_benefits' && value === 'CPP'
-                ? { data: sample2025CPPAmounts }
-                : table === 'government_benefits' && value === 'OAS'
-                  ? { data: sample2025OASAmounts }
-                  : null,
-            error: null,
-          }),
-        }),
-      }),
+      select: (columns: string) => createQueryBuilder(table, columns),
     }),
   } as any;
 };

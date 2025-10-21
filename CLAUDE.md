@@ -212,3 +212,77 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - `.npmrc` configured with `legacy-peer-deps` for dependency resolution
 
 **Key Achievement**: Migrated Canadian tax data from hardcoded constants to database-backed system, enabling multi-year support and dynamic updates without code deployment.
+
+### Sprint 2: Calculation Engine (Core Business Logic) ✅ COMPLETED
+
+**Accomplished**:
+
+**0. Pre-Sprint 2 Setup**
+- Installed Vitest with Next.js/React compatibility (`vitest.config.ts`)
+- Created testing infrastructure (test-setup.ts, test-utils.ts, test-fixtures.ts)
+- Added provincial tax credits to database (migrations 004 and 005)
+- Seeded 2025 provincial basic personal amounts for all 13 provinces/territories
+- Updated tax-data.ts with provincial credit query functions
+- Created test helpers with comprehensive patterns and documentation
+
+**1. Tax Calculation Engine** (`src/lib/calculations/tax-calculator.ts` - 433 lines)
+- **31 tests passing** - 100% coverage of tax scenarios
+- Progressive tax calculation (pure function)
+- Federal tax with basic personal amount ($15,705) and age amount (income-tested)
+- Provincial tax for all 13 provinces/territories with province-specific credits
+- Income treatment by source (RRSP 100%, capital gains 50%, dividends 138% gross-up, TFSA 0%)
+- OAS clawback calculation (15% above $86,912 threshold)
+- Master tax function with detailed breakdown (federal + provincial + OAS clawback)
+- All functions accept Supabase client as first parameter (dependency injection pattern)
+
+**2. Government Benefits Calculator** (`src/lib/calculations/government-benefits.ts` - 344 lines)
+- **38 tests passing** - Full coverage of CPP/OAS scenarios
+- CPP adjustment factors by age (60-70): 64% at 60, 100% at 65, 142% at 70
+- OAS deferral bonuses (65-70): 100% at 65, 136% at 70
+- CPP and OAS calculations with database-backed amounts
+- Earnings-based CPP estimation
+- Optimal start age calculators (lifetime benefit maximization)
+- Integrated with government_benefits table for accurate 2025 amounts
+
+**3. Account Management Functions** (`src/lib/calculations/accounts.ts` - 438 lines)
+- **36 tests passing** - Comprehensive account projection coverage
+- RRIF minimum withdrawal calculations (age-based percentages from database)
+- Tax-efficient withdrawal sequencing:
+  1. Non-registered first (capital gains advantage)
+  2. RRSP/RRIF second (preserve TFSA)
+  3. TFSA last (preserve tax-free growth)
+- Account growth projections (single-year and multi-year)
+- RRSP to RRIF conversion at age 71
+- Integration with rrif_minimums table
+
+**4. Main Calculation Engine** (`src/lib/calculations/engine.ts` - 401 lines)
+- **21 tests passing** - End-to-end simulation coverage
+- Master orchestration function: `calculateRetirementProjection()`
+  - Phase 1: Pre-retirement accumulation (contributions + growth)
+  - Phase 2: Retirement drawdown (withdrawals + taxes + benefits + growth)
+  - Year-by-year simulation from current age to longevity
+  - Integrates all calculation modules (tax, benefits, accounts)
+  - Returns complete CalculationResults with year-by-year breakdown
+- Scenario comparison function for what-if analysis
+- Portfolio depletion detection and success metrics
+- Summary statistics (final portfolio value, total taxes paid, total benefits received)
+
+**Test Results**: **126 tests passing** (31 tax + 38 benefits + 36 accounts + 21 engine)
+
+**Key Architectural Decisions**:
+1. **Dependency Injection**: All functions accept Supabase client - enables testing with mocks
+2. **Database-Backed Data**: Tax data in Supabase, not hardcoded - enables multi-year support
+3. **Pure Functions**: Calculation logic separated from data retrieval - easier to test
+4. **Type Safety**: Strict TypeScript with auto-generated database types
+
+**Files Created**: 17 files (4 calculation engines, 4 test files, 4 test infrastructure files, 2 migrations, 3 config files)
+
+**Files Updated**: 4 files (tax-data.ts, database.ts, package.json, .npmrc)
+
+**Post-Sprint Type Fixes** (Production Build):
+- Fixed optional asset field handling in engine.ts (rrsp, tfsa, non_registered)
+- Aligned CalculationResults interface with implementation (flat structure vs nested)
+- Fixed AgeBasedExpenseChange property names (age vs start_age, monthly_amount vs new_monthly_amount)
+- Production build and Vercel deployment successful
+
+**Achievement**: Complete, tested calculation engine ready for UI integration. All Canadian retirement income calculations (federal/provincial taxes, CPP/OAS, RRSP/RRIF/TFSA) implemented with 100% test coverage and successfully deployed to production.
