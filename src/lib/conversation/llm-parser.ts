@@ -212,15 +212,18 @@ export async function detectSkipIntent(text: string): Promise<boolean> {
       role: 'system',
       content: `Determine if the user wants to skip the question. Return ONLY "true" if they want to skip, "false" otherwise.
 
+IMPORTANT: "none", "zero", "nothing" are NOT skip intents - they are valid answers meaning they don't have something.
+
 Examples:
 "skip" → true
 "pass" → true
-"I don't know" → true
-"not sure" → true
 "I'd rather not say" → true
 "next question" → true
 "I'm 45" → false
-"yes" → false`
+"yes" → false
+"none" → false
+"zero" → false
+"I don't have one" → false`
     },
     {
       role: 'user',

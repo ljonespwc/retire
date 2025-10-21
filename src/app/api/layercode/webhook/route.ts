@@ -173,7 +173,10 @@ export async function POST(request: Request) {
             // Store response (this parses and validates using LLM)
             const response = await storeResponse(conversationKey, currentQuestion.id, currentQuestion.text, text)
 
-            if (!response || response.parsedValue === null) {
+            // Check if parse failed (null is OK for optional questions!)
+            const parseFailed = !response || (response.parsedValue === null && currentQuestion.required)
+
+            if (parseFailed) {
               // Failed to parse - ask for clarification (STREAMED)
               const aiProvider = getAIProvider()
               const clarificationStream = await aiProvider.generateStream([
