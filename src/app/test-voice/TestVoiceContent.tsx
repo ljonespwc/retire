@@ -227,14 +227,42 @@ export function TestVoiceContent() {
           </ol>
         </div>
 
-        {/* Data Messages */}
+        {/* Data Messages - Debug Info */}
         {dataMessages.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Data Messages</h2>
-            <div className="space-y-2">
+            <h2 className="text-lg font-semibold mb-4">Debug: Conversation Flow</h2>
+            <div className="space-y-3">
               {dataMessages.map((msg, idx) => (
-                <div key={idx} className="text-xs font-mono bg-gray-50 p-2 rounded">
-                  {JSON.stringify(msg, null, 2)}
+                <div key={idx} className="border border-gray-200 rounded p-3">
+                  {msg.type === 'progress' && msg.lastAnswer && (
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        Question {msg.current - 1}/{msg.total}: {msg.lastAnswer.questionId}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        <span className="font-medium">You said:</span> "{msg.lastAnswer.rawText}"
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-medium text-green-600">Parsed:</span>{' '}
+                        <span className="font-mono bg-green-50 px-2 py-1 rounded">
+                          {JSON.stringify(msg.lastAnswer.parsedValue)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        → Next: {msg.currentQuestion}
+                      </div>
+                    </div>
+                  )}
+                  {msg.type === 'progress' && !msg.lastAnswer && (
+                    <div className="text-sm text-gray-600">
+                      Starting question {msg.current}/{msg.total}: {msg.currentQuestion}
+                    </div>
+                  )}
+                  {msg.type === 'complete' && (
+                    <div className="text-sm font-medium text-green-600">
+                      ✓ Conversation complete!
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

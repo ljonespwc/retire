@@ -17,11 +17,12 @@ import { Province } from '@/types/constants'
 export function extractAge(text: string): number | null {
   const normalizedText = text.toLowerCase()
 
-  // Direct number patterns
+  // Direct number patterns - expanded to catch more cases
   const directPatterns = [
-    /(?:i'm|i am|age|currently)\s+(\d{1,3})/i,
+    /(?:i'm|i am|age|currently|retire at|retiring at|around|about|probably)\s+(\d{1,3})/i,
     /(\d{1,3})\s+(?:years old|year old|yrs old|yr old)/i,
-    /^(\d{1,3})$/  // Just a number
+    /^(\d{1,3})$/,  // Just a number
+    /\b(\d{1,3})\b/  // Any number in the text (last resort)
   ]
 
   for (const pattern of directPatterns) {

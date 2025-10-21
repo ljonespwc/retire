@@ -213,14 +213,19 @@ export async function POST(request: Request) {
 
               stream.tts(transition.trim())
 
-              // Send progress
+              // Send progress with parsed value for debugging
               const progress = getProgress(conversationKey)
               if (progress) {
                 stream.data({
                   type: 'progress',
                   current: progress.current,
                   total: progress.total,
-                  currentQuestion: nextQuestion.id
+                  currentQuestion: nextQuestion.id,
+                  lastAnswer: {
+                    questionId: currentQuestion.id,
+                    rawText: text,
+                    parsedValue: response.parsedValue
+                  }
                 })
               }
             } else {
