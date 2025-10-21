@@ -313,27 +313,57 @@ export function VoiceFirstContent() {
                       <label className="block text-xs font-medium text-gray-500 mb-1">
                         RRSP
                       </label>
-                      <div className="text-lg font-semibold text-gray-900">
-                        {rrsp !== null ? `$${rrsp.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                      </div>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={rrsp || ''}
+                          onChange={(e) => setRrsp(Number(e.target.value) || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          placeholder="0"
+                        />
+                      ) : (
+                        <div className="text-lg font-semibold text-gray-900">
+                          {rrsp !== null ? `$${rrsp.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                        </div>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">
                         TFSA
                       </label>
-                      <div className="text-lg font-semibold text-gray-900">
-                        {tfsa !== null ? `$${tfsa.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                      </div>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={tfsa || ''}
+                          onChange={(e) => setTfsa(Number(e.target.value) || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          placeholder="0"
+                        />
+                      ) : (
+                        <div className="text-lg font-semibold text-gray-900">
+                          {tfsa !== null ? `$${tfsa.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                        </div>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">
                         Non-Registered
                       </label>
-                      <div className="text-lg font-semibold text-gray-900">
-                        {nonRegistered !== null ? `$${nonRegistered.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                      </div>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={nonRegistered || ''}
+                          onChange={(e) => setNonRegistered(Number(e.target.value) || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          placeholder="0"
+                        />
+                      ) : (
+                        <div className="text-lg font-semibold text-gray-900">
+                          {nonRegistered !== null ? `$${nonRegistered.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -345,18 +375,39 @@ export function VoiceFirstContent() {
                       <label className="block text-xs font-medium text-gray-500 mb-1">
                         Monthly Spending
                       </label>
-                      <div className="text-lg font-semibold text-gray-900">
-                        {monthlySpending !== null ? `$${monthlySpending.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                      </div>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={monthlySpending || ''}
+                          onChange={(e) => setMonthlySpending(Number(e.target.value) || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          placeholder="0"
+                        />
+                      ) : (
+                        <div className="text-lg font-semibold text-gray-900">
+                          {monthlySpending !== null ? `$${monthlySpending.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                        </div>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">
                         Expected Return
                       </label>
-                      <div className="text-lg font-semibold text-gray-900">
-                        {investmentReturn !== null ? `${investmentReturn}%` : <span className="text-gray-400">—</span>}
-                      </div>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={investmentReturn || ''}
+                          onChange={(e) => setInvestmentReturn(Number(e.target.value) || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          placeholder="5.0"
+                          step="0.1"
+                        />
+                      ) : (
+                        <div className="text-lg font-semibold text-gray-900">
+                          {investmentReturn !== null ? `${investmentReturn}%` : <span className="text-gray-400">—</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

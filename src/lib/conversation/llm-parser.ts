@@ -55,7 +55,7 @@ export async function extractAmount(text: string): Promise<number | null> {
   const response = await aiProvider.generateCompletion([
     {
       role: 'system',
-      content: `Extract the dollar amount from the user's response. Return ONLY the numeric value (no commas, no dollar signs), or "null" if no valid amount is found.
+      content: `Extract the dollar amount from the user's response. Return ONLY the numeric value (no commas, no dollar signs), or "null" if they don't have it.
 
 Examples:
 "$500,000" → 500000
@@ -63,9 +63,11 @@ Examples:
 "half a million" → 500000
 "1.5 million" → 1500000
 "about 300,000" → 300000
-"zero" → 0
-"nothing" → 0
-"I don't have one" → null`
+"zero" → null
+"nothing" → null
+"none" → null
+"I don't have one" → null
+"I don't have any" → null`
     },
     {
       role: 'user',

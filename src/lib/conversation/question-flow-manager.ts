@@ -78,62 +78,20 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
       required: true
     },
     {
-      id: 'has_rrsp',
-      text: "Do you have an RRSP account?",
-      type: 'yes_no',
-      required: false,
-      followUp: (response, allResponses) => {
-        const hasRrsp = allResponses.get('has_rrsp')
-        // If they said no, skip the amount question
-        if (hasRrsp?.parsedValue === false) {
-          return 'has_tfsa'
-        }
-        return null // Continue to rrsp_amount
-      }
-    },
-    {
       id: 'rrsp_amount',
-      text: "What's the current balance in your RRSP?",
+      text: "What's the current balance in your RRSP? If you don't have one, just say 'none' or 'zero'.",
       type: 'amount',
       required: false
-    },
-    {
-      id: 'has_tfsa',
-      text: "Do you have a TFSA account?",
-      type: 'yes_no',
-      required: false,
-      followUp: (response, allResponses) => {
-        const hasTfsa = allResponses.get('has_tfsa')
-        // If they said no, skip the amount question
-        if (hasTfsa?.parsedValue === false) {
-          return 'has_non_registered'
-        }
-        return null // Continue to tfsa_amount
-      }
     },
     {
       id: 'tfsa_amount',
-      text: "What's your current TFSA balance?",
+      text: "What's your TFSA balance? Say 'none' if you don't have one.",
       type: 'amount',
       required: false
     },
     {
-      id: 'has_non_registered',
-      text: "Do you have any non-registered investment accounts?",
-      type: 'yes_no',
-      required: false,
-      followUp: (response, allResponses) => {
-        const hasNonReg = allResponses.get('has_non_registered')
-        // If they said no, skip the amount question
-        if (hasNonReg?.parsedValue === false) {
-          return 'monthly_spending'
-        }
-        return null // Continue to non_registered_amount
-      }
-    },
-    {
       id: 'non_registered_amount',
-      text: "What's the total value of your non-registered investments?",
+      text: "What's the total value of your non-registered investments? Say 'none' if you don't have any.",
       type: 'amount',
       required: false
     },
@@ -340,22 +298,26 @@ export function getCollectedData(conversationId: string): {
   currentAge?: number
   retirementAge?: number
   province?: Province
-  rrsp?: number
-  tfsa?: number
-  non_registered?: number
+  rrsp?: number | null
+  tfsa?: number | null
+  non_registered?: number | null
   monthlySpending?: number
   investmentReturn?: number
 } {
   const state = conversationStates.get(conversationId)
   if (!state) return {}
 
+  const rrsp = state.responses.get('rrsp_amount')?.parsedValue
+  const tfsa = state.responses.get('tfsa_amount')?.parsedValue
+  const nonReg = state.responses.get('non_registered_amount')?.parsedValue
+
   return {
     currentAge: state.responses.get('current_age')?.parsedValue,
     retirementAge: state.responses.get('retirement_age')?.parsedValue,
     province: state.responses.get('province')?.parsedValue,
-    rrsp: state.responses.get('rrsp_amount')?.parsedValue,
-    tfsa: state.responses.get('tfsa_amount')?.parsedValue,
-    non_registered: state.responses.get('non_registered_amount')?.parsedValue,
+    rrsp: rrsp !== undefined ? rrsp : undefined,
+    tfsa: tfsa !== undefined ? tfsa : undefined,
+    non_registered: nonReg !== undefined ? nonReg : undefined,
     monthlySpending: state.responses.get('monthly_spending')?.parsedValue,
     investmentReturn: state.responses.get('investment_return')?.parsedValue || 5.0 // Default to 5%
   }
