@@ -81,59 +81,61 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
       id: 'has_rrsp',
       text: "Do you have an RRSP account?",
       type: 'yes_no',
-      required: false
+      required: false,
+      followUp: (response, allResponses) => {
+        const hasRrsp = allResponses.get('has_rrsp')
+        // If they said no, skip the amount question
+        if (hasRrsp?.parsedValue === false) {
+          return 'has_tfsa'
+        }
+        return null // Continue to rrsp_amount
+      }
     },
     {
       id: 'rrsp_amount',
       text: "What's the current balance in your RRSP?",
       type: 'amount',
-      required: false,
-      followUp: (response, allResponses) => {
-        const hasRrsp = allResponses.get('has_rrsp')
-        // Only ask if they said yes to having RRSP
-        if (hasRrsp?.parsedValue === false) {
-          return 'has_tfsa' // Skip to TFSA question
-        }
-        return null // Continue to next question normally
-      }
+      required: false
     },
     {
       id: 'has_tfsa',
       text: "Do you have a TFSA account?",
       type: 'yes_no',
-      required: false
+      required: false,
+      followUp: (response, allResponses) => {
+        const hasTfsa = allResponses.get('has_tfsa')
+        // If they said no, skip the amount question
+        if (hasTfsa?.parsedValue === false) {
+          return 'has_non_registered'
+        }
+        return null // Continue to tfsa_amount
+      }
     },
     {
       id: 'tfsa_amount',
       text: "What's your current TFSA balance?",
       type: 'amount',
-      required: false,
-      followUp: (response, allResponses) => {
-        const hasTfsa = allResponses.get('has_tfsa')
-        if (hasTfsa?.parsedValue === false) {
-          return 'has_non_registered' // Skip to non-registered question
-        }
-        return null
-      }
+      required: false
     },
     {
       id: 'has_non_registered',
       text: "Do you have any non-registered investment accounts?",
       type: 'yes_no',
-      required: false
+      required: false,
+      followUp: (response, allResponses) => {
+        const hasNonReg = allResponses.get('has_non_registered')
+        // If they said no, skip the amount question
+        if (hasNonReg?.parsedValue === false) {
+          return 'monthly_spending'
+        }
+        return null // Continue to non_registered_amount
+      }
     },
     {
       id: 'non_registered_amount',
       text: "What's the total value of your non-registered investments?",
       type: 'amount',
-      required: false,
-      followUp: (response, allResponses) => {
-        const hasNonReg = allResponses.get('has_non_registered')
-        if (hasNonReg?.parsedValue === false) {
-          return 'monthly_spending' // Skip to spending question
-        }
-        return null
-      }
+      required: false
     },
     {
       id: 'monthly_spending',
