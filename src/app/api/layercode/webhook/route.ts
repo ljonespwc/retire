@@ -170,8 +170,8 @@ export async function POST(request: Request) {
 
             console.log(`💬 User answered "${currentQuestion.id}": "${text.substring(0, 50)}..."`)
 
-            // Store response (this parses and validates)
-            const response = storeResponse(conversationKey, currentQuestion.id, currentQuestion.text, text)
+            // Store response (this parses and validates using LLM)
+            const response = await storeResponse(conversationKey, currentQuestion.id, currentQuestion.text, text)
 
             if (!response || response.parsedValue === null) {
               // Failed to parse - ask for clarification

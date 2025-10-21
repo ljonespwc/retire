@@ -5,7 +5,7 @@
  * Implements a state machine that tracks progress and determines next questions.
  */
 
-import { extractAge, extractAmount, extractProvince, extractPercentage, detectSkipIntent } from './number-parser'
+import { extractAge, extractAmount, extractProvince, extractPercentage, extractYesNo, detectSkipIntent } from './llm-parser'
 import { Province } from '@/types/constants'
 
 /**
@@ -202,13 +202,14 @@ export function getCurrentQuestion(conversationId: string): Question | null {
 
 /**
  * Store response and move to next question
+ * Now async because we use LLM for parsing
  */
-export function storeResponse(
+export async function storeResponse(
   conversationId: string,
   questionId: string,
   questionText: string,
   rawText: string
-): QuestionResponse | null {
+): Promise<QuestionResponse | null> {
   const state = conversationStates.get(conversationId)
   if (!state) return null
 
@@ -218,8 +219,9 @@ export function storeResponse(
     return null
   }
 
-  // Check for skip intent
-  if (detectSkipIntent(rawText) && !currentQuestion.required) {
+  // Check for skip intent (async now)
+  const shouldSkip = await detectSkipIntent(rawText)
+  if (shouldSkip && !currentQuestion.required) {
     console.log(`⏭️ User skipped optional question: ${questionId}`)
 
     const response: QuestionResponse = {
@@ -234,29 +236,23 @@ export function storeResponse(
     return response
   }
 
-  // Parse response based on question type
+  // Parse response based on question type (all async now)
   let parsedValue: any = null
   switch (currentQuestion.type) {
     case 'age':
-      parsedValue = extractAge(rawText)
+      parsedValue = await extractAge(rawText)
       break
     case 'amount':
-      parsedValue = extractAmount(rawText)
+      parsedValue = await extractAmount(rawText)
       break
     case 'province':
-      parsedValue = extractProvince(rawText)
+      parsedValue = await extractProvince(rawText)
       break
     case 'percentage':
-      parsedValue = extractPercentage(rawText)
+      parsedValue = await extractPercentage(rawText)
       break
     case 'yes_no':
-      // Simple yes/no detection
-      const lower = rawText.toLowerCase()
-      if (lower.includes('yes') || lower.includes('yeah') || lower.includes('yep')) {
-        parsedValue = true
-      } else if (lower.includes('no') || lower.includes('nope') || lower.includes('nah')) {
-        parsedValue = false
-      }
+      parsedValue = await extractYesNo(rawText)
       break
   }
 
