@@ -554,219 +554,814 @@ Sprint 2 provides the complete calculation foundation needed for Sprint 3 (Voice
 
 ---
 
-# SPRINT 3: Voice Integration & Conversation Flow
+# SPRINT 3: Voice Integration & Hybrid UI
 
-## Task 3.1: Layercode SDK Integration
+**Timeline**: 9.5 days (significantly reduced from original 2-3 week estimate)
 
-**Objective**: Integrate Layercode Voice API for speech-to-text and text-to-speech.
+**Key Architectural Insight**: After analyzing the working Survey Buster implementation, we now have complete clarity on the Layercode architecture and can copy 80% of the code directly.
 
-**Claude Code Prompt**:
+## Architecture Overview (Corrected Understanding)
+
+**What Layercode Handles** (Complete Voice Pipeline):
+- ✅ WebRTC audio streaming (browser ↔ cloud)
+- ✅ Speech-to-Text (STT) - automatic transcription
+- ✅ Text-to-Speech (TTS) - natural voice output
+- ✅ Voice Activity Detection (VAD) - automatic turn-taking
+- ✅ All voice processing infrastructure
+
+**What OpenAI/Gemini Handle** (Conversation Intelligence Only):
+- ✅ Response generation
+- ✅ Intent extraction from transcribed text
+- ✅ Number parsing and validation
+- ✅ Conversation flow logic
+
+**Critical Insight**: Layercode's webhook receives **already-transcribed text** from their STT service. We don't need to configure STT/TTS or VAD - it's all handled automatically.
+
+**Data Flow**:
 ```
-Integrate Layercode Voice API in /lib/voice/layercode-client.ts:
-
-1. Install Layercode SDK (check their docs for package name)
-
-2. Create LayercodeClient class:
-   - constructor(apiKey: string)
-   - Methods:
-     * transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult>
-     * synthesizeSpeech(text: string, options?: VoiceOptions): Promise<AudioBlob>
-     * parseIntent(transcript: string): Promise<IntentResult>
-   
-3. Voice Configuration:
-   - Default voice: Canadian English (neutral accent)
-   - Speech rate: 150 WPM
-   - Support for emphasis on numbers
-   
-4. Intent Parsing Configuration:
-   Train/configure Layercode to recognize financial intents:
-   - set_age: "I'm 58" → {age: 58}
-   - set_retirement_age: "I want to retire at 62" → {retirement_age: 62}
-   - set_rrsp: "I have 8 million in RRSPs" → {rrsp: 8000000}
-   - set_tfsa: "TFSA has 200K" → {tfsa: 200000}
-   - set_expenses: "I spend $2500 per month" → {monthly_expenses: 2500}
-   - ask_question: "How much can I spend per month?"
-   - compare_scenarios: "What if I delay by 3 years?"
-   - confirm: "yes", "that's right", "correct"
-   - clarify: "I don't know", "skip this"
-   
-5. Error Handling:
-   - Handle low confidence scores (<0.75)
-   - Retry logic for network failures
-   - Fallback to text input if voice fails
-   
-6. Create React hook /hooks/useLayercode.ts:
-   - Manages Layercode client instance
-   - Provides: transcribe(), speak(), parseIntent()
-   - Handles loading and error states
-
-Add environment variables to .env.local.example:
-- NEXT_PUBLIC_LAYERCODE_API_KEY
-
-Include mock Layercode responses for testing without API calls.
+User speaks → Layercode WebRTC (browser) → Layercode Cloud STT →
+Webhook POST with transcribed text → Backend AI (OpenAI/Gemini) →
+stream.tts("response text") → Layercode Cloud TTS →
+Layercode WebRTC (browser) → User hears AI response
 ```
 
-**Acceptance Criteria**:
-- ✅ Layercode SDK integrated and authenticated
-- ✅ Audio transcription works
-- ✅ Speech synthesis produces clear audio
-- ✅ Intent parsing extracts financial data
-- ✅ React hook provides clean interface
-- ✅ Error handling robust
+**Reference Implementation**: `/Users/lancejones/projects/surveybuster/` has working code to copy.
 
 ---
 
-## Task 3.2: Conversation State Machine
+## Task 3.1: Copy Layercode Integration from Survey Buster
 
-**Objective**: Implement conversation flow logic for gathering retirement planning inputs.
+**Duration**: 1 day
+
+**Objective**: Copy and adapt the complete Layercode integration from Survey Buster, which handles WebRTC voice streaming and SSE webhook responses.
 
 **Claude Code Prompt**:
 ```
-Create conversation state machine in /lib/voice/conversation-manager.ts:
+Copy Layercode integration from Survey Buster project:
 
-1. Define Conversation Steps (from PRD Section 5.2.1):
-   Stage 1 - Foundation (Required):
-   - CURRENT_AGE
-   - RETIREMENT_AGE
-   - LONGEVITY_AGE
-   - MONTHLY_EXPENSES
-   
-   Stage 2 - Assets (Required):
-   - RRSP_BALANCE
-   - TFSA_BALANCE
-   - NON_REGISTERED_BALANCE
-   - ANNUAL_CONTRIBUTION
-   
-   Stage 3 - Assumptions (Optional - offer defaults):
-   - POST_RETIREMENT_RETURN (default: 6%)
-   - PRE_RETIREMENT_RETURN (default: 6%)
-   - INFLATION_RATE (default: 2.5%)
-   
-   Stage 4 - Government Benefits (Optional):
-   - CPP_START_AGE (default: 65)
-   - OAS_START_AGE (default: 65)
-   - CPP_AMOUNT (estimate if not known)
-   
-   Stage 5 - Goals (Optional):
-   - BEQUEST_GOAL (default: 0)
-   - PROVINCE (required for tax)
+1. Install Layercode SDKs:
+   npm install @layercode/react-sdk @layercode/node-server-sdk
 
-2. Create ConversationManager class:
-   - Properties:
-     * currentStep: ConversationStep
-     * collectedData: Partial<Scenario>
-     * conversationHistory: Message[]
-   
-   - Methods:
-     * getNextQuestion(): string (returns next question text)
-     * processUserInput(input: string, intent?: VoiceIntent): void
-     * isComplete(): boolean (all required data collected)
-     * getScenario(): Scenario (assembles final scenario)
-     * goBack(): void (undo last input)
-     * skip(): void (use default for optional field)
-   
+2. Copy and adapt files from Survey Buster:
+
+   A) Backend Webhook (SSE streaming):
+      - Source: /Users/lancejones/projects/surveybuster/src/app/api/layercode/webhook/route.ts
+      - Destination: /app/api/layercode/webhook/route.ts
+      - Key pattern to copy:
+        ```typescript
+        import { streamResponse } from '@layercode/node-server-sdk'
+
+        export async function POST(request: Request) {
+          const requestBody = await request.json()
+          const { type, text } = requestBody
+
+          return streamResponse(requestBody, async ({ stream }) => {
+            if (type === 'session.start') {
+              // Send greeting via TTS
+              stream.tts("Hello! Let's plan your retirement.")
+              stream.end()
+            }
+
+            if (type === 'message' && text) {
+              // text is already transcribed by Layercode!
+              // Process with AI, then send response
+              const response = await generateAIResponse(text)
+              stream.tts(response.trim())
+              stream.end()
+            }
+          })
+        }
+        ```
+
+   B) Authorization Endpoint:
+      - Source: Survey Buster authorize endpoint
+      - Destination: /app/api/layercode/authorize/route.ts
+      - Generates session tokens for Layercode
+
+   C) Frontend Hook:
+      - Source: /Users/lancejones/projects/surveybuster/src/hooks/useSimpleLayercodeVoice.ts
+      - Destination: /hooks/useLayercodeVoice.ts
+      - Key pattern:
+        ```typescript
+        import { useLayercodeAgent } from '@layercode/react-sdk'
+
+        export function useLayercodeVoice() {
+          const { status, connect, disconnect, userAudioAmplitude, agentAudioAmplitude } =
+            useLayercodeAgent({
+              agentId: process.env.NEXT_PUBLIC_LAYERCODE_PIPELINE_ID!,
+              authorizeSessionEndpoint: '/api/layercode/authorize',
+              onConnect: ({ conversationId }) => { /* ... */ },
+              onDataMessage: (data) => { /* handle custom data */ }
+            })
+
+          return {
+            isConnected: status === 'connected',
+            startConversation: connect,
+            endConversation: disconnect,
+            userAudioLevel: userAudioAmplitude,
+            agentAudioLevel: agentAudioAmplitude
+          }
+        }
+        ```
+
+3. Environment Variables:
+   Add to .env.local:
+   - NEXT_PUBLIC_LAYERCODE_PIPELINE_ID=<your_pipeline_id>
+   - LAYERCODE_API_SECRET=<your_api_secret>
+
+4. AI Provider (already exists):
+   - Use existing /lib/ai-provider.ts from Sprint 2
+   - Already supports switchable OpenAI/Gemini
+   - Just adapt the prompts for retirement context
+
+5. Test the integration:
+   - Start voice session → should connect
+   - Speak → should transcribe and respond
+   - Disconnect → should end cleanly
+```
+
+**Acceptance Criteria**:
+- ✅ Layercode webhook receives POST requests with transcribed text
+- ✅ Backend streams TTS responses via SSE
+- ✅ Frontend connects to Layercode WebRTC successfully
+- ✅ Can speak and hear AI responses
+- ✅ AI provider (OpenAI/Gemini) generates responses
+- ✅ No errors in browser console or server logs
+
+**Files to Create**:
+- `/app/api/layercode/webhook/route.ts` - Main SSE webhook handler (~150 lines)
+- `/app/api/layercode/authorize/route.ts` - Session authorization (~30 lines)
+- `/hooks/useLayercodeVoice.ts` - Frontend voice hook (~80 lines)
+
+---
+
+## Task 3.2: Adapt AI Provider for Retirement Conversation
+
+**Duration**: 0.5 days
+
+**Objective**: Update the AI provider prompts and conversation logic for retirement planning instead of surveys.
+
+**Claude Code Prompt**:
+```
+Adapt AI provider for retirement conversation in /lib/ai-provider.ts:
+
+1. Update System Prompts:
+   - Change context from survey to retirement planning
+   - Add Canadian tax and retirement knowledge
+   - Define conversation flow and question sequence
+   - Specify number extraction patterns
+
+   Example system prompt:
+   ```
+   You are a friendly Canadian retirement planning assistant. Your job is to help users
+   plan their retirement by gathering their financial information through natural conversation.
+
+   Ask one question at a time. Extract numbers from responses (handle "2 million", "200K", etc.).
+   Be encouraging and patient. If unclear, ask for clarification.
+
+   Required information to collect:
+   1. Current age, retirement age, longevity age
+   2. Assets: RRSP, TFSA, non-registered balances
+   3. Monthly expenses
+   4. Province (for tax calculations)
+   5. CPP/OAS start ages and amounts
+
+   Once all data collected, confirm and trigger calculation.
+   ```
+
+2. Add Intent Recognition:
+   - Parse ages from text: "I'm 58" → {current_age: 58}
+   - Parse amounts: "2.5 million in RRSPs" → {rrsp: 2500000}
+   - Parse confirmations: "yes", "that's right", "correct"
+   - Parse provinces: "I live in Ontario" → {province: "ON"}
+
+3. Number Parsing Utilities (create /lib/conversation/number-parser.ts):
+   ```typescript
+   export function parseAmount(text: string): number | null {
+     // "2 million" → 2000000
+     // "250K" → 250000
+     // "8,500,000" → 8500000
+   }
+
+   export function parseAge(text: string): number | null {
+     // "I'm 58" → 58
+     // "sixty-five" → 65
+   }
+
+   export function parseProvince(text: string): Province | null {
+     // "Ontario" → "ON"
+     // "BC" → "BC"
+   }
+   ```
+
+4. Keep AI_PROVIDER Environment Variable:
+   - Supports both 'openai' and 'gemini'
+   - Gemini is faster for this use case
+   - OpenAI potentially more accurate
+
+5. Test with sample conversations:
+   - "I'm 58 and want to retire at 62"
+   - "I have 2 million in RRSPs and 500K in TFSA"
+   - Edge cases: unclear responses, very large/small numbers
+```
+
+**Acceptance Criteria**:
+- ✅ AI generates retirement-appropriate questions
+- ✅ Number parsing handles common formats
+- ✅ Intent extraction works reliably
+- ✅ Both OpenAI and Gemini work
+- ✅ Conversation feels natural
+
+**Files to Create/Update**:
+- `/lib/conversation/number-parser.ts` - Number extraction utilities (~100 lines)
+- `/lib/ai-provider.ts` - Update system prompts (modify existing)
+
+---
+
+## Task 3.3: Build Retirement Question Flow Manager
+
+**Duration**: 2 days
+
+**Objective**: Create conversation state machine that guides users through retirement data collection.
+
+**Claude Code Prompt**:
+```
+Create question flow manager in /lib/conversation/question-flow-manager.ts:
+
+1. Define Question Stages:
+   ```typescript
+   type QuestionStage =
+     | 'BASIC_INFO'      // Age, retirement age, province
+     | 'ASSETS'          // RRSP, TFSA, non-registered
+     | 'INCOME'          // CPP, OAS, employment, pensions
+     | 'EXPENSES'        // Fixed monthly, variable annual
+     | 'ASSUMPTIONS'     // Returns, inflation
+     | 'CONFIRMATION'    // Review and confirm
+     | 'COMPLETE'        // Ready to calculate
+
+   interface ConversationState {
+     stage: QuestionStage
+     collectedData: Partial<Scenario>
+     questionHistory: string[]
+     currentQuestion: string
+   }
+   ```
+
+2. Create QuestionFlowManager class:
+   ```typescript
+   export class QuestionFlowManager {
+     private state: ConversationState
+
+     constructor() {
+       this.state = {
+         stage: 'BASIC_INFO',
+         collectedData: {},
+         questionHistory: [],
+         currentQuestion: this.getNextQuestion()
+       }
+     }
+
+     getNextQuestion(): string {
+       // Returns next question based on stage and collected data
+     }
+
+     processUserResponse(text: string, aiExtractedData: any): void {
+       // Updates collectedData, advances stage if complete
+     }
+
+     isStageComplete(stage: QuestionStage): boolean {
+       // Checks if all required fields for stage are filled
+     }
+
+     getScenario(): Scenario {
+       // Assembles complete Scenario object with defaults
+     }
+
+     getSummary(): string {
+       // Returns human-readable summary of collected data
+     }
+   }
+   ```
+
 3. Question Templates:
-   Create natural, conversational questions for each step:
-   - "How old are you today?"
-   - "When would you like to retire?"
-   - "How long would you like your money to last?"
    - Use variations to avoid repetition
-   
-4. Response Generation:
-   - confirmationMessage(field, value): string
-   - clarificationRequest(field): string
-   - encouragementMessage(): string
-   - completionMessage(summary): string
-   
-5. Number Parsing:
-   - parseAge(input: string): number | null
-   - parseAmount(input: string): number | null
-   - Handle words: "eight million", "2.5 million", "200K"
-   - Handle numbers: "8000000", "2,500,000"
-   
-6. Create React hook /hooks/useConversation.ts:
-   - Manages ConversationManager instance
-   - Provides: currentQuestion, submitAnswer(), goBack(), skip()
-   - Syncs with voice API
+   - Keep questions short and clear
+   - Provide examples when helpful
 
-Include comprehensive tests for state transitions.
+   ```typescript
+   const QUESTIONS = {
+     BASIC_INFO: {
+       current_age: [
+         "How old are you today?",
+         "What's your current age?",
+         "Let's start with your age. How old are you?"
+       ],
+       retirement_age: [
+         "At what age would you like to retire?",
+         "When do you plan to retire?",
+         "What age are you targeting for retirement?"
+       ],
+       // ... more questions
+     }
+   }
+   ```
+
+4. Validation and Defaults:
+   - Validate ages: retirement > current, longevity > retirement
+   - Validate amounts: must be positive
+   - Apply defaults for optional fields:
+     * Pre-retirement return: 6%
+     * Post-retirement return: 6%
+     * Inflation: 2.5%
+     * CPP start: 65
+     * OAS start: 65
+
+5. Integration with AI Provider:
+   - Send conversation context to AI
+   - AI extracts data from user response
+   - Flow manager validates and stores
+   - AI generates next question using flow manager's prompt
+
+6. Create React Hook:
+   ```typescript
+   // /hooks/useQuestionFlow.ts
+   export function useQuestionFlow() {
+     const [manager] = useState(() => new QuestionFlowManager())
+     const [currentQuestion, setCurrentQuestion] = useState(manager.getCurrentQuestion())
+     const [isComplete, setIsComplete] = useState(false)
+
+     const processResponse = (text: string, extractedData: any) => {
+       manager.processUserResponse(text, extractedData)
+       setCurrentQuestion(manager.getNextQuestion())
+       setIsComplete(manager.isComplete())
+     }
+
+     return {
+       currentQuestion,
+       processResponse,
+       isComplete,
+       scenario: isComplete ? manager.getScenario() : null
+     }
+   }
+   ```
+
+7. Add localStorage persistence:
+   - Save state after each question
+   - Restore on page load
+   - Clear on "Start Over"
 ```
 
 **Acceptance Criteria**:
-- ✅ State machine follows logical flow
+- ✅ Question flow follows logical progression
 - ✅ All required data collected before completion
-- ✅ Optional fields have sensible defaults
-- ✅ Number parsing handles various formats
-- ✅ Questions are natural and clear
-- ✅ Can go back and correct answers
-- ✅ State persists in browser localStorage
+- ✅ Validation prevents invalid data
+- ✅ Defaults applied sensibly
+- ✅ Can resume if page refreshes
+- ✅ Summary is accurate and readable
+- ✅ Integrates with Layercode webhook
+
+**Files to Create**:
+- `/lib/conversation/question-flow-manager.ts` - Core state machine (~300 lines)
+- `/hooks/useQuestionFlow.ts` - React integration (~100 lines)
 
 ---
 
-## Task 3.3: Voice UI Components
+## Task 3.4: Create 3 UX Prototype Pages
 
-**Objective**: Create React components for voice interaction interface.
+**Duration**: 3 days (1 day per prototype)
 
-**Claude Code Prompt**:
+**Objective**: Build 3 different UX approaches for voice + form hybrid interface to help decide which works best.
+
+**Important**: These are TEST pages to evaluate different UX patterns. User will choose the best approach before building production version.
+
+### Prototype A: Form-First with Voice Assistant
+
+**Location**: `/app/calculator/test-form-first/page.tsx`
+
+**Layout**:
 ```
-Create voice UI components in /components/voice/:
+┌─────────────────────────────────────┐
+│  🎤 Voice Assistant (floating btn)  │
+│                                     │
+│  ┌───────────────────────────────┐ │
+│  │  Retirement Planning Form     │ │
+│  │                               │ │
+│  │  Current Age: [____]          │ │
+│  │  Retirement Age: [____]       │ │
+│  │  Province: [dropdown]         │ │
+│  │                               │ │
+│  │  RRSP Balance: [$________]    │ │
+│  │  TFSA Balance: [$________]    │ │
+│  │  ...                          │ │
+│  └───────────────────────────────┘ │
+│                                     │
+│  [Previous]      [Next / Calculate] │
+└─────────────────────────────────────┘
+```
 
-1. VoiceButton.tsx - Microphone activation button:
-   - States: idle, listening, processing, error
-   - Animated pulsing effect when listening
-   - Visual feedback for each state
-   - Click to toggle recording
-   - Props: onStart, onStop, isListening, isProcessing
-   
-2. VoiceVisualizer.tsx - Audio waveform animation:
-   - Display live audio levels during recording
-   - Smooth animation using Framer Motion
-   - Canvas-based waveform visualization
-   
-3. TranscriptDisplay.tsx - Show what user said:
-   - Display transcript as it arrives
-   - Editable text (user can correct)
-   - Confidence indicator (if <0.75, highlight for review)
-   - Props: transcript, confidence, onEdit
-   
-4. ConversationPanel.tsx - Main conversation container:
-   - Chat-like interface
-   - System messages (questions) vs User messages (answers)
-   - Auto-scroll to latest message
-   - Voice button at bottom
-   - "Type instead" fallback button
-   - Props: messages, onVoiceInput, onTextInput
-   
-5. VoiceSettings.tsx - User preferences:
-   - Toggle voice on/off
-   - Speech speed control (0.75x - 1.5x)
-   - Voice selection (if multiple available)
-   - Accessible via settings icon
-   
-6. ProgressIndicator.tsx - Show conversation progress:
-   - Visual indicator of conversation stages
-   - "3 of 9 questions answered"
-   - Stepper component showing current stage
-   
-7. Create compound component: VoiceInterface.tsx
-   - Combines all above components
-   - Manages voice input/output flow
-   - Integrates with conversation state
-   - Props: onComplete (when all data collected)
+**Behavior**:
+- Traditional multi-step form is primary interface
+- Floating voice button at top-right
+- When voice active:
+  - AI asks questions one by one
+  - Form fields update as user speaks
+  - User sees both conversation AND form updating
+- User can type OR speak, fields update either way
+- No switching modes - both always available
 
-Use Tailwind for styling, match PRD design system colors.
-Use shadcn/ui components where applicable (Button, Card, etc.).
-Add accessibility: keyboard navigation, ARIA labels, screen reader support.
+**Pros**:
+- Familiar form interface
+- Visual feedback of all collected data
+- Easy to edit/correct individual fields
+- Clear what's been filled vs empty
+
+**Cons**:
+- Less "magical" conversational feel
+- Might feel cluttered with both voice and form
+- Voice feels like an add-on, not primary
+
+---
+
+### Prototype B: Voice-First with Live Form Preview
+
+**Location**: `/app/calculator/test-voice-first/page.tsx`
+
+**Layout** (Desktop):
+```
+┌──────────────────┬─────────────────┐
+│  Conversation    │  Form Preview   │
+│                  │                 │
+│  🎤 Listening... │  Current Age: 58│
+│                  │  Retirement: 62 │
+│  AI: How old...? │  Province: —    │
+│  You: I'm 58     │                 │
+│                  │  RRSP: —        │
+│  AI: When will...│  TFSA: —        │
+│  You: At 62      │  ...            │
+│                  │                 │
+│  [Speak]  [Type] │  [Edit Fields]  │
+└──────────────────┴─────────────────┘
+```
+
+**Behavior**:
+- Left panel: Chat-style conversation (primary)
+- Right panel: Live preview of form being filled
+- Voice is default input method
+- "Type" button switches to text input for current question
+- "Edit Fields" button switches to full form editing
+- Data updates in real-time as conversation progresses
+
+**Pros**:
+- Engaging conversational experience
+- Shows progress visually
+- Hybrid approach feels intentional
+- Can switch to form if voice fails
+
+**Cons**:
+- More complex layout
+- Might be confusing which panel to focus on
+- Mobile requires stacking (conversation on top?)
+
+---
+
+### Prototype C: Step-by-Step Wizard with Voice Toggle
+
+**Location**: `/app/calculator/test-wizard/page.tsx`
+
+**Layout**:
+```
+┌─────────────────────────────────────┐
+│  Progress: ●━━●━━●━━○━━○           │
+│         Basic  Assets  Income       │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │  Step 1: Basic Information  │   │
+│  │                             │   │
+│  │  [🎤 Use Voice] [⌨️ Type]   │   │
+│  │                             │   │
+│  │  (If voice selected)        │   │
+│  │  AI: "How old are you?"     │   │
+│  │  🎤 Listening...            │   │
+│  │                             │   │
+│  │  (If type selected)         │   │
+│  │  Current Age: [____]        │   │
+│  │  Retirement Age: [____]     │   │
+│  │  Province: [dropdown]       │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  [Back]                    [Next]   │
+└─────────────────────────────────────┘
+```
+
+**Behavior**:
+- Multi-step wizard (one category per step)
+- Each step: user chooses voice OR type
+- Voice mode: AI asks sub-questions for this category
+- Type mode: Show all fields for this category
+- Can switch input method between steps
+- Clear progress indicator shows current step
+
+**Pros**:
+- Clear, structured flow
+- User has choice at each step
+- Not overwhelming (one category at a time)
+- Easy to go back and change
+
+**Cons**:
+- More clicks to complete
+- Less conversational (broken into chunks)
+- Can't easily switch mid-step
+
+---
+
+**Claude Code Prompt for Task 3.4**:
+```
+Create 3 UX prototype pages for testing:
+
+1. Create /app/calculator/test-form-first/page.tsx:
+   - Full-page form with all calculator fields
+   - Floating voice button overlay
+   - When voice active, form fields update from AI responses
+   - Multi-step form with validation
+   - Both input methods always available
+
+2. Create /app/calculator/test-voice-first/page.tsx:
+   - Two-panel layout (60/40 split on desktop)
+   - Left: Conversation panel with voice interface
+   - Right: Live form preview (read-only, updates as conversation progresses)
+   - "Edit Fields" button to switch to form editing mode
+   - Mobile: Stack conversation above preview
+
+3. Create /app/calculator/test-wizard/page.tsx:
+   - Multi-step wizard with progress indicator
+   - Each step: choose voice or type input method
+   - Voice mode: AI conversation for that category
+   - Type mode: Traditional form fields for that category
+   - Clear navigation (Back/Next buttons)
+   - 5 steps: Basic, Assets, Income, Expenses, Assumptions
+
+4. Shared Components (create in /components/calculator-test/):
+   - VoiceConversation.tsx - Chat-style conversation UI
+   - FormFields.tsx - Reusable calculator input fields
+   - InputMethodToggle.tsx - Switch between voice/type
+   - ProgressIndicator.tsx - Wizard progress bar
+
+5. Wire up all prototypes to:
+   - useLayercodeVoice() hook (from Task 3.1)
+   - useQuestionFlow() hook (from Task 3.3)
+   - Calculation engine (from Sprint 2)
+
+6. Create comparison page /app/calculator/choose-ux/page.tsx:
+   - Shows screenshots/demos of all 3 approaches
+   - Links to each prototype
+   - Helps user decide which to build as production version
+
+Make all prototypes fully functional with real voice and calculation.
+Add basic styling using Tailwind (doesn't need to be pixel-perfect).
+Focus on UX patterns, not visual polish.
 ```
 
 **Acceptance Criteria**:
-- ✅ Voice button has clear visual states
-- ✅ Waveform animation is smooth
-- ✅ Transcript is editable
-- ✅ Conversation UI is intuitive
-- ✅ Accessible via keyboard
+- ✅ All 3 prototypes are functional
+- ✅ Voice integration works in all 3
+- ✅ Form input works in all 3
+- ✅ Calculation triggers correctly in all 3
+- ✅ Results display properly in all 3
+- ✅ Mobile-responsive layouts
+- ✅ Can navigate between prototypes easily
+- ✅ User can test and compare all 3 approaches
+
+**Files to Create**:
+- 3 prototype pages (3 × ~200 lines = 600 lines)
+- 4 shared components (4 × ~100 lines = 400 lines)
+- 1 comparison page (~100 lines)
+- **Total**: ~1100 lines of code
+
+---
+
+## Task 3.5: Build Reusable Components
+
+**Duration**: 2 days (can work in parallel with Task 3.4)
+
+**Objective**: Create polished, reusable components that will work across different UX approaches.
+
+**Claude Code Prompt**:
+```
+Create production-ready reusable components in /components/:
+
+1. Voice Components (/components/voice/):
+
+   A) VoiceButton.tsx - Microphone control:
+      - States: idle, connecting, listening, processing, error
+      - Animated pulsing effect when listening
+      - Audio level indicator
+      - Click to toggle recording
+      - Keyboard accessible (Space to toggle)
+      - Props: onStart, onStop, isListening, isProcessing, disabled
+
+   B) VoiceVisualizer.tsx - Audio waveform:
+      - Canvas-based waveform visualization
+      - Responds to userAudioAmplitude and agentAudioAmplitude
+      - Smooth animations using requestAnimationFrame
+      - Different colors for user vs agent
+      - Props: userLevel, agentLevel, variant
+
+   C) ConversationDisplay.tsx - Chat interface:
+      - Message list with auto-scroll
+      - Distinguish user vs assistant messages
+      - Typing indicator while AI processes
+      - Timestamp on messages
+      - Editable transcript for corrections
+      - Props: messages, isTyping, onEditMessage
+
+   D) VoiceStatus.tsx - Connection status:
+      - Shows connection state (connected, disconnected, error)
+      - Visual indicator (dot with color)
+      - Tooltip with details
+      - Props: status, conversationId
+
+2. Form Components (/components/forms/):
+
+   A) CurrencyInput.tsx - Money input:
+      - Formats as user types: "8000000" → "$8,000,000"
+      - Supports shortcuts: "2M", "250K"
+      - Clear button
+      - Validation: must be >= 0
+      - Props: value, onChange, label, required, error
+
+   B) AgeInput.tsx - Age input with validation:
+      - Number input with +/- buttons
+      - Range validation (0-120)
+      - Comparison validation (retirement > current, etc.)
+      - Props: value, onChange, label, min, max, compareWith, error
+
+   C) PercentageInput.tsx - Rate input:
+      - Dual interface: slider + text input
+      - Displays as percentage: "6" → "6%"
+      - Range: 0-15% for returns, 0-10% for inflation
+      - Props: value, onChange, label, min, max, step, error
+
+   D) ProvinceSelect.tsx - Province dropdown:
+      - All 13 provinces/territories
+      - Searchable with keyboard
+      - Shows full name and code
+      - Props: value, onChange, required, error
+
+   E) ScenarioSummary.tsx - Review collected data:
+      - Displays all inputs in organized sections
+      - "Edit" button for each section
+      - Validation status indicators
+      - Props: scenario, onEdit, errors
+
+3. Hybrid Components (/components/hybrid/):
+
+   A) VoiceOrFormField.tsx - Smart wrapper:
+      - Renders form field OR shows voice collection status
+      - Switches based on input mode
+      - Updates from either source
+      - Props: field, value, onChange, isVoiceMode
+
+   B) InputMethodToggle.tsx - Mode switcher:
+      - Toggle between voice and form
+      - Shows current mode clearly
+      - Keyboard shortcut (Ctrl+V)
+      - Props: mode, onModeChange, disabled
+
+   C) FieldValidation.tsx - Visual validation:
+      - Success checkmark when valid
+      - Error message when invalid
+      - Warning for uncertain voice transcription
+      - Props: status, message, confidence
+
+4. Styling Requirements:
+   - Use PRD design system colors
+   - Consistent spacing (multiples of 4px)
+   - Smooth transitions (200-300ms)
+   - Focus states for accessibility
+   - Loading skeletons
+   - Error states
+   - Empty states
+
+5. Use shadcn/ui as base where applicable:
+   - Button, Input, Label, Card, Select, Slider
+   - Customize with Tailwind
+   - Ensure consistency
+
+6. Accessibility:
+   - ARIA labels on all interactive elements
+   - Keyboard navigation support
+   - Screen reader announcements for status changes
+   - Sufficient color contrast (WCAG AA)
+   - Focus indicators
+
+7. Create Storybook (optional but recommended):
+   - Document all components
+   - Show all states and variants
+   - Interactive props controls
+   - Accessibility checks
+```
+
+**Acceptance Criteria**:
+- ✅ All components render correctly
+- ✅ Voice components integrate with useLayercodeVoice hook
+- ✅ Form components validate properly
+- ✅ Currency/percentage formatting works
+- ✅ Components are accessible (keyboard + screen reader)
 - ✅ Mobile-responsive
-- ✅ Matches design system
+- ✅ Match design system
+- ✅ TypeScript types are complete
+- ✅ Can be used in any of the 3 UX prototypes
+
+**Files to Create**:
+- 4 voice components (~400 lines)
+- 5 form components (~600 lines)
+- 3 hybrid components (~300 lines)
+- **Total**: ~1300 lines of reusable components
+
+---
+
+## Task 3.6: Choose Best UX & Polish
+
+**Duration**: 1 day
+
+**Objective**: User tests all 3 prototypes, selects winning approach, and polishes it for production.
+
+**Process**:
+
+1. **User Testing** (2-3 hours):
+   - User tries all 3 prototypes with real scenarios
+   - Tests on desktop and mobile
+   - Notes pros/cons of each
+   - Considers target audience preferences
+   - Makes decision on which approach to productionize
+
+2. **Architecture Decision** (30 minutes):
+   - Document chosen approach in ARCHITECTURE.md
+   - Explain rationale
+   - Note what to keep from other prototypes
+
+3. **Production Implementation** (4-5 hours):
+   - Copy chosen prototype to /app/calculator/page.tsx
+   - Replace test components with production components from Task 3.5
+   - Apply final styling and polish
+   - Add transitions and animations
+   - Fix any remaining bugs
+
+4. **Polish Checklist**:
+   - ✅ Smooth transitions between states
+   - ✅ Loading states feel natural
+   - ✅ Error messages are helpful
+   - ✅ Voice button is prominent and inviting
+   - ✅ Form validation is clear
+   - ✅ Progress indicators work
+   - ✅ Results display beautifully
+   - ✅ Mobile experience is excellent
+   - ✅ Accessibility is solid
+
+5. **Cleanup**:
+   - Remove unused prototype code (or move to /examples/)
+   - Clean up test files
+   - Update documentation
+   - Run final tests
+
+**Acceptance Criteria**:
+- ✅ User has tested all 3 prototypes
+- ✅ Clear decision made with documented rationale
+- ✅ Production calculator page uses chosen approach
+- ✅ All components polished and working
+- ✅ Voice + form hybrid works seamlessly
+- ✅ Ready for Sprint 4 (visualization and results display)
+
+---
+
+## Sprint 3 Summary
+
+**Total Duration**: 9.5 days
+
+**What Gets Built**:
+1. ✅ Complete Layercode voice integration (copied from Survey Buster)
+2. ✅ Retirement conversation AI (adapted from existing AI provider)
+3. ✅ Question flow state machine
+4. ✅ 3 fully functional UX prototypes for testing
+5. ✅ Library of reusable voice + form components
+6. ✅ Production calculator page with chosen UX approach
+
+**Key Deliverables**:
+- Working voice conversation that collects retirement data
+- Hybrid voice + form interface (user chooses best approach)
+- Reusable components for Sprint 4
+- Complete Scenario object ready for calculation engine
+
+**Why Much Faster Than Original Estimate**:
+- 80% of Layercode code copied from Survey Buster (proven working)
+- No need to "configure" or "train" Layercode (it's automatic)
+- AI provider already built, just need new prompts
+- Clear architecture eliminates guesswork
+- Reference implementation reduces trial-and-error
+
+**Next Steps**:
+- Sprint 4: Build visualization components and results display
+- Sprint 5: Integration, testing, deployment
 
 ---
 
