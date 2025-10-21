@@ -6,6 +6,9 @@ import { useState } from 'react'
 export function TestVoiceContent() {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([])
   const [dataMessages, setDataMessages] = useState<any[]>([])
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
+  const [collectedData, setCollectedData] = useState<any | null>(null)
+  const [isComplete, setIsComplete] = useState(false)
 
   const {
     isConnected,
@@ -20,7 +23,20 @@ export function TestVoiceContent() {
   } = useLayercodeVoice({
     autoConnect: false,
     onDataMessage: (data) => {
+      console.log('Data message received:', data)
       setDataMessages(prev => [...prev, data])
+
+      // Track progress
+      if (data.type === 'progress') {
+        setProgress({ current: data.current, total: data.total })
+      }
+
+      // Track completion
+      if (data.type === 'complete') {
+        setIsComplete(true)
+        setCollectedData(data.collectedData)
+        console.log('✅ Conversation complete! Collected data:', data.collectedData)
+      }
     }
   })
 
@@ -122,15 +138,92 @@ export function TestVoiceContent() {
           </div>
         </div>
 
+        {/* Progress Indicator */}
+        {progress && !isComplete && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 className="font-semibold text-blue-900 mb-2">Collecting Retirement Data</h3>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="h-2 bg-blue-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 transition-all duration-300"
+                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <span className="text-sm font-medium text-blue-900">
+                {progress.current} / {progress.total}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Collected Data Display */}
+        {isComplete && collectedData && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+            <h3 className="font-semibold text-green-900 mb-4">✅ Data Collection Complete!</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {collectedData.currentAge && (
+                <div>
+                  <span className="font-medium text-gray-700">Current Age:</span>
+                  <span className="ml-2 text-gray-900">{collectedData.currentAge}</span>
+                </div>
+              )}
+              {collectedData.retirementAge && (
+                <div>
+                  <span className="font-medium text-gray-700">Retirement Age:</span>
+                  <span className="ml-2 text-gray-900">{collectedData.retirementAge}</span>
+                </div>
+              )}
+              {collectedData.province && (
+                <div>
+                  <span className="font-medium text-gray-700">Province:</span>
+                  <span className="ml-2 text-gray-900">{collectedData.province}</span>
+                </div>
+              )}
+              {collectedData.rrsp && (
+                <div>
+                  <span className="font-medium text-gray-700">RRSP:</span>
+                  <span className="ml-2 text-gray-900">${collectedData.rrsp.toLocaleString()}</span>
+                </div>
+              )}
+              {collectedData.tfsa && (
+                <div>
+                  <span className="font-medium text-gray-700">TFSA:</span>
+                  <span className="ml-2 text-gray-900">${collectedData.tfsa.toLocaleString()}</span>
+                </div>
+              )}
+              {collectedData.non_registered && (
+                <div>
+                  <span className="font-medium text-gray-700">Non-Registered:</span>
+                  <span className="ml-2 text-gray-900">${collectedData.non_registered.toLocaleString()}</span>
+                </div>
+              )}
+              {collectedData.monthlySpending && (
+                <div>
+                  <span className="font-medium text-gray-700">Monthly Spending:</span>
+                  <span className="ml-2 text-gray-900">${collectedData.monthlySpending.toLocaleString()}</span>
+                </div>
+              )}
+              {collectedData.investmentReturn && (
+                <div>
+                  <span className="font-medium text-gray-700">Investment Return:</span>
+                  <span className="ml-2 text-gray-900">{collectedData.investmentReturn}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
           <h3 className="font-semibold text-blue-900 mb-2">How to Test:</h3>
           <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
             <li>Click "Connect & Start" to establish voice connection</li>
-            <li>Wait for the AI to greet you (you'll hear it speak)</li>
-            <li>Start speaking - Layercode automatically detects when you talk</li>
-            <li>The AI will respond to what you said</li>
-            <li>Audio levels show when you or the AI are speaking</li>
+            <li>Answer the retirement planning questions naturally</li>
+            <li>The AI will guide you through ~11 questions</li>
+            <li>Watch the progress bar as you go</li>
+            <li>See your collected data displayed at the end</li>
           </ol>
         </div>
 
