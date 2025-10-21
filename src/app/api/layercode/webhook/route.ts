@@ -203,13 +203,13 @@ export async function POST(request: Request) {
               const transitionStream = await aiProvider.generateStream([
                 {
                   role: 'system',
-                  content: `You're collecting retirement planning info. The user just answered. Acknowledge their answer briefly (reference their value), then ask the next question naturally. Be conversational and warm. Keep it under 40 words.`
+                  content: `You're collecting retirement planning info. The user just answered. Say a brief acknowledgment like "got it", "thanks", or "perfect", then ask the next question naturally. Keep it under 25 words total.`
                 },
                 {
                   role: 'user',
-                  content: `They answered: "${text}" (parsed as: ${response.parsedValue})\nNext question: ${nextQuestion.text}\n\nYour response:`
+                  content: `Next question: ${nextQuestion.text}`
                 }
-              ], { temperature: 0.7, maxTokens: 120 })
+              ], { temperature: 0.7, maxTokens: 80 })
 
               await stream.ttsTextStream(transitionStream)
 

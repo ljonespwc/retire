@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ IMPORTANT: Development Workflow
+
+**ALWAYS run `npm run build` after making changes to verify the build succeeds locally.**
+
+**DO NOT push to git or deploy to Vercel.** The user will handle all git commits, pushes, and deployments manually.
+
+Your job is to:
+1. Make the requested changes
+2. Run `npm run build` to verify it works
+3. Report the results to the user
+4. Let the user handle git/deployment
+
 ## Project Overview
 
 A voice-driven Canadian retirement income calculator that combines conversational AI with sophisticated financial modeling. The platform helps Canadians understand their retirement income potential through natural language interaction, eliminating complex spreadsheets and financial jargon.
