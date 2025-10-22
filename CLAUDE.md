@@ -492,6 +492,28 @@ Layercode WebRTC → User hears AI (starts in ~300ms!)
 - Expected: 3 turns vs 8 (62% reduction), ~3-4s total, more natural conversation flow
 - Gemini Flash recommended for best performance (700ms avg latency vs OpenAI 1,720ms)
 
+**Question Expansion Update** (Oct 22, 2025 - Later Session):
+- **Expanded from 8 to 17 questions total** to collect comprehensive retirement planning data
+- **Added 9 new questions** (Tier 1 + Tier 2):
+  - **Tier 1 (Critical)**: longevity_age, current_income, pension_income
+  - **Tier 2 (Enhanced Data)**: rrsp_contribution, tfsa_contribution, non_registered_contribution, cpp_start_age, post_retirement_return, inflation_rate
+- **Batch structure expanded from 3 to 5 batches** for better conversation flow:
+  1. Personal Info (5Q): current_age, retirement_age, longevity_age, province, current_income
+  2. Current Savings (3Q): rrsp_amount, tfsa_amount, non_registered_amount
+  3. Savings Contributions (3Q): rrsp_contribution, tfsa_contribution, non_registered_contribution - **NEW BATCH**
+  4. Retirement Income (3Q): monthly_spending, pension_income, cpp_start_age
+  5. Investment Assumptions (3Q): investment_return, post_retirement_return, inflation_rate - **NEW BATCH**
+- **Sequential flow also updated** to 17 questions (maintaining parity with batch mode)
+- **Files Modified**:
+  - `llm-parser.ts`: Added `extractCPPStartAge()` function with 60-70 age validation
+  - `question-flow-manager.ts`: Expanded BASIC_RETIREMENT_FLOW, updated `getCollectedData()` with all new fields
+  - `batch-flow-manager.ts`: Reorganized RETIREMENT_BATCHES to 5 batches, updated `getBatchCollectedData()`
+  - `batch-parser.ts`: Updated validation rules and examples for new question types
+  - `VoiceFirstContent.tsx`: Added 9 state variables, updated handlers, reorganized form display with sections
+- **Smart Defaults**: CPP start age (65), post-retirement return (4%), inflation rate (2%)
+- **Build Status**: ✅ Verified successful with zero TypeScript errors
+- **Key Achievement**: Voice interface now collects all critical data needed for calculator engine integration (previously missing longevity_age and contribution amounts)
+
 ---
 
 #### ⏳ REMAINING: Sprint 3 Sections (7 days)

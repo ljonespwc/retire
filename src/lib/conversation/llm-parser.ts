@@ -191,6 +191,54 @@ Examples:
 }
 
 /**
+ * Extract CPP start age using LLM (60-70 range)
+ */
+export async function extractCPPStartAge(text: string): Promise<number | null> {
+  const aiProvider = getAIProvider()
+
+  console.log(`🔍 extractCPPStartAge input: "${text}"`)
+
+  const response = await aiProvider.generateCompletion([
+    {
+      role: 'system',
+      content: `Extract the CPP start age from the user's response. CPP can start between ages 60-70. Return ONLY a number between 60-70, or "null" if no valid age is found.
+
+Examples:
+"65" → 65
+"age 65" → 65
+"at 60" → 60
+"seventy" → 70
+"I'll start at 67" → 67
+"when I retire at 62" → 62
+"I don't know" → null
+"45" → null (out of range)
+"80" → null (out of range)`
+    },
+    {
+      role: 'user',
+      content: text
+    }
+  ], { temperature: 0.1, maxTokens: 10 })
+
+  console.log(`🤖 extractCPPStartAge LLM response: "${response}"`)
+
+  const cleaned = response.trim().toLowerCase()
+  if (cleaned === 'null' || cleaned === 'none') {
+    console.log(`❌ extractCPPStartAge returning null (cleaned="${cleaned}")`)
+    return null
+  }
+
+  const age = parseInt(cleaned)
+  if (!isNaN(age) && age >= 60 && age <= 70) {
+    console.log(`✅ extractCPPStartAge returning: ${age}`)
+    return age
+  }
+
+  console.log(`❌ extractCPPStartAge failed to parse or out of range: "${cleaned}", age=${age}`)
+  return null
+}
+
+/**
  * Extract yes/no using LLM
  */
 export async function extractYesNo(text: string): Promise<boolean | null> {
@@ -288,6 +336,10 @@ export async function parseAndGenerateResponse(
         validationRules = 'Must be between 18-100'
       } else if (currentQuestion.id === 'retirement_age') {
         validationRules = 'Must be between 50-80'
+      } else if (currentQuestion.id === 'longevity_age') {
+        validationRules = 'Must be between 65-105'
+      } else if (currentQuestion.id === 'cpp_start_age') {
+        validationRules = 'Must be between 60-70 (CPP eligibility range)'
       }
       break
     case 'amount':
@@ -308,10 +360,22 @@ export async function parseAndGenerateResponse(
   let examples = ''
   switch (currentQuestion.type) {
     case 'age':
-      examples = `"I'm 45" → 45
+      if (currentQuestion.id === 'longevity_age') {
+        examples = `"90" → 90
+"probably 95" → 95
+"I expect to live to 85" → 85
+"maybe 100" → 100`
+      } else if (currentQuestion.id === 'cpp_start_age') {
+        examples = `"65" → 65
+"age 60" → 60
+"I'll start at 67" → 67
+"when I retire at 62" → 62`
+      } else {
+        examples = `"I'm 45" → 45
 "forty-five" → 45
 "mid-forties" → 45
 "probably around 60" → 60`
+      }
       break
     case 'amount':
       examples = `"$500,000" → 500000

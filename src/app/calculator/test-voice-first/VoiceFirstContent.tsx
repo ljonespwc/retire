@@ -26,12 +26,21 @@ export function VoiceFirstContent() {
   // Form state (read-only preview)
   const [currentAge, setCurrentAge] = useState<number | null>(null)
   const [retirementAge, setRetirementAge] = useState<number | null>(null)
+  const [longevityAge, setLongevityAge] = useState<number | null>(null)
   const [province, setProvince] = useState<Province | null>(null)
+  const [currentIncome, setCurrentIncome] = useState<number | null>(null)
   const [rrsp, setRrsp] = useState<number | null>(null)
+  const [rrspContribution, setRrspContribution] = useState<number | null>(null)
   const [tfsa, setTfsa] = useState<number | null>(null)
+  const [tfsaContribution, setTfsaContribution] = useState<number | null>(null)
   const [nonRegistered, setNonRegistered] = useState<number | null>(null)
+  const [nonRegisteredContribution, setNonRegisteredContribution] = useState<number | null>(null)
   const [monthlySpending, setMonthlySpending] = useState<number | null>(null)
+  const [pensionIncome, setPensionIncome] = useState<number | null>(null)
+  const [cppStartAge, setCppStartAge] = useState<number | null>(null)
   const [investmentReturn, setInvestmentReturn] = useState<number | null>(null)
+  const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(null)
+  const [inflationRate, setInflationRate] = useState<number | null>(null)
 
   const [messages, setMessages] = useState<Message[]>([])
   const [batchPrompts, setBatchPrompts] = useState<BatchPrompt[]>([])  // Stack of batch prompts
@@ -76,12 +85,21 @@ export function VoiceFirstContent() {
         // Update form with batch values
         if (values.current_age !== undefined) setCurrentAge(values.current_age)
         if (values.retirement_age !== undefined) setRetirementAge(values.retirement_age)
+        if (values.longevity_age !== undefined) setLongevityAge(values.longevity_age)
         if (values.province !== undefined) setProvince(values.province)
+        if (values.current_income !== undefined) setCurrentIncome(values.current_income)
         if (values.rrsp_amount !== undefined) setRrsp(values.rrsp_amount)
+        if (values.rrsp_contribution !== undefined) setRrspContribution(values.rrsp_contribution)
         if (values.tfsa_amount !== undefined) setTfsa(values.tfsa_amount)
+        if (values.tfsa_contribution !== undefined) setTfsaContribution(values.tfsa_contribution)
         if (values.non_registered_amount !== undefined) setNonRegistered(values.non_registered_amount)
+        if (values.non_registered_contribution !== undefined) setNonRegisteredContribution(values.non_registered_contribution)
         if (values.monthly_spending !== undefined) setMonthlySpending(values.monthly_spending)
+        if (values.pension_income !== undefined) setPensionIncome(values.pension_income)
+        if (values.cpp_start_age !== undefined) setCppStartAge(values.cpp_start_age)
         if (values.investment_return !== undefined) setInvestmentReturn(values.investment_return)
+        if (values.post_retirement_return !== undefined) setPostRetirementReturn(values.post_retirement_return)
+        if (values.inflation_rate !== undefined) setInflationRate(values.inflation_rate)
       }
 
       // Handle completion
@@ -92,12 +110,21 @@ export function VoiceFirstContent() {
         const d = content.collectedData
         if (d.currentAge) setCurrentAge(d.currentAge)
         if (d.retirementAge) setRetirementAge(d.retirementAge)
+        if (d.longevityAge) setLongevityAge(d.longevityAge)
         if (d.province) setProvince(d.province)
+        if (d.currentIncome) setCurrentIncome(d.currentIncome)
         if (d.rrsp !== undefined) setRrsp(d.rrsp)
+        if (d.rrspContribution !== undefined) setRrspContribution(d.rrspContribution)
         if (d.tfsa !== undefined) setTfsa(d.tfsa)
+        if (d.tfsaContribution !== undefined) setTfsaContribution(d.tfsaContribution)
         if (d.non_registered !== undefined) setNonRegistered(d.non_registered)
+        if (d.nonRegisteredContribution !== undefined) setNonRegisteredContribution(d.nonRegisteredContribution)
         if (d.monthlySpending) setMonthlySpending(d.monthlySpending)
+        if (d.pensionIncome !== undefined) setPensionIncome(d.pensionIncome)
+        if (d.cppStartAge) setCppStartAge(d.cppStartAge)
         if (d.investmentReturn) setInvestmentReturn(d.investmentReturn)
+        if (d.postRetirementReturn) setPostRetirementReturn(d.postRetirementReturn)
+        if (d.inflationRate) setInflationRate(d.inflationRate)
       }
     }
   })
@@ -337,6 +364,43 @@ export function VoiceFirstContent() {
                       </div>
                     )}
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Life Expectancy
+                    </label>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        value={longevityAge || ''}
+                        onChange={(e) => setLongevityAge(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      />
+                    ) : (
+                      <div className="text-lg font-semibold text-gray-900">
+                        {longevityAge || <span className="text-gray-400">—</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Current Income
+                    </label>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        value={currentIncome || ''}
+                        onChange={(e) => setCurrentIncome(Number(e.target.value) || null)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                        placeholder="0"
+                      />
+                    ) : (
+                      <div className="text-lg font-semibold text-gray-900">
+                        {currentIncome !== null ? `$${currentIncome.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Province */}
@@ -364,105 +428,254 @@ export function VoiceFirstContent() {
 
                 {/* Accounts */}
                 <div className="pt-4 border-t">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Account Balances</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Account Balances & Contributions</h3>
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        RRSP
-                      </label>
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={rrsp || ''}
-                          onChange={(e) => setRrsp(Number(e.target.value) || null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="0"
-                        />
-                      ) : (
-                        <div className="text-lg font-semibold text-gray-900">
-                          {rrsp !== null ? `$${rrsp.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                        </div>
-                      )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          RRSP Balance
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={rrsp || ''}
+                            onChange={(e) => setRrsp(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {rrsp !== null ? `$${rrsp.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Annual Contribution
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={rrspContribution || ''}
+                            onChange={(e) => setRrspContribution(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {rrspContribution !== null ? `$${rrspContribution.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          TFSA Balance
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={tfsa || ''}
+                            onChange={(e) => setTfsa(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {tfsa !== null ? `$${tfsa.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Annual Contribution
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={tfsaContribution || ''}
+                            onChange={(e) => setTfsaContribution(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {tfsaContribution !== null ? `$${tfsaContribution.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Non-Registered Balance
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={nonRegistered || ''}
+                            onChange={(e) => setNonRegistered(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {nonRegistered !== null ? `$${nonRegistered.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Annual Contribution
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={nonRegisteredContribution || ''}
+                            onChange={(e) => setNonRegisteredContribution(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {nonRegisteredContribution !== null ? `$${nonRegisteredContribution.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Retirement Income */}
+                <div className="pt-4 border-t">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Retirement Income</h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Monthly Spending
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={monthlySpending || ''}
+                            onChange={(e) => setMonthlySpending(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {monthlySpending !== null ? `$${monthlySpending.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Pension Income
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={pensionIncome || ''}
+                            onChange={(e) => setPensionIncome(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {pensionIncome !== null ? `$${pensionIncome.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">
-                        TFSA
+                        CPP Start Age
                       </label>
                       {editMode ? (
                         <input
                           type="number"
-                          value={tfsa || ''}
-                          onChange={(e) => setTfsa(Number(e.target.value) || null)}
+                          value={cppStartAge || ''}
+                          onChange={(e) => setCppStartAge(Number(e.target.value) || null)}
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="0"
+                          placeholder="65"
                         />
                       ) : (
                         <div className="text-lg font-semibold text-gray-900">
-                          {tfsa !== null ? `$${tfsa.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Non-Registered
-                      </label>
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={nonRegistered || ''}
-                          onChange={(e) => setNonRegistered(Number(e.target.value) || null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="0"
-                        />
-                      ) : (
-                        <div className="text-lg font-semibold text-gray-900">
-                          {nonRegistered !== null ? `$${nonRegistered.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                          {cppStartAge || <span className="text-gray-400">—</span>}
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Spending & Returns */}
+                {/* Investment Assumptions */}
                 <div className="pt-4 border-t">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Monthly Spending
-                      </label>
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={monthlySpending || ''}
-                          onChange={(e) => setMonthlySpending(Number(e.target.value) || null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="0"
-                        />
-                      ) : (
-                        <div className="text-lg font-semibold text-gray-900">
-                          {monthlySpending !== null ? `$${monthlySpending.toLocaleString()}` : <span className="text-gray-400">—</span>}
-                        </div>
-                      )}
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Investment Assumptions</h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Pre-Retirement Return
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={investmentReturn || ''}
+                            onChange={(e) => setInvestmentReturn(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="5.0"
+                            step="0.1"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {investmentReturn !== null ? `${investmentReturn}%` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Post-Retirement Return
+                        </label>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={postRetirementReturn || ''}
+                            onChange={(e) => setPostRetirementReturn(Number(e.target.value) || null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="4.0"
+                            step="0.1"
+                          />
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            {postRetirementReturn !== null ? `${postRetirementReturn}%` : <span className="text-gray-400">—</span>}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Expected Return
+                        Inflation Rate
                       </label>
                       {editMode ? (
                         <input
                           type="number"
-                          value={investmentReturn || ''}
-                          onChange={(e) => setInvestmentReturn(Number(e.target.value) || null)}
+                          value={inflationRate || ''}
+                          onChange={(e) => setInflationRate(Number(e.target.value) || null)}
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="5.0"
+                          placeholder="2.0"
                           step="0.1"
                         />
                       ) : (
                         <div className="text-lg font-semibold text-gray-900">
-                          {investmentReturn !== null ? `${investmentReturn}%` : <span className="text-gray-400">—</span>}
+                          {inflationRate !== null ? `${inflationRate}%` : <span className="text-gray-400">—</span>}
                         </div>
                       )}
                     </div>

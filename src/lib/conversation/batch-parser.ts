@@ -45,12 +45,17 @@ export async function parseBatchResponse(
       case 'age':
         if (q.id === 'current_age') return `${q.id}: 18-100`
         if (q.id === 'retirement_age') return `${q.id}: 50-80`
+        if (q.id === 'longevity_age') return `${q.id}: 65-105`
+        if (q.id === 'cpp_start_age') return `${q.id}: 60-70`
         return `${q.id}: valid age`
       case 'amount':
+        if (q.id === 'current_income') return `${q.id}: >= 0, max 1000000`
+        if (q.id === 'monthly_spending') return `${q.id}: > 0, max 100000`
         return `${q.id}: >= 0, or null for "none"/"zero"`
       case 'province':
         return `${q.id}: AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT`
       case 'percentage':
+        if (q.id === 'inflation_rate') return `${q.id}: 0-10`
         return `${q.id}: 0-20`
       default:
         return `${q.id}: valid value`
@@ -59,14 +64,20 @@ export async function parseBatchResponse(
 
   // Build examples
   const examples = `Example batch responses:
-"I'm 58, retiring at 65, and I live in Ontario"
-  → current_age: 58, retirement_age: 65, province: "ON"
+"I'm 58, retiring at 65, expect to live to 90, I live in Ontario, and make 120k a year"
+  → current_age: 58, retirement_age: 65, longevity_age: 90, province: "ON", current_income: 120000
 
 "1.7 million RRSP, 300k TFSA, no non-registered"
   → rrsp_amount: 1700000, tfsa_amount: 300000, non_registered_amount: null
 
-"About 5 thousand a month, and I'm expecting around 5%"
-  → monthly_spending: 5000, investment_return: 5`
+"I put 18k in RRSP, 7k in TFSA, and nothing in non-registered"
+  → rrsp_contribution: 18000, tfsa_contribution: 7000, non_registered_contribution: null
+
+"About 5 thousand a month, no pension, and I'll start CPP at 65"
+  → monthly_spending: 5000, pension_income: null, cpp_start_age: 65
+
+"I'm expecting 5% before retirement, 4% after, and 2% inflation"
+  → investment_return: 5, post_retirement_return: 4, inflation_rate: 2`
 
   const systemPrompt = `You are parsing a user's response for MULTIPLE retirement planning questions.
 

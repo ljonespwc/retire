@@ -5,7 +5,7 @@
  * Implements a state machine that tracks progress and determines next questions.
  */
 
-import { extractAge, extractAmount, extractProvince, extractPercentage, extractYesNo, detectSkipIntent } from './llm-parser'
+import { extractAge, extractAmount, extractProvince, extractPercentage, extractYesNo, detectSkipIntent, extractCPPStartAge } from './llm-parser'
 import { Province } from '@/types/constants'
 
 /**
@@ -72,10 +72,24 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
       validation: (age: number) => age >= 50 && age <= 80
     },
     {
+      id: 'longevity_age',
+      text: "How long do you expect to live? This helps us plan how long your money needs to last. Most people say 90 or 95.",
+      type: 'age',
+      required: true,
+      validation: (age: number) => age >= 65 && age <= 105
+    },
+    {
       id: 'province',
       text: "Which province or territory do you live in?",
       type: 'province',
       required: true
+    },
+    {
+      id: 'current_income',
+      text: "What's your current annual income before taxes?",
+      type: 'amount',
+      required: true,
+      validation: (amount: number) => amount >= 0 && amount < 1000000
     },
     {
       id: 'rrsp_amount',
@@ -84,16 +98,34 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
       required: true  // User must answer (even if "none")
     },
     {
+      id: 'rrsp_contribution',
+      text: "How much do you contribute to your RRSP each year? Say 'none' if you don't contribute.",
+      type: 'amount',
+      required: true
+    },
+    {
       id: 'tfsa_amount',
       text: "What's your TFSA balance? Say 'none' if you don't have one.",
       type: 'amount',
       required: true  // User must answer (even if "none")
     },
     {
+      id: 'tfsa_contribution',
+      text: "How much do you contribute to your TFSA each year? Say 'none' if you don't contribute.",
+      type: 'amount',
+      required: true
+    },
+    {
       id: 'non_registered_amount',
       text: "What's the total value of your non-registered investments? Say 'none' if you don't have any.",
       type: 'amount',
       required: true  // User must answer (even if "none")
+    },
+    {
+      id: 'non_registered_contribution',
+      text: "How much do you contribute to your non-registered accounts each year? Say 'none' if you don't contribute.",
+      type: 'amount',
+      required: true
     },
     {
       id: 'monthly_spending',
@@ -103,11 +135,38 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
       validation: (amount: number) => amount > 0 && amount < 100000
     },
     {
+      id: 'pension_income',
+      text: "Do you expect to receive any pension income in retirement? If yes, how much per year? Say 'none' if you don't have a pension.",
+      type: 'amount',
+      required: true
+    },
+    {
+      id: 'cpp_start_age',
+      text: "At what age do you want to start receiving CPP? You can start between 60 and 70. If you're not sure, say 65.",
+      type: 'age',
+      required: true,
+      validation: (age: number) => age >= 60 && age <= 70
+    },
+    {
       id: 'investment_return',
-      text: "What annual investment return are you expecting? If you're not sure, just say 5%.",
+      text: "What annual investment return are you expecting before you retire? If you're not sure, just say 5%.",
       type: 'percentage',
       required: true,  // User must answer (5% if unsure)
       validation: (pct: number) => pct >= 0 && pct <= 20
+    },
+    {
+      id: 'post_retirement_return',
+      text: "What about after you retire? What return do you expect? Many people use a slightly lower rate, like 4%.",
+      type: 'percentage',
+      required: true,
+      validation: (pct: number) => pct >= 0 && pct <= 20
+    },
+    {
+      id: 'inflation_rate',
+      text: "What inflation rate should we assume for planning? If you're not sure, 2% is typical.",
+      type: 'percentage',
+      required: true,
+      validation: (pct: number) => pct >= 0 && pct <= 10
     }
   ]
 }
@@ -209,7 +268,12 @@ export async function storeResponse(
   let parsedValue: any = null
   switch (currentQuestion.type) {
     case 'age':
-      parsedValue = await extractAge(rawText)
+      // Use specialized parser for CPP start age
+      if (currentQuestion.id === 'cpp_start_age') {
+        parsedValue = await extractCPPStartAge(rawText)
+      } else {
+        parsedValue = await extractAge(rawText)
+      }
       break
     case 'amount':
       parsedValue = await extractAmount(rawText)
@@ -326,29 +390,51 @@ export function getProgress(conversationId: string): { current: number; total: n
 export function getCollectedData(conversationId: string): {
   currentAge?: number
   retirementAge?: number
+  longevityAge?: number
   province?: Province
+  currentIncome?: number
   rrsp?: number | null
+  rrspContribution?: number | null
   tfsa?: number | null
+  tfsaContribution?: number | null
   non_registered?: number | null
+  nonRegisteredContribution?: number | null
   monthlySpending?: number
+  pensionIncome?: number | null
+  cppStartAge?: number
   investmentReturn?: number
+  postRetirementReturn?: number
+  inflationRate?: number
 } {
   const state = conversationStates.get(conversationId)
   if (!state) return {}
 
   const rrsp = state.responses.get('rrsp_amount')?.parsedValue
+  const rrspContribution = state.responses.get('rrsp_contribution')?.parsedValue
   const tfsa = state.responses.get('tfsa_amount')?.parsedValue
+  const tfsaContribution = state.responses.get('tfsa_contribution')?.parsedValue
   const nonReg = state.responses.get('non_registered_amount')?.parsedValue
+  const nonRegContribution = state.responses.get('non_registered_contribution')?.parsedValue
+  const pensionIncome = state.responses.get('pension_income')?.parsedValue
 
   return {
     currentAge: state.responses.get('current_age')?.parsedValue,
     retirementAge: state.responses.get('retirement_age')?.parsedValue,
+    longevityAge: state.responses.get('longevity_age')?.parsedValue,
     province: state.responses.get('province')?.parsedValue,
+    currentIncome: state.responses.get('current_income')?.parsedValue,
     rrsp: rrsp !== undefined ? rrsp : undefined,
+    rrspContribution: rrspContribution !== undefined ? rrspContribution : undefined,
     tfsa: tfsa !== undefined ? tfsa : undefined,
+    tfsaContribution: tfsaContribution !== undefined ? tfsaContribution : undefined,
     non_registered: nonReg !== undefined ? nonReg : undefined,
+    nonRegisteredContribution: nonRegContribution !== undefined ? nonRegContribution : undefined,
     monthlySpending: state.responses.get('monthly_spending')?.parsedValue,
-    investmentReturn: state.responses.get('investment_return')?.parsedValue || 5.0 // Default to 5%
+    pensionIncome: pensionIncome !== undefined ? pensionIncome : undefined,
+    cppStartAge: state.responses.get('cpp_start_age')?.parsedValue || 65, // Default to 65
+    investmentReturn: state.responses.get('investment_return')?.parsedValue || 5.0, // Default to 5%
+    postRetirementReturn: state.responses.get('post_retirement_return')?.parsedValue || 4.0, // Default to 4%
+    inflationRate: state.responses.get('inflation_rate')?.parsedValue || 2.0 // Default to 2%
   }
 }
 
