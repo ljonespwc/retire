@@ -23,13 +23,13 @@ import {
   initializeConversation,
   getConversationState,
   getCurrentQuestion,
-  storeResponse,
-  getNextQuestion,
+  peekNextQuestion,
   getProgress,
   getCollectedData,
   completeConversation,
   cleanupConversation
 } from '@/lib/conversation/question-flow-manager'
+import { parseAndGenerateResponse } from '@/lib/conversation/llm-parser'
 
 export const dynamic = 'force-dynamic'
 
@@ -153,23 +153,11 @@ export async function POST(request: Request) {
 
             const currentQuestion = getCurrentQuestion(conversationKey)
             if (!currentQuestion) {
-              // Conversation complete - send summary (STREAMED)
+              // Conversation complete - send summary
               const collectedData = getCollectedData(conversationKey)
               console.log(`✅ Conversation complete. Collected data:`, collectedData)
 
-              const aiProvider = getAIProvider()
-              const summaryStream = await aiProvider.generateStream([
-                {
-                  role: 'system',
-                  content: `You've just finished collecting retirement planning data from a user. Thank them warmly and mention that you'll now calculate their retirement projection. Keep it brief (2 sentences).`
-                },
-                {
-                  role: 'user',
-                  content: `User's data: Age ${collectedData.currentAge}, retiring at ${collectedData.retirementAge}, in ${collectedData.province}`
-                }
-              ], { temperature: 0.7, maxTokens: 80 })
-
-              await stream.ttsTextStream(summaryStream)
+              stream.tts("Thank you! I'm now calculating your retirement projection.")
               stream.data({
                 type: 'complete',
                 collectedData
@@ -181,97 +169,59 @@ export async function POST(request: Request) {
 
             console.log(`💬 User answered "${currentQuestion.id}": "${text.substring(0, 50)}..."`)
 
-            // Store response (this parses and validates using LLM)
-            const response = await storeResponse(conversationKey, currentQuestion.id, currentQuestion.text, text)
+            // Peek ahead to get next question (we need this for the combined LLM call)
+            // Note: Use peek, not get - we'll advance state manually after storing response
+            const nextQuestion = peekNextQuestion(conversationKey)
 
-            console.log(`📊 Parse result:`, { response, parsedValue: response?.parsedValue })
+            // COMBINED LLM CALL: Parse answer AND generate response in one shot
+            const result = await parseAndGenerateResponse(currentQuestion, text, nextQuestion)
 
-            // Check if parse failed
-            // For amount-type questions, null is valid (means "none"), even if required
-            const isAmountType = currentQuestion.type === 'amount'
-            const parseFailed = !response || (response.parsedValue === null && currentQuestion.required && !isAmountType)
+            console.log(`📊 Combined result:`, { parsedValue: result.parsedValue, isValid: result.isValid })
 
-            console.log(`🔍 Parse failed check:`, { parseFailed, hasResponse: !!response, parsedValue: response?.parsedValue, required: currentQuestion.required, isAmountType })
-
-            if (parseFailed) {
+            if (!result.isValid) {
+              // Parse failed - LLM already generated clarification response
               console.warn(`⚠️ Parse failed for ${currentQuestion.id}`)
-
-              // Failed to parse - ask for clarification (STREAMED)
-              const aiProvider = getAIProvider()
-              const clarificationStream = await aiProvider.generateStream([
-                {
-                  role: 'system',
-                  content: `The user's answer to your question wasn't clear. Politely ask them to rephrase, then repeat the EXACT question word-for-word. Do not rephrase the question. Be warm and encouraging. Keep it brief (under 30 words).`
-                },
-                {
-                  role: 'user',
-                  content: `Question was: "${currentQuestion.text}"\nThey said: "${text}"\n\nAsk for clarification and repeat the question word-for-word:`
-                }
-              ], { temperature: 0.7, maxTokens: 100 })
-
-              await stream.ttsTextStream(clarificationStream)
+              stream.tts(result.spokenResponse)
               stream.end()
               return
             }
 
-            console.log(`💾 Parsed value: ${response.parsedValue}`)
+            console.log(`💾 Storing parsed value: ${result.parsedValue}`)
 
-            // Get next question
-            const nextQuestion = getNextQuestion(conversationKey, text)
+            // Manually store the parsed response (we already did the parsing)
+            state.responses.set(currentQuestion.id, {
+              questionId: currentQuestion.id,
+              questionText: currentQuestion.text,
+              rawText: text,
+              parsedValue: result.parsedValue,
+              timestamp: new Date()
+            })
+
+            // Move to next question
+            state.currentQuestionIndex++
+
+            // Speak the response (already generated by LLM)
+            stream.tts(result.spokenResponse)
 
             if (nextQuestion) {
-              // Generate natural transition to next question (STREAMED)
-              const aiProvider = getAIProvider()
-              const transitionStream = await aiProvider.generateStream([
-                {
-                  role: 'system',
-                  content: `You're collecting retirement planning info. The user just answered. Say a brief acknowledgment like "got it", "thanks", or "perfect", then ask the EXACT question provided word-for-word. Do not rephrase the question. Keep it under 25 words total.`
-                },
-                {
-                  role: 'user',
-                  content: `Ask this question word-for-word: "${nextQuestion.text}"`
-                }
-              ], { temperature: 0.7, maxTokens: 80 })
-
-              await stream.ttsTextStream(transitionStream)
-
-              // Send minimal progress (reduced payload for performance)
+              // Send minimal progress
               const progress = getProgress(conversationKey)
               if (progress) {
                 stream.data({ type: 'progress', current: progress.current, total: progress.total })
               }
-
-              stream.end()
-              return
             } else {
-              // Final question - wrap up
+              // Final question - mark complete
               completeConversation(conversationKey)
               const collectedData = getCollectedData(conversationKey)
-
-              console.log(`✅ Conversation complete. Collected data:`, collectedData)
-
-              const aiProvider = getAIProvider()
-              const thanksStream = await aiProvider.generateStream([
-                {
-                  role: 'system',
-                  content: `You've finished collecting retirement planning data. Thank the user warmly and mention you're now calculating their retirement projection. Keep it brief (2 sentences).`
-                },
-                {
-                  role: 'user',
-                  content: `Final answer was: "${text}"`
-                }
-              ], { temperature: 0.7, maxTokens: 80 })
-
-              await stream.ttsTextStream(thanksStream)
 
               stream.data({
                 type: 'complete',
                 collectedData
               })
-
-              stream.end()
-              return
             }
+
+            stream.end()
+            return
           } catch (error) {
             console.error('Error processing message:', error)
             stream.tts("I'm sorry, I didn't quite catch that. Could you try again?")

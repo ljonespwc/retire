@@ -252,6 +252,23 @@ export async function storeResponse(
 }
 
 /**
+ * Peek at next question WITHOUT modifying state
+ * Used for combined LLM call optimization
+ */
+export function peekNextQuestion(conversationId: string): Question | null {
+  const state = conversationStates.get(conversationId)
+  if (!state) return null
+
+  const nextIndex = state.currentQuestionIndex + 1
+
+  if (nextIndex >= state.questionFlow.questions.length) {
+    return null // Conversation will be complete after current question
+  }
+
+  return state.questionFlow.questions[nextIndex]
+}
+
+/**
  * Get next question based on current state and follow-up logic
  */
 export function getNextQuestion(
