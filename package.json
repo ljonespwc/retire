@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:tunnel": "npx @layercode/cli tunnel",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

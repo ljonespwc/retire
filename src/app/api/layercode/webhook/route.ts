@@ -10,6 +10,11 @@
  * - session.end: Conversation ended
  * - session.update: Session metadata updated
  * - user.transcript.interim_delta: Real-time transcription (informational only)
+ *
+ * Local Development:
+ * Use Layercode CLI tunnel for faster, more reliable local testing:
+ *   npm run dev:tunnel
+ * This automatically handles webhook URL configuration without manual ngrok setup.
  */
 
 import { streamResponse } from '@layercode/node-server-sdk'
@@ -102,13 +107,8 @@ export async function POST(request: Request) {
             // Stream greeting via text-to-speech (user hears first words in ~300ms!)
             await stream.ttsTextStream(greetingStream)
 
-            // Send progress data
-            stream.data({
-              type: 'progress',
-              current: 1,
-              total: state.questionFlow.questions.length,
-              currentQuestion: firstQuestion.id
-            })
+            // Send minimal progress data (reduced payload for performance)
+            stream.data({ type: 'progress', current: 1, total: state.questionFlow.questions.length })
 
             console.log(`💬 Sent greeting with first question (streamed for low latency)`)
           } catch (error) {
@@ -186,10 +186,12 @@ export async function POST(request: Request) {
 
             console.log(`📊 Parse result:`, { response, parsedValue: response?.parsedValue })
 
-            // Check if parse failed (null is OK for optional questions!)
-            const parseFailed = !response || (response.parsedValue === null && currentQuestion.required)
+            // Check if parse failed
+            // For amount-type questions, null is valid (means "none"), even if required
+            const isAmountType = currentQuestion.type === 'amount'
+            const parseFailed = !response || (response.parsedValue === null && currentQuestion.required && !isAmountType)
 
-            console.log(`🔍 Parse failed check:`, { parseFailed, hasResponse: !!response, parsedValue: response?.parsedValue, required: currentQuestion.required })
+            console.log(`🔍 Parse failed check:`, { parseFailed, hasResponse: !!response, parsedValue: response?.parsedValue, required: currentQuestion.required, isAmountType })
 
             if (parseFailed) {
               console.warn(`⚠️ Parse failed for ${currentQuestion.id}`)
@@ -233,20 +235,10 @@ export async function POST(request: Request) {
 
               await stream.ttsTextStream(transitionStream)
 
-              // Send progress with parsed value for debugging
+              // Send minimal progress (reduced payload for performance)
               const progress = getProgress(conversationKey)
               if (progress) {
-                stream.data({
-                  type: 'progress',
-                  current: progress.current,
-                  total: progress.total,
-                  currentQuestion: nextQuestion.id,
-                  lastAnswer: {
-                    questionId: currentQuestion.id,
-                    rawText: text,
-                    parsedValue: response.parsedValue
-                  }
-                })
+                stream.data({ type: 'progress', current: progress.current, total: progress.total })
               }
 
               stream.end()

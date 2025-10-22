@@ -81,19 +81,19 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
       id: 'rrsp_amount',
       text: "What's the current balance in your RRSP? If you don't have one, just say 'none' or 'zero'.",
       type: 'amount',
-      required: false
+      required: true  // User must answer (even if "none")
     },
     {
       id: 'tfsa_amount',
       text: "What's your TFSA balance? Say 'none' if you don't have one.",
       type: 'amount',
-      required: false
+      required: true  // User must answer (even if "none")
     },
     {
       id: 'non_registered_amount',
       text: "What's the total value of your non-registered investments? Say 'none' if you don't have any.",
       type: 'amount',
-      required: false
+      required: true  // User must answer (even if "none")
     },
     {
       id: 'monthly_spending',
@@ -104,9 +104,9 @@ const BASIC_RETIREMENT_FLOW: QuestionFlow = {
     },
     {
       id: 'investment_return',
-      text: "What annual investment return are you expecting? Most people assume between 4% and 7%.",
+      text: "What annual investment return are you expecting? If you're not sure, just say 5%.",
       type: 'percentage',
-      required: false,
+      required: true,  // User must answer (5% if unsure)
       validation: (pct: number) => pct >= 0 && pct <= 20
     }
   ]
@@ -186,21 +186,23 @@ export async function storeResponse(
 
   console.log(`✅ Current question matches: ${questionId}, type: ${currentQuestion.type}`)
 
-  // Check for skip intent (async now)
-  const shouldSkip = await detectSkipIntent(rawText)
-  if (shouldSkip && !currentQuestion.required) {
-    console.log(`⏭️ User skipped optional question: ${questionId}`)
+  // Check for skip intent ONLY for optional questions (performance optimization)
+  if (!currentQuestion.required) {
+    const shouldSkip = await detectSkipIntent(rawText)
+    if (shouldSkip) {
+      console.log(`⏭️ User skipped optional question: ${questionId}`)
 
-    const response: QuestionResponse = {
-      questionId,
-      questionText,
-      rawText,
-      parsedValue: null,
-      timestamp: new Date()
+      const response: QuestionResponse = {
+        questionId,
+        questionText,
+        rawText,
+        parsedValue: null,
+        timestamp: new Date()
+      }
+
+      state.responses.set(questionId, response)
+      return response
     }
-
-    state.responses.set(questionId, response)
-    return response
   }
 
   // Parse response based on question type (all async now)
