@@ -10,6 +10,18 @@ interface Message {
   timestamp: Date
 }
 
+interface BatchPrompt {
+  batchId: string
+  batchTitle: string
+  questions: {
+    id: string
+    text: string
+    type: string
+  }[]
+  batchIndex: number
+  totalBatches: number
+}
+
 export function VoiceFirstContent() {
   // Form state (read-only preview)
   const [currentAge, setCurrentAge] = useState<number | null>(null)
@@ -22,11 +34,14 @@ export function VoiceFirstContent() {
   const [investmentReturn, setInvestmentReturn] = useState<number | null>(null)
 
   const [messages, setMessages] = useState<Message[]>([])
+  const [batchPrompts, setBatchPrompts] = useState<BatchPrompt[]>([])  // Stack of batch prompts
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [isComplete, setIsComplete] = useState(false)
   const [editMode, setEditMode] = useState(false)
 
   // Voice integration
+  // NOTE: To use batch mode, set webhook URL to /api/batch-agent in Layercode dashboard
+  // or use: npx @layercode/cli tunnel --webhook-url /api/batch-agent
   const {
     isConnected,
     isConnecting,
@@ -39,24 +54,37 @@ export function VoiceFirstContent() {
     onDataMessage: (data) => {
       const content = data.type === 'response.data' ? data.content : data
 
-      if (content.type === 'progress') {
-        setProgress({ current: content.current, total: content.total })
+      console.log('📨 Received data message:', content.type, content)
 
-        // Update live preview from last answer
-        if (content.lastAnswer) {
-          const { questionId, parsedValue } = content.lastAnswer
+      // Handle batch prompt (new batch of questions)
+      if (content.type === 'batch_prompt') {
+        setBatchPrompts(prev => [...prev, {
+          batchId: content.batchId,
+          batchTitle: content.batchTitle,
+          questions: content.questions,
+          batchIndex: content.batchIndex,
+          totalBatches: content.totalBatches
+        }])
 
-          if (questionId === 'current_age') setCurrentAge(parsedValue)
-          if (questionId === 'retirement_age') setRetirementAge(parsedValue)
-          if (questionId === 'province') setProvince(parsedValue)
-          if (questionId === 'rrsp_amount') setRrsp(parsedValue)
-          if (questionId === 'tfsa_amount') setTfsa(parsedValue)
-          if (questionId === 'non_registered_amount') setNonRegistered(parsedValue)
-          if (questionId === 'monthly_spending') setMonthlySpending(parsedValue)
-          if (questionId === 'investment_return') setInvestmentReturn(parsedValue)
-        }
+        setProgress({ current: content.batchIndex + 1, total: content.totalBatches })
       }
 
+      // Handle batch response (parsed values from user's answer)
+      if (content.type === 'batch_response') {
+        const values = content.values
+
+        // Update form with batch values
+        if (values.current_age !== undefined) setCurrentAge(values.current_age)
+        if (values.retirement_age !== undefined) setRetirementAge(values.retirement_age)
+        if (values.province !== undefined) setProvince(values.province)
+        if (values.rrsp_amount !== undefined) setRrsp(values.rrsp_amount)
+        if (values.tfsa_amount !== undefined) setTfsa(values.tfsa_amount)
+        if (values.non_registered_amount !== undefined) setNonRegistered(values.non_registered_amount)
+        if (values.monthly_spending !== undefined) setMonthlySpending(values.monthly_spending)
+        if (values.investment_return !== undefined) setInvestmentReturn(values.investment_return)
+      }
+
+      // Handle completion
       if (content.type === 'complete') {
         setIsComplete(true)
 
@@ -65,9 +93,9 @@ export function VoiceFirstContent() {
         if (d.currentAge) setCurrentAge(d.currentAge)
         if (d.retirementAge) setRetirementAge(d.retirementAge)
         if (d.province) setProvince(d.province)
-        if (d.rrsp) setRrsp(d.rrsp)
-        if (d.tfsa) setTfsa(d.tfsa)
-        if (d.non_registered) setNonRegistered(d.non_registered)
+        if (d.rrsp !== undefined) setRrsp(d.rrsp)
+        if (d.tfsa !== undefined) setTfsa(d.tfsa)
+        if (d.non_registered !== undefined) setNonRegistered(d.non_registered)
         if (d.monthlySpending) setMonthlySpending(d.monthlySpending)
         if (d.investmentReturn) setInvestmentReturn(d.investmentReturn)
       }
@@ -137,7 +165,7 @@ export function VoiceFirstContent() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-700">
-                          Question {progress.current} of {progress.total}
+                          Section {progress.current} of {progress.total}
                         </span>
                         <span className="text-sm text-gray-600">
                           {Math.round((progress.current / progress.total) * 100)}%
@@ -207,14 +235,43 @@ export function VoiceFirstContent() {
               )}
             </div>
 
+            {/* Batch Questions Display */}
+            {batchPrompts.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold mb-4">Questions</h2>
+                <div className="space-y-4">
+                  {batchPrompts.map((batch, idx) => (
+                    <div key={batch.batchId} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">
+                          {batch.batchIndex + 1}
+                        </div>
+                        <h3 className="text-sm font-semibold text-gray-700">{batch.batchTitle}</h3>
+                      </div>
+                      <ul className="ml-8 space-y-1.5">
+                        {batch.questions.map(q => (
+                          <li key={q.id} className="text-sm text-gray-600">
+                            • {q.text}
+                          </li>
+                        ))}
+                      </ul>
+                      {idx < batchPrompts.length - 1 && (
+                        <div className="ml-8 mt-3 border-t border-gray-200" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Conversation Tips */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-blue-900 mb-2">Tips:</h3>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Speak naturally - the AI understands conversational language</li>
+                <li>• Answer the questions naturally in your own words</li>
+                <li>• You can answer all questions at once or one at a time</li>
                 <li>• Watch your data appear in real-time on the right</li>
                 <li>• You can edit the form manually after the conversation</li>
-                <li>• Say "skip" for optional questions</li>
               </ul>
             </div>
           </div>
@@ -428,8 +485,9 @@ export function VoiceFirstContent() {
             {/* Info box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>Prototype B - Voice-First:</strong> Voice conversation is primary, with live preview
-                showing data as it's collected. Best for users who prefer a guided, conversational experience.
+                <strong>Prototype B - Voice-First (Batch Mode):</strong> Questions are grouped into 3 contextual
+                sections. Answer naturally - you can respond to all questions at once or one at a time.
+                Live preview shows data as it's collected.
               </p>
             </div>
           </div>

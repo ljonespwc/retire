@@ -14,6 +14,22 @@ Your job is to:
 3. Report the results to the user
 4. Let the user handle git/deployment
 
+## ⚠️ CRITICAL: Voice & LLM Architecture
+
+**DO NOT modify the Layercode streaming architecture or LLM implementation without explicit user permission.**
+
+This includes:
+- Layercode WebRTC streaming setup
+- Text-to-speech streaming (`stream.ttsTextStream()`)
+- LLM response streaming (`generateStream()`)
+- Webhook SSE (Server-Sent Events) flow
+- Voice conversation state management
+- AI provider configuration (OpenAI/Gemini)
+
+The current architecture is optimized and tested. Any changes to streaming, latency optimization, or conversation flow **must be approved by the user first**.
+
+If you identify potential improvements, **propose them and wait for approval** before implementing.
+
 ## Project Overview
 
 A voice-driven Canadian retirement income calculator that combines conversational AI with sophisticated financial modeling. The platform helps Canadians understand their retirement income potential through natural language interaction, eliminating complex spreadsheets and financial jargon.
@@ -465,6 +481,16 @@ Layercode WebRTC → User hears AI (starts in ~300ms!)
 - Maintained 100% parsing accuracy
 
 **AI Provider**: Switched from Gemini to OpenAI to avoid free-tier rate limits (15/min → 60/min)
+
+**Batch Conversation Mode** (Oct 22, 2025):
+- Implemented contextual batch questioning for `test-voice-first` page (Option 4+10 from exploration)
+- Questions grouped into 3 batches: Personal (3Q), Savings (3Q), Expectations (2Q)
+- User answers naturally in single response, AI parses all values at once with `parseBatchResponse()`
+- Questions displayed on-screen for user reference while speaking
+- New files: `batch-flow-manager.ts`, `batch-parser.ts`, `/api/batch-agent`, `/api/layercode/batch-webhook/route.ts`
+- Core files untouched (test-voice page still uses sequential `/api/agent`)
+- Expected: 3 turns vs 8 (62% reduction), ~3-4s total, more natural conversation flow
+- Gemini Flash recommended for best performance (700ms avg latency vs OpenAI 1,720ms)
 
 ---
 
