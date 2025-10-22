@@ -173,10 +173,16 @@ export async function POST(request: Request) {
             // Store response (this parses and validates using LLM)
             const response = await storeResponse(conversationKey, currentQuestion.id, currentQuestion.text, text)
 
+            console.log(`📊 Parse result:`, { response, parsedValue: response?.parsedValue })
+
             // Check if parse failed (null is OK for optional questions!)
             const parseFailed = !response || (response.parsedValue === null && currentQuestion.required)
 
+            console.log(`🔍 Parse failed check:`, { parseFailed, hasResponse: !!response, parsedValue: response?.parsedValue, required: currentQuestion.required })
+
             if (parseFailed) {
+              console.warn(`⚠️ Parse failed for ${currentQuestion.id}`)
+
               // Failed to parse - ask for clarification (STREAMED)
               const aiProvider = getAIProvider()
               const clarificationStream = await aiProvider.generateStream([
@@ -260,6 +266,8 @@ export async function POST(request: Request) {
           } catch (error) {
             console.error('Error processing message:', error)
             stream.tts("I'm sorry, I didn't quite catch that. Could you try again?")
+            stream.end()
+            return
           }
         }
 
