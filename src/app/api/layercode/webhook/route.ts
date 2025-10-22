@@ -244,6 +244,9 @@ export async function POST(request: Request) {
                   }
                 })
               }
+
+              stream.end()
+              return
             } else {
               // Final question - wrap up
               completeConversation(conversationKey)
@@ -269,6 +272,9 @@ export async function POST(request: Request) {
                 type: 'complete',
                 collectedData
               })
+
+              stream.end()
+              return
             }
           } catch (error) {
             console.error('Error processing message:', error)
