@@ -82,11 +82,11 @@ export async function POST(request: Request) {
             const greetingStream = await aiProvider.generateStream([
               {
                 role: 'system',
-                content: `You are a friendly Canadian retirement planning assistant. Greet the user warmly (1 sentence), mention this will take about 2 minutes, then ask the first question naturally. Be conversational and encouraging.`
+                content: `You are a friendly Canadian retirement planning assistant. Greet the user warmly (1 sentence), mention this will take about 2 minutes, then ask the EXACT question provided. Do not rephrase the question. Be conversational and encouraging.`
               },
               {
                 role: 'user',
-                content: `First question: ${firstQuestion.text}`
+                content: `Ask this question word-for-word: "${firstQuestion.text}"`
               }
             ], { temperature: 0.7, maxTokens: 100 })
 
@@ -182,11 +182,11 @@ export async function POST(request: Request) {
               const clarificationStream = await aiProvider.generateStream([
                 {
                   role: 'system',
-                  content: `The user's answer to your question wasn't clear. Politely ask them to rephrase. Be warm and encouraging. Keep it brief (under 30 words).`
+                  content: `The user's answer to your question wasn't clear. Politely ask them to rephrase, then repeat the EXACT question word-for-word. Do not rephrase the question. Be warm and encouraging. Keep it brief (under 30 words).`
                 },
                 {
                   role: 'user',
-                  content: `Question was: "${currentQuestion.text}"\nThey said: "${text}"\n\nAsk for clarification:`
+                  content: `Question was: "${currentQuestion.text}"\nThey said: "${text}"\n\nAsk for clarification and repeat the question word-for-word:`
                 }
               ], { temperature: 0.7, maxTokens: 100 })
 
@@ -206,11 +206,11 @@ export async function POST(request: Request) {
               const transitionStream = await aiProvider.generateStream([
                 {
                   role: 'system',
-                  content: `You're collecting retirement planning info. The user just answered. Say a brief acknowledgment like "got it", "thanks", or "perfect", then ask the next question naturally. Keep it under 25 words total.`
+                  content: `You're collecting retirement planning info. The user just answered. Say a brief acknowledgment like "got it", "thanks", or "perfect", then ask the EXACT question provided word-for-word. Do not rephrase the question. Keep it under 25 words total.`
                 },
                 {
                   role: 'user',
-                  content: `Next question: ${nextQuestion.text}`
+                  content: `Ask this question word-for-word: "${nextQuestion.text}"`
                 }
               ], { temperature: 0.7, maxTokens: 80 })
 
