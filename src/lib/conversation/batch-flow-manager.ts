@@ -209,6 +209,7 @@ export function getCurrentBatch(conversationId: string): QuestionBatch | null {
 
 /**
  * Store batch response and move to next batch
+ * Merges new values with existing values (accumulates across multiple turns)
  */
 export function storeBatchResponse(
   conversationId: string,
@@ -222,15 +223,36 @@ export function storeBatchResponse(
     return false
   }
 
+  // Get existing response if any
+  const existingResponse = state.batchResponses.get(batchId)
+
+  // Merge new values with existing values
+  // Keep existing non-null values, add new non-null values
+  const mergedValues = new Map<string, any>()
+
+  // Start with existing values
+  if (existingResponse) {
+    for (const [key, value] of existingResponse.values) {
+      mergedValues.set(key, value)
+    }
+  }
+
+  // Overlay new non-null values
+  for (const [key, value] of values) {
+    if (value !== null && value !== undefined) {
+      mergedValues.set(key, value)
+    }
+  }
+
   const response: BatchResponse = {
     batchId,
-    values,
-    rawText,
+    values: mergedValues,
+    rawText: existingResponse ? `${existingResponse.rawText} ${rawText}` : rawText,
     timestamp: new Date()
   }
 
   state.batchResponses.set(batchId, response)
-  console.log(`💾 Stored batch response for ${batchId}:`, Object.fromEntries(values))
+  console.log(`💾 Stored batch response for ${batchId}:`, Object.fromEntries(mergedValues))
 
   return true
 }
