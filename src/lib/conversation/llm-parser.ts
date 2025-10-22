@@ -14,6 +14,8 @@ import { Province } from '@/types/constants'
 export async function extractAge(text: string): Promise<number | null> {
   const aiProvider = getAIProvider()
 
+  console.log(`🔍 extractAge input: "${text}"`)
+
   const response = await aiProvider.generateCompletion([
     {
       role: 'system',
@@ -33,16 +35,21 @@ Examples:
     }
   ], { temperature: 0.1, maxTokens: 10 })
 
+  console.log(`🤖 extractAge LLM response: "${response}"`)
+
   const cleaned = response.trim().toLowerCase()
   if (cleaned === 'null' || cleaned === 'none') {
+    console.log(`❌ extractAge returning null (cleaned="${cleaned}")`)
     return null
   }
 
   const age = parseInt(cleaned)
   if (!isNaN(age) && age >= 18 && age <= 120) {
+    console.log(`✅ extractAge returning: ${age}`)
     return age
   }
 
+  console.log(`❌ extractAge failed to parse: "${cleaned}", age=${age}`)
   return null
 }
 

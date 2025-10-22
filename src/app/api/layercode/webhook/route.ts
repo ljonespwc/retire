@@ -137,6 +137,7 @@ export async function POST(request: Request) {
             let state = getConversationState(conversationKey)
             if (!state) {
               // Session might have been lost, reinitialize
+              console.warn(`⚠️ State not found for ${conversationKey}, reinitializing`)
               state = initializeConversation(conversationKey)
             }
 

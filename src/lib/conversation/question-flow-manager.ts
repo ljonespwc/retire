@@ -170,14 +170,21 @@ export async function storeResponse(
   questionText: string,
   rawText: string
 ): Promise<QuestionResponse | null> {
+  console.log(`🎯 storeResponse called for ${questionId}, text="${rawText}"`)
+
   const state = conversationStates.get(conversationId)
-  if (!state) return null
+  if (!state) {
+    console.error(`❌ No state found for conversation ${conversationId}`)
+    return null
+  }
 
   const currentQuestion = getCurrentQuestion(conversationId)
   if (!currentQuestion || currentQuestion.id !== questionId) {
-    console.warn(`Question mismatch: expected ${currentQuestion?.id}, got ${questionId}`)
+    console.warn(`❌ Question mismatch: expected ${currentQuestion?.id}, got ${questionId}`)
     return null
   }
+
+  console.log(`✅ Current question matches: ${questionId}, type: ${currentQuestion.type}`)
 
   // Check for skip intent (async now)
   const shouldSkip = await detectSkipIntent(rawText)
@@ -218,8 +225,11 @@ export async function storeResponse(
 
   // Validate parsed value
   if (parsedValue !== null && currentQuestion.validation) {
-    if (!currentQuestion.validation(parsedValue)) {
-      console.warn(`Validation failed for ${questionId}: ${parsedValue}`)
+    console.log(`🔍 Validating ${questionId}: ${parsedValue}`)
+    const isValid = currentQuestion.validation(parsedValue)
+    console.log(`📋 Validation result: ${isValid}`)
+    if (!isValid) {
+      console.warn(`❌ Validation failed for ${questionId}: ${parsedValue}`)
       return null // Don't store invalid response
     }
   }
