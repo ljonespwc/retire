@@ -28,16 +28,19 @@ export interface BatchParseResult {
 export async function parseBatchResponse(
   batch: QuestionBatch,
   userText: string,
-  nextBatch: QuestionBatch | null
+  nextBatch: QuestionBatch | null,
+  existingValues: Map<string, any> = new Map()
 ): Promise<BatchParseResult> {
   const aiProvider = getAIProvider()
 
-  console.log(`🎯 parseBatchResponse: batch=${batch.id}, questions=${batch.questions.length}`)
+  console.log(`🎯 parseBatchResponse: batch=${batch.id}, questions=${batch.questions.length}, existing=${existingValues.size}`)
 
-  // Build question list for prompt
-  const questionList = batch.questions.map((q, idx) =>
-    `${idx + 1}. ${q.id} (${q.type}): "${q.text}"`
-  ).join('\n')
+  // Build question list for prompt, marking already-collected values
+  const questionList = batch.questions.map((q, idx) => {
+    const existingValue = existingValues.get(q.id)
+    const hasValue = existingValue !== null && existingValue !== undefined
+    return `${idx + 1}. ${q.id} (${q.type}): "${q.text}"${hasValue ? ` [ALREADY COLLECTED: ${existingValue}]` : ''}`
+  }).join('\n')
 
   // Build validation rules for each question
   const validationRules = batch.questions.map(q => {
@@ -94,21 +97,28 @@ EXAMPLES:
 ${examples}
 
 TASK:
-1. Extract ALL values the user mentioned (they may answer 1, 2, or all 3 questions)
-2. For values not mentioned, return null
+1. Extract values the user mentioned in THIS response
+2. For values NOT mentioned in this response, return null (we'll merge with existing)
 3. Include confidence scores (0.0 = not sure, 1.0 = certain)
 4. Generate a spoken response:
    ${nextBatch
-     ? `- If user answered ALL questions: Brief acknowledgment + "${nextBatch.title}" prompt
-   - If user missed some: Acknowledge what you got + ask for missing ones`
+     ? `- If user answered ALL remaining questions: Brief acknowledgment + "${nextBatch.title}" prompt
+   - If some are still missing: Acknowledge new info + ask ONLY for questions NOT marked as [ALREADY COLLECTED]`
      : `- Thank them and say you're calculating their retirement projection`
    }
 
-IMPORTANT:
+CRITICAL RULES:
+- For questions marked [ALREADY COLLECTED], DO NOT ask for them again in spokenResponse
+- Only ask for questions that are NOT yet collected
 - For amount type, null is VALID (means "none"/"zero")
 - Don't assume values user didn't mention
 - Be conversational and friendly
 - Keep spoken response under 30 words
+
+OUTPUT FORMAT:
+- Return ONLY valid JSON, no explanation or commentary
+- Do not write any text before or after the JSON
+- Use the exact structure shown below
 
 Return JSON with this EXACT structure:
 {
@@ -138,8 +148,17 @@ Return JSON with this EXACT structure:
   console.log(`🤖 parseBatchResponse raw: "${response}"`)
 
   try {
-    // Strip markdown code blocks if present
+    // Strip markdown code blocks and any preamble text
     let cleanedResponse = response.trim()
+
+    // Remove any text before the JSON starts
+    const jsonStart = cleanedResponse.search(/```(?:json)?\s*\n\{|^\{/)
+    if (jsonStart > 0) {
+      console.log(`🧹 Stripped ${jsonStart} chars of preamble text`)
+      cleanedResponse = cleanedResponse.substring(jsonStart)
+    }
+
+    // Remove markdown code blocks if present
     if (cleanedResponse.startsWith('```')) {
       cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n/, '')
       cleanedResponse = cleanedResponse.replace(/\n```\s*$/, '')

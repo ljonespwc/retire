@@ -122,32 +122,51 @@ ${questionList}`
 
             console.log(`💬 User answered batch "${currentBatch.id}": "${text.substring(0, 50)}..."`)
 
+            // Get existing accumulated values before parsing
+            const existingResponse = state.batchResponses.get(currentBatch.id)
+            const existingValues = existingResponse ? existingResponse.values : new Map<string, any>()
+
             // Peek at next batch for response generation
             const nextBatch = state.batches[state.currentBatchIndex + 1] || null
 
             // Parse batch response (all questions at once)
-            const result = await parseBatchResponse(currentBatch, text, nextBatch)
+            const result = await parseBatchResponse(currentBatch, text, nextBatch, existingValues)
 
             console.log(`📊 Batch parse result:`, {
               values: Object.fromEntries(result.values),
               missingFields: result.missingFields
             })
 
-            // Store all parsed values
+            // Store all parsed values (merges with existing)
             storeBatchResponse(conversationKey, currentBatch.id, result.values, text)
 
-            // Send parsed values to UI for form update
+            // Get the ACCUMULATED values after storing
+            const updatedResponse = state.batchResponses.get(currentBatch.id)
+            const accumulatedValues = updatedResponse ? updatedResponse.values : new Map<string, any>()
+
+            // Calculate ACTUAL missing fields based on accumulated values
+            const actuallyMissingFields = currentBatch.questions
+              .filter(q => {
+                const value = accumulatedValues.get(q.id)
+                return value === null || value === undefined
+              })
+              .map(q => q.id)
+
+            console.log(`📊 Accumulated values:`, Object.fromEntries(accumulatedValues))
+            console.log(`📊 Actually missing fields:`, actuallyMissingFields)
+
+            // Send accumulated values to UI for form update
             stream.data({
               type: 'batch_response',
               batchId: currentBatch.id,
-              values: Object.fromEntries(result.values),
-              missingFields: result.missingFields
+              values: Object.fromEntries(accumulatedValues),
+              missingFields: actuallyMissingFields
             })
 
             // Check if we got all values or need clarification
-            if (result.missingFields.length > 0) {
+            if (actuallyMissingFields.length > 0) {
               // User didn't answer all questions - ask for missing ones
-              console.warn(`⚠️ Missing fields in batch ${currentBatch.id}:`, result.missingFields)
+              console.warn(`⚠️ Missing fields in batch ${currentBatch.id}:`, actuallyMissingFields)
               stream.tts(result.spokenResponse)
               stream.end()
               return
@@ -174,7 +193,7 @@ ${questionList}`
                 batchId: nextBatchObj.id,
                 batchTitle: nextBatchObj.title,
                 questions: nextBatchObj.questions,
-                batchIndex: progress?.current || 0,
+                batchIndex: (progress?.current || 1) - 1,  // Convert 1-indexed to 0-indexed for UI
                 totalBatches: progress?.total || 0
               })
 
