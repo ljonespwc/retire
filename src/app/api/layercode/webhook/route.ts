@@ -49,6 +49,8 @@ export async function POST(request: Request) {
   try {
     const requestBody = await request.json() as WebhookRequest
 
+    console.log(`🌐 Webhook received: type=${requestBody.type}, conversation_id=${requestBody.conversation_id}`)
+
     // Verify webhook secret if configured
     const webhookSecret = process.env.LAYERCODE_WEBHOOK_SECRET
     if (webhookSecret) {
@@ -59,13 +61,17 @@ export async function POST(request: Request) {
     // Handle different webhook event types
     const { type, text, turn_id, session_id, conversation_id, interruption_context } = requestBody
 
+    console.log(`📝 Event details: type=${type}, text="${text?.substring(0, 50)}", conversation_id=${conversation_id}`)
+
     // Use conversation_id as the primary key
     const conversationKey = conversation_id || session_id || 'unknown'
 
     return streamResponse(requestBody, async ({ stream }) => {
+      console.log(`🎬 streamResponse started for type=${type}`)
       try {
         // SESSION START - Initialize conversation and ask first question
         if (type === 'session.start') {
+          console.log(`📌 Handling session.start`)
           try {
             console.log(`✅ Started retirement planning session ${conversationKey}`)
 

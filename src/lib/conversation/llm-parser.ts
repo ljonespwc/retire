@@ -142,6 +142,8 @@ Examples:
 export async function extractPercentage(text: string): Promise<number | null> {
   const aiProvider = getAIProvider()
 
+  console.log(`🔍 extractPercentage input: "${text}"`)
+
   const response = await aiProvider.generateCompletion([
     {
       role: 'system',
@@ -161,16 +163,21 @@ Examples:
     }
   ], { temperature: 0.1, maxTokens: 10 })
 
+  console.log(`🤖 extractPercentage LLM response: "${response}"`)
+
   const cleaned = response.trim().toLowerCase()
   if (cleaned === 'null' || cleaned === 'none') {
+    console.log(`❌ extractPercentage returning null (cleaned="${cleaned}")`)
     return null
   }
 
   const pct = parseFloat(cleaned)
   if (!isNaN(pct) && pct >= 0 && pct <= 100) {
+    console.log(`✅ extractPercentage returning: ${pct}`)
     return pct
   }
 
+  console.log(`❌ extractPercentage failed to parse: "${cleaned}", pct=${pct}`)
   return null
 }
 
