@@ -392,8 +392,18 @@ Return JSON with this EXACT structure:
   console.log(`🤖 parseAndGenerateResponse raw: "${response}"`)
 
   try {
+    // Strip markdown code blocks if present (LLM sometimes returns ```json...```)
+    let cleanedResponse = response.trim()
+    if (cleanedResponse.startsWith('```')) {
+      // Remove opening ```json or ```
+      cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n/, '')
+      // Remove closing ```
+      cleanedResponse = cleanedResponse.replace(/\n```\s*$/, '')
+      console.log(`🧹 Stripped markdown, cleaned: "${cleanedResponse}"`)
+    }
+
     // Parse JSON response
-    const parsed = JSON.parse(response)
+    const parsed = JSON.parse(cleanedResponse)
 
     console.log(`✅ parseAndGenerateResponse result: parsedValue=${parsed.parsedValue}, isValid=${parsed.isValid}`)
 
