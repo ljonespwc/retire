@@ -77,7 +77,10 @@ export async function POST(request: Request) {
 
             // Initialize conversation state with question flow
             const state = initializeConversation(conversationKey)
+            console.log(`🔑 State created for ${conversationKey}, has ${state.questionFlow.questions.length} questions`)
+
             const firstQuestion = getCurrentQuestion(conversationKey)
+            console.log(`❓ First question: ${firstQuestion?.id}`)
 
             if (!firstQuestion) {
               throw new Error('No questions in flow')
@@ -113,6 +116,7 @@ export async function POST(request: Request) {
             stream.tts("I'm sorry, there was an error starting our conversation. Please try again.")
           }
 
+          console.log(`🏁 session.start completed for ${conversationKey}`)
           stream.end()
           return
         }
