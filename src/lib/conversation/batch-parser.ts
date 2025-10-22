@@ -133,7 +133,7 @@ Return JSON with this EXACT structure:
       role: 'user',
       content: 'Parse and respond:'
     }
-  ], { temperature: 0.7, maxTokens: 200 })
+  ], { temperature: 0.7, maxTokens: 800 })
 
   console.log(`🤖 parseBatchResponse raw: "${response}"`)
 
