@@ -145,10 +145,10 @@ ${questionList}`
             const accumulatedValues = updatedResponse ? updatedResponse.values : new Map<string, any>()
 
             // Calculate ACTUAL missing fields based on accumulated values
+            // Note: null is VALID (means "none"), only undefined means not collected yet
             const actuallyMissingFields = currentBatch.questions
               .filter(q => {
-                const value = accumulatedValues.get(q.id)
-                return value === null || value === undefined
+                return !accumulatedValues.has(q.id)  // Not in map = not collected
               })
               .map(q => q.id)
 
@@ -176,6 +176,7 @@ ${questionList}`
             const nextBatchObj = getNextBatch(conversationKey)
 
             if (nextBatchObj) {
+              console.log(`📨 Sending batch_prompt for: ${nextBatchObj.id}`)
               // More batches to go - ask next batch
               const questionList = nextBatchObj.questions.map(q => `• ${q.text}`).join('\n')
 

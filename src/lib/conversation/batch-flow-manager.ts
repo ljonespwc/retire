@@ -227,7 +227,7 @@ export function storeBatchResponse(
   const existingResponse = state.batchResponses.get(batchId)
 
   // Merge new values with existing values
-  // Keep existing non-null values, add new non-null values
+  // Strategy: Update fields that were mentioned in this response
   const mergedValues = new Map<string, any>()
 
   // Start with existing values
@@ -237,10 +237,11 @@ export function storeBatchResponse(
     }
   }
 
-  // Overlay new non-null values
+  // Overlay new values (including null - means user explicitly said "none")
+  // Only skip if undefined (means not mentioned in this response)
   for (const [key, value] of values) {
-    if (value !== null && value !== undefined) {
-      mergedValues.set(key, value)
+    if (value !== undefined) {
+      mergedValues.set(key, value)  // Store even if null (null = explicit "none")
     }
   }
 
@@ -262,18 +263,26 @@ export function storeBatchResponse(
  */
 export function getNextBatch(conversationId: string): QuestionBatch | null {
   const state = batchConversationStates.get(conversationId)
-  if (!state) return null
+  if (!state) {
+    console.error(`❌ getNextBatch: No state found for ${conversationId}`)
+    return null
+  }
+
+  const currentIndex = state.currentBatchIndex
+  console.log(`📦 getNextBatch: Currently on batch #${currentIndex + 1} (${state.batches[currentIndex]?.id}), moving to next...`)
 
   // Move to next batch
   state.currentBatchIndex++
 
   if (state.currentBatchIndex >= state.batches.length) {
     state.completedAt = new Date()
-    console.log(`✅ Batch conversation ${conversationId} completed`)
+    console.log(`✅ Batch conversation ${conversationId} completed - no more batches (was on #${currentIndex + 1} of ${state.batches.length})`)
     return null
   }
 
-  return state.batches[state.currentBatchIndex]
+  const nextBatch = state.batches[state.currentBatchIndex]
+  console.log(`➡️ getNextBatch: Moved to batch #${state.currentBatchIndex + 1} (${nextBatch.id})`)
+  return nextBatch
 }
 
 /**
