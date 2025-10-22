@@ -32,6 +32,32 @@ type WebhookRequest = {
   type: 'message' | 'session.start' | 'session.update' | 'session.end' | string
 }
 
+/**
+ * Generate natural conversational prompt for a batch
+ * Instead of reading all questions verbatim, summarize naturally
+ */
+function getBatchPrompt(batchId: string): string {
+  switch (batchId) {
+    case 'personal_info':
+      return "Let's start with some basics: your current age, when you plan to retire, how long you expect to live, which province you're in, and your current income."
+
+    case 'savings':
+      return "Now tell me about your current savings: your RRSP, TFSA, and any non-registered investments. Just say 'none' if you don't have any."
+
+    case 'savings_contributions':
+      return "How much do you contribute each year to your RRSP, TFSA, and non-registered accounts? Again, say 'none' if you don't contribute to any."
+
+    case 'retirement_income':
+      return "Now for your retirement income: how much you'll need to spend each month, any pension income you expect, and when you want to start CPP."
+
+    case 'investment_assumptions':
+      return "Finally, your investment expectations: what return you expect before and after retirement, and what inflation rate to plan for. If you're not sure, just say so."
+
+    default:
+      return "Tell me about this information."
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const requestBody = await request.json() as WebhookRequest
@@ -56,12 +82,8 @@ export async function POST(request: Request) {
           }
 
           // Generate greeting + first batch prompt
-          const questionList = firstBatch.questions.map(q => `• ${q.text}`).join('\n')
-
-          const greeting = `Hello! I'm going to help you plan for retirement. This will take about 2 minutes.
-
-Let's start with some basics. Tell me about:
-${questionList}`
+          const batchPrompt = getBatchPrompt(firstBatch.id)
+          const greeting = `Hello! I'm going to help you plan for retirement. This will take about 2 minutes. ${batchPrompt}`
 
           stream.tts(greeting)
 
@@ -178,14 +200,12 @@ ${questionList}`
             if (nextBatchObj) {
               console.log(`📨 Sending batch_prompt for: ${nextBatchObj.id}`)
               // More batches to go - ask next batch
-              const questionList = nextBatchObj.questions.map(q => `• ${q.text}`).join('\n')
+              const nextPrompt = getBatchPrompt(nextBatchObj.id)
 
-              const batchPrompt = `${result.spokenResponse}
+              // Combine acknowledgment + natural next batch prompt
+              const transitionPrompt = `${result.spokenResponse} ${nextPrompt}`
 
-${nextBatchObj.title}:
-${questionList}`
-
-              stream.tts(batchPrompt)
+              stream.tts(transitionPrompt)
 
               // Send next batch data to UI
               const progress = getBatchProgress(conversationKey)

@@ -102,7 +102,7 @@ TASK:
 3. Include confidence scores (0.0 = not sure, 1.0 = certain)
 4. Generate a spoken response:
    ${nextBatch
-     ? `- If user answered ALL remaining questions: Brief acknowledgment + "${nextBatch.title}" prompt
+     ? `- If user answered ALL remaining questions: Brief acknowledgment (e.g., "Perfect!", "Got it!", "Thanks!")
    - If some are still missing: Acknowledge new info + ask ONLY for questions NOT marked as [ALREADY COLLECTED]`
      : `- Thank them and say you're calculating their retirement projection`
    }
@@ -113,7 +113,8 @@ CRITICAL RULES:
 - For amount type, null is VALID (means "none"/"zero")
 - Don't assume values user didn't mention
 - Be conversational and friendly
-- Keep spoken response under 30 words
+- Keep spoken response SHORT - under 20 words
+- When all questions answered, just acknowledge briefly (don't introduce the next section)
 
 OUTPUT FORMAT:
 - Return ONLY valid JSON, no explanation or commentary
