@@ -237,11 +237,12 @@ export function storeBatchResponse(
     }
   }
 
-  // Overlay new values (including null - means user explicitly said "none")
-  // Only skip if undefined (means not mentioned in this response)
+  // Overlay new values
+  // Store actual values (including 0 which means "none")
+  // Don't store null (means not mentioned) or undefined
   for (const [key, value] of values) {
-    if (value !== undefined) {
-      mergedValues.set(key, value)  // Store even if null (null = explicit "none")
+    if (value !== undefined && value !== null) {
+      mergedValues.set(key, value)  // Only store real values (including 0)
     }
   }
 
