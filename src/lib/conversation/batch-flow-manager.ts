@@ -135,7 +135,7 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
     questions: [
       {
         id: 'monthly_spending',
-        text: 'How much you think you\'ll need to spend each month in retirement',
+        text: 'How much you think you\'ll need to spend per month in retirement',
         type: 'amount'
       },
       {
@@ -150,7 +150,7 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
       },
       {
         id: 'other_income',
-        text: "Any other income you expect in retirement (say 'none' if you don't)",
+        text: "Any other annual income you expect in retirement, like rental income (say 'none' if you don't have any)",
         type: 'amount'
       }
     ]

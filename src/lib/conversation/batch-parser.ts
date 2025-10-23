@@ -92,7 +92,7 @@ export async function parseBatchResponse(
 "About 5 thousand a month, no pension, and I'll start CPP at 65"
   → monthly_spending: 5000, pension_income: null, cpp_start_age: 65, other_income: null
 
-"5k monthly, 20k pension, CPP at 65, and 10k rental income"
+"5k monthly spending, 20k annual pension, CPP at 65, and 10k annual rental income"
   → monthly_spending: 5000, pension_income: 20000, cpp_start_age: 65, other_income: 10000
 
 "I'm expecting 5% before retirement, 4% after, and 2% inflation"
@@ -145,6 +145,13 @@ IMPORTANT RULES:
 - Be conversational and friendly
 - Keep spoken response SHORT - under 20 words
 - When all questions answered, just acknowledge briefly (don't introduce the next section)
+
+TIME PERIODS FOR AMOUNTS:
+- monthly_spending: MONTHLY amount (per month)
+- current_income, pension_income, other_income: ANNUAL amounts (per year)
+- All contribution amounts (rrsp_contribution, tfsa_contribution, non_registered_contribution): ANNUAL amounts (per year)
+- If user says "$5000" or "five thousand" for other_income without specifying monthly/annual, assume ANNUAL
+- If user says "5k a month" for other_income, multiply by 12 to get annual: 5000 × 12 = 60000
 
 OUTPUT FORMAT:
 - Return ONLY valid JSON, no explanation or commentary
