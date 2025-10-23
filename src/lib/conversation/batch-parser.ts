@@ -58,7 +58,9 @@ export async function parseBatchResponse(
       case 'province':
         return `${q.id}: AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT`
       case 'percentage':
-        if (q.id === 'inflation_rate') return `${q.id}: 0-10`
+        if (q.id === 'investment_return') return `${q.id}: 0-20, use 6 if user says "not sure" or "don't know"`
+        if (q.id === 'post_retirement_return') return `${q.id}: 0-20, use 4 if user says "not sure" or "don't know"`
+        if (q.id === 'inflation_rate') return `${q.id}: 0-10, use 2 if user says "not sure" or "don't know"`
         return `${q.id}: 0-20`
       default:
         return `${q.id}: valid value`
@@ -80,7 +82,10 @@ export async function parseBatchResponse(
   → monthly_spending: 5000, pension_income: 0, cpp_start_age: 65
 
 "I'm expecting 5% before retirement, 4% after, and 2% inflation"
-  → investment_return: 5, post_retirement_return: 4, inflation_rate: 2`
+  → investment_return: 5, post_retirement_return: 4, inflation_rate: 2
+
+"I'm not sure about returns, just use standard assumptions"
+  → investment_return: 6, post_retirement_return: 4, inflation_rate: 2`
 
   const systemPrompt = `You are parsing a user's response for MULTIPLE retirement planning questions.
 

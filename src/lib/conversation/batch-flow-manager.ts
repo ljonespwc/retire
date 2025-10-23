@@ -347,7 +347,7 @@ export function getBatchCollectedData(conversationId: string): {
     monthlySpending: allValues.get('monthly_spending'),
     pensionIncome: allValues.get('pension_income'),
     cppStartAge: allValues.get('cpp_start_age') || 65,
-    investmentReturn: allValues.get('investment_return') || 5.0,
+    investmentReturn: allValues.get('investment_return') || 6.0,
     postRetirementReturn: allValues.get('post_retirement_return') || 4.0,
     inflationRate: allValues.get('inflation_rate') || 2.0
   }
