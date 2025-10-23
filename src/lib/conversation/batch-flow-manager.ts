@@ -555,6 +555,68 @@ export async function cleanupBatchConversation(conversationId: string, deleteFro
 }
 
 /**
+ * Save completed conversation as a permanent scenario
+ *
+ * @param conversationId - The conversation ID to save
+ * @param userId - The user ID who owns this scenario
+ * @param scenarioName - Optional name for the scenario (defaults to auto-generated)
+ * @returns The created scenario ID, or null if failed
+ */
+export async function saveCompletedScenarioToDatabase(
+  conversationId: string,
+  userId: string,
+  scenarioName?: string
+): Promise<string | null> {
+  try {
+    // Get collected data from conversation
+    const collectedData = getBatchCollectedData(conversationId)
+
+    // Validate we have required data
+    if (!collectedData.currentAge || !collectedData.retirementAge || !collectedData.longevityAge || !collectedData.province) {
+      console.error(`❌ Cannot save scenario: missing required fields`)
+      return null
+    }
+
+    // Import mapper (dynamic to avoid circular dependencies)
+    const { mapVoiceDataToScenario } = await import('./voice-to-scenario-mapper')
+
+    // Transform voice data to scenario format
+    const scenarioData = mapVoiceDataToScenario(collectedData, scenarioName)
+
+    // Insert into scenarios table
+    const { data, error } = await supabase
+      .from('scenarios')
+      .insert({
+        user_id: userId,
+        name: scenarioData.name,
+        inputs: {
+          basic_inputs: scenarioData.basic_inputs,
+          assets: scenarioData.assets,
+          income_sources: scenarioData.income_sources,
+          expenses: scenarioData.expenses,
+          assumptions: scenarioData.assumptions
+        } as any,
+        results: null,
+        source: 'voice',
+        conversation_id: conversationId
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      console.error(`❌ Failed to save scenario to database:`, error)
+      return null
+    }
+
+    console.log(`💾 Saved scenario ${data.id} for user ${userId} from conversation ${conversationId}`)
+    return data.id
+  } catch (error) {
+    console.error(`❌ Error saving scenario:`, error)
+    return null
+  }
+}
+
+/**
  * Clean up old conversations from database (older than 24 hours)
  * Call this periodically to prevent DB bloat
  */

@@ -19,7 +19,8 @@ import {
   completeBatchConversation,
   cleanupBatchConversation,
   hasExceededRetryLimit,
-  incrementRetryCount
+  incrementRetryCount,
+  saveCompletedScenarioToDatabase
 } from '@/lib/conversation/batch-flow-manager'
 import { parseBatchResponse } from '@/lib/conversation/batch-parser'
 
@@ -237,10 +238,30 @@ export async function POST(request: Request) {
                     batchIndex: (progress?.current || 1) - 1,
                     totalBatches: progress?.total || 0
                   })
-                }
+                  stream.end()
+                  return
+                } else {
+                  // Hit retry limit on final batch - complete with partial data
+                  console.warn(`⚠️ Completing conversation with missing fields in final batch`)
+                  await completeBatchConversation(conversationKey)
+                  const collectedData = getBatchCollectedData(conversationKey)
 
-                stream.end()
-                return
+                  const tempUserId = '00000000-0000-0000-0000-000000000000'
+                  const scenarioId = await saveCompletedScenarioToDatabase(
+                    conversationKey,
+                    tempUserId,
+                    `Retirement Plan ${new Date().toLocaleDateString()}`
+                  )
+
+                  stream.tts("I'll use standard assumptions for the missing information. Your retirement projection is ready!")
+                  stream.data({
+                    type: 'complete',
+                    collectedData,
+                    scenarioId: scenarioId || undefined
+                  })
+                  stream.end()
+                  return
+                }
               }
 
               // Increment retry counter
@@ -253,7 +274,7 @@ export async function POST(request: Request) {
               return
             }
 
-            // All values received - move to next batch (AUTO-SAVES TO SUPABASE)
+            // All values received for current batch - move to next batch (AUTO-SAVES TO SUPABASE)
             const nextBatchObj = await getNextBatch(conversationKey)
 
             if (nextBatchObj) {
@@ -286,10 +307,20 @@ export async function POST(request: Request) {
 
               console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
 
+              // Save as permanent scenario
+              // TODO: Replace with actual userId from auth session
+              const tempUserId = '00000000-0000-0000-0000-000000000000'  // Placeholder until auth implemented
+              const scenarioId = await saveCompletedScenarioToDatabase(
+                conversationKey,
+                tempUserId,
+                `Retirement Plan ${new Date().toLocaleDateString()}`
+              )
+
               stream.tts(result.spokenResponse)
               stream.data({
                 type: 'complete',
-                collectedData
+                collectedData,
+                scenarioId: scenarioId || undefined  // Include scenario ID if saved successfully
               })
 
               stream.end()

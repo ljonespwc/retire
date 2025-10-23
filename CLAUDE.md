@@ -514,6 +514,30 @@ Layercode WebRTC → User hears AI (starts in ~300ms!)
 - **Build Status**: ✅ Verified successful with zero TypeScript errors
 - **Key Achievement**: Voice interface now collects all critical data needed for calculator engine integration (previously missing longevity_age and contribution amounts)
 
+**Database Persistence & State Management** (Oct 23, 2025):
+- **Implemented database-backed conversation state** with automatic scenario saving
+- **Architecture**:
+  - `conversation_states` table (ephemeral, 24h TTL) - crash recovery and resume
+  - `scenarios` table (permanent) - saved retirement plans with audit trail
+  - Auto-save on conversation completion with `source='voice'` and `conversation_id` tracking
+- **New Files Created**:
+  - `voice-to-scenario-mapper.ts` - Transforms 17 flat voice fields to nested calculator format
+  - `cleanup-conversations.ts` + `/api/cleanup-conversations` - Scheduled cleanup job for expired states
+- **Database Migrations Applied**:
+  - `006_add_user_id_to_conversation_states.sql` - Links conversations to users
+  - `007_add_expiry_to_conversation_states.sql` - 24-hour auto-expiry with indexed cleanup
+  - `008_add_source_tracking_to_scenarios.sql` - Source tracking ('voice'|'form'|'manual'|'api')
+- **Key Functions**:
+  - `saveCompletedScenarioToDatabase()` in `batch-flow-manager.ts` - Saves voice data as permanent scenario
+  - `cleanupOldConversations()` - Deletes expired conversation_states (call via cron or API)
+- **Smart Defaults Applied**: voice-to-scenario mapper fills missing values (CPP/OAS from 2025 maximums, cost_base at 70%)
+- **Authentication**: Currently using placeholder user ID `00000000-0000-0000-0000-000000000000` (auth not yet implemented)
+
+**Critical Bug Fixes** (Oct 23, 2025):
+1. **Already-Collected Fields Re-Asked**: Fixed LLM prompt to prominently display `[ALREADY COLLECTED]` warning immediately after question list (was buried in rules section)
+2. **Final Batch Completion Bug**: Fixed retry limit logic for last batch - conversation now completes gracefully with partial data instead of getting stuck
+3. **"Use Defaults" Intent**: Enhanced LLM prompt with explicit "defaults"/"standard" keyword recognition and 2 new examples for investment assumptions batch
+
 ---
 
 #### ⏳ REMAINING: Sprint 3 Sections (7 days)

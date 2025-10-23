@@ -69,9 +69,9 @@ export async function parseBatchResponse(
       case 'province':
         return `${q.id}: AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT (error if invalid: "Please provide a valid Canadian province or territory")`
       case 'percentage':
-        if (q.id === 'investment_return') return `${q.id}: 0-20, use 6 if user says "not sure" (error if invalid: "Return must be between 0% and 20%")`
-        if (q.id === 'post_retirement_return') return `${q.id}: 0-20, use 4 if user says "not sure" (error if invalid: "Return must be between 0% and 20%")`
-        if (q.id === 'inflation_rate') return `${q.id}: 0-10, use 2 if user says "not sure" (error if invalid: "Inflation rate must be between 0% and 10%")`
+        if (q.id === 'investment_return') return `${q.id}: 0-20, use 6 if user says "not sure"/"defaults"/"standard" (error if invalid: "Return must be between 0% and 20%")`
+        if (q.id === 'post_retirement_return') return `${q.id}: 0-20, use 4 if user says "not sure"/"defaults"/"standard" (error if invalid: "Return must be between 0% and 20%")`
+        if (q.id === 'inflation_rate') return `${q.id}: 0-10, use 2 if user says "not sure"/"defaults"/"standard" (error if invalid: "Inflation rate must be between 0% and 10%")`
         return `${q.id}: 0-20`
       default:
         return `${q.id}: valid value`
@@ -96,6 +96,12 @@ export async function parseBatchResponse(
   → investment_return: 5, post_retirement_return: 4, inflation_rate: 2
 
 "I'm not sure about returns, just use standard assumptions"
+  → investment_return: 6, post_retirement_return: 4, inflation_rate: 2
+
+"Yeah sounds good, use your defaults"
+  → investment_return: 6, post_retirement_return: 4, inflation_rate: 2
+
+"Just go with the standard values"
   → investment_return: 6, post_retirement_return: 4, inflation_rate: 2`
 
   const systemPrompt = `You are parsing a user's response for MULTIPLE retirement planning questions.
