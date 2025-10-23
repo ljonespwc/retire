@@ -312,6 +312,27 @@ export interface Database {
           }
         ];
       };
+      conversation_states: {
+        Row: {
+          conversation_id: string;
+          state: Json;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          conversation_id: string;
+          state: Json;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          conversation_id?: string;
+          state?: Json;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

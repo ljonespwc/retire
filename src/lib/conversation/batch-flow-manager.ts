@@ -4,10 +4,17 @@
  * Groups questions into contextual batches for more natural conversation.
  * Used by test-voice-first page for batch-based data collection.
  *
- * State is stored in-memory (will be lost on hot reload).
+ * State is persisted to Supabase database for resilience.
  */
 
 import { Province } from '@/types/constants'
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+
+// Supabase client for state persistence (using service role to bypass RLS)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
 /**
  * Question batch definition
@@ -42,6 +49,7 @@ export interface BatchConversationState {
   batches: QuestionBatch[]
   startedAt: Date
   completedAt?: Date
+  retryCount: Map<string, number>  // batchId -> retry count (prevents infinite loops)
 }
 
 /**
@@ -166,25 +174,138 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
 ]
 
 /**
- * In-memory conversation state storage
- * Note: Will be lost on serverless cold starts in production
+ * In-memory conversation state cache (for performance)
+ * Also persisted to Supabase for resilience against serverless cold starts
  */
 const conversationStates = new Map<string, BatchConversationState>()
 
 /**
- * Initialize a new batch conversation
+ * Save conversation state to Supabase (for resilience)
  */
-export function initializeBatchConversation(conversationId: string): BatchConversationState {
+async function saveConversationStateToDb(state: BatchConversationState): Promise<void> {
+  try {
+    // Convert Map to plain objects for JSON storage
+    const batchResponsesObj: Record<string, {
+      batchId: string
+      values: Record<string, any>
+      rawText: string
+      timestamp: string
+    }> = {}
+
+    for (const [batchId, response] of state.batchResponses) {
+      batchResponsesObj[batchId] = {
+        batchId: response.batchId,
+        values: Object.fromEntries(response.values),
+        rawText: response.rawText,
+        timestamp: response.timestamp.toISOString()
+      }
+    }
+
+    const stateJson = {
+      conversationId: state.conversationId,
+      currentBatchIndex: state.currentBatchIndex,
+      batchResponses: batchResponsesObj,
+      batches: state.batches,
+      startedAt: state.startedAt.toISOString(),
+      completedAt: state.completedAt?.toISOString(),
+      retryCount: Object.fromEntries(state.retryCount)
+    }
+
+    const { error } = await supabase
+      .from('conversation_states')
+      .upsert({
+        conversation_id: state.conversationId,
+        state: stateJson as any,
+        updated_at: new Date().toISOString()
+      })
+
+    if (error) {
+      console.error(`❌ Failed to save conversation state to DB:`, error)
+    } else {
+      console.log(`💾 Saved conversation ${state.conversationId} to Supabase`)
+    }
+  } catch (error) {
+    console.error(`❌ Error saving conversation state:`, error)
+  }
+}
+
+/**
+ * Load conversation state from Supabase
+ */
+async function loadConversationStateFromDb(conversationId: string): Promise<BatchConversationState | null> {
+  try {
+    const { data, error } = await supabase
+      .from('conversation_states')
+      .select('state')
+      .eq('conversation_id', conversationId)
+      .single()
+
+    if (error || !data) {
+      console.log(`📭 No saved state found for conversation ${conversationId}`)
+      return null
+    }
+
+    const stateJson = data.state as any
+
+    // Reconstruct Map from plain objects
+    const batchResponses = new Map<string, BatchResponse>()
+    for (const [batchId, responseData] of Object.entries(stateJson.batchResponses || {})) {
+      const rd = responseData as any
+      batchResponses.set(batchId, {
+        batchId: rd.batchId,
+        values: new Map(Object.entries(rd.values)),
+        rawText: rd.rawText,
+        timestamp: new Date(rd.timestamp)
+      })
+    }
+
+    const state: BatchConversationState = {
+      conversationId: stateJson.conversationId,
+      currentBatchIndex: stateJson.currentBatchIndex,
+      batchResponses,
+      batches: stateJson.batches,
+      startedAt: new Date(stateJson.startedAt),
+      completedAt: stateJson.completedAt ? new Date(stateJson.completedAt) : undefined,
+      retryCount: new Map(Object.entries(stateJson.retryCount || {}))
+    }
+
+    console.log(`📂 Loaded conversation ${conversationId} from Supabase`)
+    return state
+  } catch (error) {
+    console.error(`❌ Error loading conversation state:`, error)
+    return null
+  }
+}
+
+/**
+ * Initialize a new batch conversation
+ * Now async to support loading from Supabase
+ */
+export async function initializeBatchConversation(conversationId: string): Promise<BatchConversationState> {
+  // Try to load existing state from DB first
+  const existingState = await loadConversationStateFromDb(conversationId)
+  if (existingState) {
+    conversationStates.set(conversationId, existingState)
+    console.log(`📂 Restored batch conversation ${conversationId} from database`)
+    return existingState
+  }
+
+  // Create new state
   const state: BatchConversationState = {
     conversationId,
     currentBatchIndex: 0,
     batchResponses: new Map(),
     batches: RETIREMENT_BATCHES,
-    startedAt: new Date()
+    startedAt: new Date(),
+    retryCount: new Map()
   }
 
   conversationStates.set(conversationId, state)
-  console.log(`📋 Initialized batch conversation ${conversationId} with ${RETIREMENT_BATCHES.length} batches`)
+
+  // Save to DB immediately
+  await saveConversationStateToDb(state)
+
+  console.log(`📋 Initialized new batch conversation ${conversationId} with ${RETIREMENT_BATCHES.length} batches`)
 
   return state
 }
@@ -211,15 +332,44 @@ export function getCurrentBatch(conversationId: string): QuestionBatch | null {
 }
 
 /**
+ * Check if batch has exceeded retry limit
+ * Returns true if should skip batch due to too many retries
+ */
+export function hasExceededRetryLimit(conversationId: string, batchId: string): boolean {
+  const state = conversationStates.get(conversationId)
+  if (!state) return false
+
+  const MAX_RETRIES = 3
+  const retries = state.retryCount.get(batchId) || 0
+  return retries >= MAX_RETRIES
+}
+
+/**
+ * Increment retry count for a batch
+ */
+export function incrementRetryCount(conversationId: string, batchId: string): number {
+  const state = conversationStates.get(conversationId)
+  if (!state) return 0
+
+  const currentCount = state.retryCount.get(batchId) || 0
+  const newCount = currentCount + 1
+  state.retryCount.set(batchId, newCount)
+
+  console.log(`🔁 Retry count for ${batchId}: ${newCount}`)
+  return newCount
+}
+
+/**
  * Store batch response and move to next batch
  * Merges new values with existing values (accumulates across multiple turns)
+ * Now async to support auto-save to Supabase
  */
-export function storeBatchResponse(
+export async function storeBatchResponse(
   conversationId: string,
   batchId: string,
   values: Map<string, any>,
   rawText: string
-): boolean {
+): Promise<boolean> {
   const state = conversationStates.get(conversationId)
   if (!state) {
     console.error(`❌ No state found for conversation ${conversationId}`)
@@ -241,11 +391,13 @@ export function storeBatchResponse(
   }
 
   // Overlay new values
-  // Store actual values (including 0 which means "none")
-  // Don't store null (means not mentioned) or undefined
+  // IMPORTANT SEMANTICS:
+  // - undefined = not mentioned (don't store, still missing)
+  // - null = user said "none"/"don't have" (STORE as valid answer)
+  // - 0 or any number = actual value (STORE)
   for (const [key, value] of values) {
-    if (value !== undefined && value !== null) {
-      mergedValues.set(key, value)  // Only store real values (including 0)
+    if (value !== undefined) {
+      mergedValues.set(key, value)  // Store all non-undefined values (including null and 0)
     }
   }
 
@@ -259,13 +411,17 @@ export function storeBatchResponse(
   state.batchResponses.set(batchId, response)
   console.log(`💾 Stored batch response for ${batchId}:`, Object.fromEntries(mergedValues))
 
+  // Auto-save to Supabase
+  await saveConversationStateToDb(state)
+
   return true
 }
 
 /**
  * Move to next batch
+ * Now async to support auto-save
  */
-export function getNextBatch(conversationId: string): QuestionBatch | null {
+export async function getNextBatch(conversationId: string): Promise<QuestionBatch | null> {
   const state = conversationStates.get(conversationId)
   if (!state) {
     console.error(`❌ getNextBatch: No state found for ${conversationId}`)
@@ -281,11 +437,18 @@ export function getNextBatch(conversationId: string): QuestionBatch | null {
   if (state.currentBatchIndex >= state.batches.length) {
     state.completedAt = new Date()
     console.log(`✅ Batch conversation ${conversationId} completed - no more batches (was on #${currentIndex + 1} of ${state.batches.length})`)
+
+    // Save completion to DB
+    await saveConversationStateToDb(state)
     return null
   }
 
   const nextBatch = state.batches[state.currentBatchIndex]
   console.log(`➡️ getNextBatch: Moved to batch #${state.currentBatchIndex + 1} (${nextBatch.id})`)
+
+  // Auto-save progress
+  await saveConversationStateToDb(state)
+
   return nextBatch
 }
 
@@ -358,19 +521,63 @@ export function getBatchCollectedData(conversationId: string): {
 
 /**
  * Mark batch conversation as complete
+ * Now async to support save
  */
-export function completeBatchConversation(conversationId: string): void {
+export async function completeBatchConversation(conversationId: string): Promise<void> {
   const state = conversationStates.get(conversationId)
   if (state) {
     state.completedAt = new Date()
+    await saveConversationStateToDb(state)
     console.log(`✅ Marked batch conversation ${conversationId} as complete`)
   }
 }
 
 /**
- * Clean up batch conversation (remove from memory)
+ * Clean up batch conversation (remove from memory and optionally from DB)
+ * Now async to support DB deletion
  */
-export function cleanupBatchConversation(conversationId: string): void {
+export async function cleanupBatchConversation(conversationId: string, deleteFromDb = false): Promise<void> {
   conversationStates.delete(conversationId)
-  console.log(`🧹 Cleaned up batch conversation ${conversationId}`)
+
+  if (deleteFromDb) {
+    try {
+      await supabase
+        .from('conversation_states')
+        .delete()
+        .eq('conversation_id', conversationId)
+      console.log(`🧹 Cleaned up batch conversation ${conversationId} from memory and DB`)
+    } catch (error) {
+      console.error(`❌ Error deleting conversation from DB:`, error)
+    }
+  } else {
+    console.log(`🧹 Cleaned up batch conversation ${conversationId} from memory`)
+  }
+}
+
+/**
+ * Clean up old conversations from database (older than 24 hours)
+ * Call this periodically to prevent DB bloat
+ */
+export async function cleanupOldConversations(): Promise<number> {
+  try {
+    const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000) // 24 hours ago
+
+    const { data, error } = await supabase
+      .from('conversation_states')
+      .delete()
+      .lt('updated_at', cutoffDate.toISOString())
+      .select('conversation_id')
+
+    if (error) {
+      console.error(`❌ Error cleaning up old conversations:`, error)
+      return 0
+    }
+
+    const count = data?.length || 0
+    console.log(`🧹 Cleaned up ${count} old conversations from database`)
+    return count
+  } catch (error) {
+    console.error(`❌ Error cleaning up old conversations:`, error)
+    return 0
+  }
 }

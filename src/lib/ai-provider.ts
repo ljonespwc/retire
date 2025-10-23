@@ -20,6 +20,7 @@ export interface AIProvider {
     options?: {
       temperature?: number
       maxTokens?: number
+      timeout?: number  // Timeout in ms (default: 10000)
     }
   ): Promise<string>
   generateStream(
@@ -27,6 +28,7 @@ export interface AIProvider {
     options?: {
       temperature?: number
       maxTokens?: number
+      timeout?: number  // Timeout in ms (default: 10000)
     }
   ): Promise<AsyncIterable<string>>
   getName(): string
@@ -50,16 +52,30 @@ class OpenAIProvider implements AIProvider {
 
   async generateCompletion(
     messages: AIMessage[],
-    options: { temperature?: number; maxTokens?: number } = {}
+    options: { temperature?: number; maxTokens?: number; timeout?: number } = {}
   ): Promise<string> {
-    const completion = await this.client.chat.completions.create({
+    const timeoutMs = options.timeout ?? 10000
+
+    const completionPromise = this.client.chat.completions.create({
       model: 'gpt-4-1106-preview', // gpt-4.1-mini
       messages: messages as any,
       temperature: options.temperature ?? 0.7,
       max_tokens: options.maxTokens ?? 200
     })
 
-    return completion.choices[0].message.content?.trim() || ''
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('OpenAI request timeout')), timeoutMs)
+    })
+
+    try {
+      const completion = await Promise.race([completionPromise, timeoutPromise])
+      return completion.choices[0].message.content?.trim() || ''
+    } catch (error) {
+      if (error instanceof Error && error.message === 'OpenAI request timeout') {
+        console.error(`⏱️ OpenAI timeout after ${timeoutMs}ms`)
+      }
+      throw error
+    }
   }
 
   async generateStream(
@@ -106,53 +122,70 @@ class GeminiProvider implements AIProvider {
 
   async generateCompletion(
     messages: AIMessage[],
-    options: { temperature?: number; maxTokens?: number } = {}
+    options: { temperature?: number; maxTokens?: number; timeout?: number } = {}
   ): Promise<string> {
-    // Convert OpenAI format to Gemini format
-    // Gemini doesn't have system messages, so we prepend them to the first user message
-    const geminiMessages: any[] = []
-    let systemContext = ''
+    const timeoutMs = options.timeout ?? 10000
 
-    for (const msg of messages) {
-      if (msg.role === 'system') {
-        systemContext += msg.content + '\n\n'
-      } else if (msg.role === 'user') {
-        const content = systemContext ? systemContext + msg.content : msg.content
+    const completionPromise = (async () => {
+      // Convert OpenAI format to Gemini format
+      // Gemini doesn't have system messages, so we prepend them to the first user message
+      const geminiMessages: any[] = []
+      let systemContext = ''
+
+      for (const msg of messages) {
+        if (msg.role === 'system') {
+          systemContext += msg.content + '\n\n'
+        } else if (msg.role === 'user') {
+          const content = systemContext ? systemContext + msg.content : msg.content
+          geminiMessages.push({
+            role: 'user',
+            parts: [{ text: content }]
+          })
+          systemContext = '' // Reset after using
+        } else if (msg.role === 'assistant') {
+          geminiMessages.push({
+            role: 'model',
+            parts: [{ text: msg.content }]
+          })
+        }
+      }
+
+      // If we only have system context and no user messages, create one
+      if (systemContext && geminiMessages.length === 0) {
         geminiMessages.push({
           role: 'user',
-          parts: [{ text: content }]
-        })
-        systemContext = '' // Reset after using
-      } else if (msg.role === 'assistant') {
-        geminiMessages.push({
-          role: 'model',
-          parts: [{ text: msg.content }]
+          parts: [{ text: systemContext }]
         })
       }
-    }
 
-    // If we only have system context and no user messages, create one
-    if (systemContext && geminiMessages.length === 0) {
-      geminiMessages.push({
-        role: 'user',
-        parts: [{ text: systemContext }]
+      const chat = this.model.startChat({
+        history: geminiMessages.slice(0, -1), // All but the last message
+        generationConfig: {
+          temperature: options.temperature ?? 0.7,
+          maxOutputTokens: options.maxTokens ?? 200,
+        }
       })
-    }
 
-    const chat = this.model.startChat({
-      history: geminiMessages.slice(0, -1), // All but the last message
-      generationConfig: {
-        temperature: options.temperature ?? 0.7,
-        maxOutputTokens: options.maxTokens ?? 200,
-      }
+      // Send the last message
+      const lastMessage = geminiMessages[geminiMessages.length - 1]
+      const result = await chat.sendMessage(lastMessage.parts[0].text)
+      const response = await result.response
+
+      return response.text().trim()
+    })()
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Gemini request timeout')), timeoutMs)
     })
 
-    // Send the last message
-    const lastMessage = geminiMessages[geminiMessages.length - 1]
-    const result = await chat.sendMessage(lastMessage.parts[0].text)
-    const response = await result.response
-
-    return response.text().trim()
+    try {
+      return await Promise.race([completionPromise, timeoutPromise])
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Gemini request timeout') {
+        console.error(`⏱️ Gemini timeout after ${timeoutMs}ms`)
+      }
+      throw error
+    }
   }
 
   async generateStream(

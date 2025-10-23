@@ -17,7 +17,9 @@ import {
   getBatchProgress,
   getBatchCollectedData,
   completeBatchConversation,
-  cleanupBatchConversation
+  cleanupBatchConversation,
+  hasExceededRetryLimit,
+  incrementRetryCount
 } from '@/lib/conversation/batch-flow-manager'
 import { parseBatchResponse } from '@/lib/conversation/batch-parser'
 
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
         if (type === 'session.start') {
           console.log(`📌 Handling batch session.start`)
 
-          const state = initializeBatchConversation(conversationKey)
+          const state = await initializeBatchConversation(conversationKey)
           const firstBatch = state.batches[state.currentBatchIndex]
 
           if (!firstBatch) {
@@ -103,9 +105,9 @@ export async function POST(request: Request) {
           return
         }
 
-        // SESSION END - Clean up
+        // SESSION END - Clean up (keep in DB for potential recovery)
         if (type === 'session.end') {
-          cleanupBatchConversation(conversationKey)
+          await cleanupBatchConversation(conversationKey, false)  // Keep DB state for recovery
           console.log(`🧹 Ended batch conversation ${conversationKey}`)
           stream.end()
           return
@@ -122,8 +124,8 @@ export async function POST(request: Request) {
           try {
             let state = getBatchConversationState(conversationKey)
             if (!state) {
-              console.warn(`⚠️ State not found for ${conversationKey}, reinitializing`)
-              state = initializeBatchConversation(conversationKey)
+              console.warn(`⚠️ State not found for ${conversationKey}, attempting to restore from DB`)
+              state = await initializeBatchConversation(conversationKey)
             }
 
             const currentBatch = getCurrentBatch(conversationKey)
@@ -156,11 +158,32 @@ export async function POST(request: Request) {
 
             console.log(`📊 Batch parse result:`, {
               values: Object.fromEntries(result.values),
+              confidence: Object.fromEntries(result.confidence),
               missingFields: result.missingFields
             })
 
-            // Store all parsed values (merges with existing)
-            storeBatchResponse(conversationKey, currentBatch.id, result.values, text)
+            // Filter out low-confidence values (< 0.7 confidence threshold)
+            const CONFIDENCE_THRESHOLD = 0.7
+            const highConfidenceValues = new Map<string, any>()
+            const lowConfidenceFields: string[] = []
+
+            for (const [questionId, value] of result.values) {
+              const confidence = result.confidence.get(questionId) || 0
+              if (confidence >= CONFIDENCE_THRESHOLD) {
+                highConfidenceValues.set(questionId, value)
+              } else if (value !== undefined) {
+                // Low confidence - don't store, treat as missing
+                lowConfidenceFields.push(questionId)
+                console.warn(`⚠️ Low confidence (${confidence.toFixed(2)}) for ${questionId}, not storing`)
+              }
+            }
+
+            if (lowConfidenceFields.length > 0) {
+              console.log(`📉 Rejected ${lowConfidenceFields.length} low-confidence values:`, lowConfidenceFields)
+            }
+
+            // Store only high-confidence values (merges with existing) - AUTO-SAVES TO SUPABASE
+            await storeBatchResponse(conversationKey, currentBatch.id, highConfidenceValues, text)
 
             // Reload state to get ACCUMULATED values after storing
             state = getBatchConversationState(conversationKey)
@@ -170,10 +193,13 @@ export async function POST(request: Request) {
             const accumulatedValues = updatedResponse ? updatedResponse.values : new Map<string, any>()
 
             // Calculate ACTUAL missing fields based on accumulated values
-            // Note: null is VALID (means "none"), only undefined means not collected yet
+            // CRITICAL SEMANTICS:
+            // - undefined = not in Map = user hasn't answered yet = MISSING
+            // - null = in Map with null value = user said "none"/"don't have" = VALID ANSWER (not missing!)
+            // - 0 or number = in Map with value = user provided value = VALID ANSWER (not missing!)
             const actuallyMissingFields = currentBatch.questions
               .filter(q => {
-                return !accumulatedValues.has(q.id)  // Not in map = not collected
+                return !accumulatedValues.has(q.id)  // Not in map = not collected yet
               })
               .map(q => q.id)
 
@@ -190,6 +216,36 @@ export async function POST(request: Request) {
 
             // Check if we got all values or need clarification
             if (actuallyMissingFields.length > 0) {
+              // Check retry limit to prevent infinite loops
+              if (hasExceededRetryLimit(conversationKey, currentBatch.id)) {
+                console.error(`❌ Exceeded retry limit for batch ${currentBatch.id}, skipping missing fields:`, actuallyMissingFields)
+
+                // Log warning and move to next batch (partial data is better than stuck conversation)
+                stream.tts("I'm having trouble collecting all the information for this section. Let's move on and you can fill in the missing details later.")
+
+                const nextBatchObj = await getNextBatch(conversationKey)
+                if (nextBatchObj) {
+                  const nextPrompt = getBatchPrompt(nextBatchObj.id)
+                  stream.tts(nextPrompt)
+
+                  const progress = getBatchProgress(conversationKey)
+                  stream.data({
+                    type: 'batch_prompt',
+                    batchId: nextBatchObj.id,
+                    batchTitle: nextBatchObj.title,
+                    questions: nextBatchObj.questions,
+                    batchIndex: (progress?.current || 1) - 1,
+                    totalBatches: progress?.total || 0
+                  })
+                }
+
+                stream.end()
+                return
+              }
+
+              // Increment retry counter
+              incrementRetryCount(conversationKey, currentBatch.id)
+
               // User didn't answer all questions - ask for missing ones
               console.warn(`⚠️ Missing fields in batch ${currentBatch.id}:`, actuallyMissingFields)
               stream.tts(result.spokenResponse)
@@ -197,8 +253,8 @@ export async function POST(request: Request) {
               return
             }
 
-            // All values received - move to next batch
-            const nextBatchObj = getNextBatch(conversationKey)
+            // All values received - move to next batch (AUTO-SAVES TO SUPABASE)
+            const nextBatchObj = await getNextBatch(conversationKey)
 
             if (nextBatchObj) {
               console.log(`📨 Sending batch_prompt for: ${nextBatchObj.id}`)
@@ -224,8 +280,8 @@ export async function POST(request: Request) {
               stream.end()
               return
             } else {
-              // Final batch complete
-              completeBatchConversation(conversationKey)
+              // Final batch complete (SAVES TO SUPABASE)
+              await completeBatchConversation(conversationKey)
               const collectedData = getBatchCollectedData(conversationKey)
 
               console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
