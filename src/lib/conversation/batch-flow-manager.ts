@@ -147,6 +147,11 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
         id: 'cpp_start_age',
         text: 'At what age you want to start receiving CPP (between 60 and 70, say 65 if unsure)',
         type: 'age'
+      },
+      {
+        id: 'other_income',
+        text: "Any other income you expect in retirement (say 'none' if you don't)",
+        type: 'amount'
       }
     ]
   },
@@ -482,6 +487,7 @@ export function getBatchCollectedData(conversationId: string): {
   nonRegisteredContribution?: number | null
   monthlySpending?: number
   pensionIncome?: number | null
+  otherIncome?: number | null
   cppStartAge?: number
   investmentReturn?: number
   postRetirementReturn?: number
@@ -512,6 +518,7 @@ export function getBatchCollectedData(conversationId: string): {
     nonRegisteredContribution: allValues.get('non_registered_contribution'),
     monthlySpending: allValues.get('monthly_spending'),
     pensionIncome: allValues.get('pension_income'),
+    otherIncome: allValues.get('other_income'),
     cppStartAge: allValues.get('cpp_start_age') || 65,
     investmentReturn: allValues.get('investment_return') || 6.0,
     postRetirementReturn: allValues.get('post_retirement_return') || 4.0,

@@ -206,419 +206,222 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ### Sprint 1: Foundation & Infrastructure Setup ✅ COMPLETED
 
-**Accomplished**:
-
 **1. Project Configuration**
 - Next.js 14 with TypeScript (strict mode) and App Router
-- Tailwind CSS with custom PRD design system (primary, secondary, accent colors)
-- shadcn/ui CLI configured with components infrastructure
+- Tailwind CSS with custom PRD design system
+- shadcn/ui CLI configured
 - Dependencies: zod, date-fns, @supabase/ssr, clsx, tailwind-merge
 - Folder structure: app/, components/, lib/, services/, hooks/, types/
 
 **2. Supabase Database Schema**
-- **Core Tables**: users, scenarios with RLS policies and indexes
+- **Core Tables**: users, scenarios (with RLS policies and indexes)
 - **Tax Data Tables** (7 tables): tax_years, federal_tax_brackets, provincial_tax_brackets, government_benefits, rrif_minimums, tfsa_limits, tax_credits
-- **2025 Canadian Tax Data**: Seeded 5 federal brackets, 57 provincial brackets (13 jurisdictions), CPP/OAS benefits, RRIF rules, TFSA limits
-- **Query Layer**: `src/lib/supabase/tax-data.ts` with 15+ functions and 24-hour in-memory caching
-- **Supabase Clients**: Browser (`client.ts`), server (`server.ts`), middleware (`middleware.ts`) using @supabase/ssr
+- **2025 Data**: 5 federal brackets, 57 provincial brackets (13 jurisdictions), CPP/OAS benefits, RRIF rules, TFSA limits
+- **Query Layer**: `src/lib/supabase/tax-data.ts` (15+ functions, 24-hour in-memory caching)
+- **Clients**: Browser, server, middleware using @supabase/ssr
 
 **3. TypeScript Type System**
-- **Calculator Types** (`src/types/calculator.ts`): 400+ lines covering BasicInputs, Assets, IncomeSources, Expenses, Assumptions, YearByYearResult, CalculationResults, Scenario
-- **Voice Types** (`src/types/voice.ts`): VoiceIntent, ConversationState, VoiceResponse, VoiceSession
-- **Constants** (`src/types/constants.ts`): Province enum, TaxBracket interface (data moved to database)
-- **Database Types** (`src/types/database.ts`): Complete schema types for all 9 tables
-- **Barrel Export**: `src/types/index.ts` for clean imports
+- `src/types/calculator.ts` (400+ lines): BasicInputs, Assets, IncomeSources, Expenses, Assumptions, YearByYearResult, CalculationResults, Scenario
+- `src/types/voice.ts`: VoiceIntent, ConversationState, VoiceResponse, VoiceSession
+- `src/types/constants.ts`: Province enum, TaxBracket interface
+- `src/types/database.ts`: Schema types for all 9 tables
+- `src/types/index.ts`: Barrel export
 
 **4. Database Optimizations**
-- Fixed RLS policies for optimal performance (using `SELECT` subqueries)
+- RLS policies (using `SELECT` subqueries)
 - Secured functions with fixed `search_path`
 - Public read-only access to tax data tables
 
 **5. Deployment**
-- Vercel deployment configured and working
-- Build succeeds with zero TypeScript errors
-- `.npmrc` configured with `legacy-peer-deps` for dependency resolution
+- Vercel deployment working
+- `.npmrc` configured with `legacy-peer-deps`
 
-**Key Achievement**: Migrated Canadian tax data from hardcoded constants to database-backed system, enabling multi-year support and dynamic updates without code deployment.
+**Achievement**: Migrated tax data from hardcoded constants to database, enabling multi-year support without code deployment.
 
 ### Sprint 2: Calculation Engine (Core Business Logic) ✅ COMPLETED
 
-**Accomplished**:
-
-**0. Pre-Sprint 2 Setup**
-- Installed Vitest with Next.js/React compatibility (`vitest.config.ts`)
-- Created testing infrastructure (test-setup.ts, test-utils.ts, test-fixtures.ts)
-- Added provincial tax credits to database (migrations 004 and 005)
-- Seeded 2025 provincial basic personal amounts for all 13 provinces/territories
+**Setup**
+- Vitest with Next.js/React compatibility (`vitest.config.ts`)
+- Testing infrastructure (test-setup.ts, test-utils.ts, test-fixtures.ts)
+- Provincial tax credits in database (migrations 004, 005)
+- 2025 provincial basic personal amounts for all 13 provinces
 - Updated tax-data.ts with provincial credit query functions
-- Created test helpers with comprehensive patterns and documentation
 
 **1. Tax Calculation Engine** (`src/lib/calculations/tax-calculator.ts` - 433 lines)
-- **31 tests passing** - 100% coverage of tax scenarios
-- Progressive tax calculation (pure function)
-- Federal tax with basic personal amount ($15,705) and age amount (income-tested)
-- Provincial tax for all 13 provinces/territories with province-specific credits
-- Income treatment by source (RRSP 100%, capital gains 50%, dividends 138% gross-up, TFSA 0%)
-- OAS clawback calculation (15% above $86,912 threshold)
-- Master tax function with detailed breakdown (federal + provincial + OAS clawback)
-- All functions accept Supabase client as first parameter (dependency injection pattern)
+- **31 tests passing**
+- Progressive federal tax (basic personal amount $15,705, income-tested age amount)
+- Provincial tax for all 13 provinces with province-specific credits
+- Income treatment by source (RRSP 100%, capital gains 50%, dividends 138%, TFSA 0%)
+- OAS clawback (15% above $86,912)
+- Master tax function with detailed breakdown
+- All functions accept Supabase client (dependency injection)
 
-**2. Government Benefits Calculator** (`src/lib/calculations/government-benefits.ts` - 344 lines)
-- **38 tests passing** - Full coverage of CPP/OAS scenarios
-- CPP adjustment factors by age (60-70): 64% at 60, 100% at 65, 142% at 70
+**2. Government Benefits** (`src/lib/calculations/government-benefits.ts` - 344 lines)
+- **38 tests passing**
+- CPP adjustment by age (60-70): 64% at 60, 100% at 65, 142% at 70
 - OAS deferral bonuses (65-70): 100% at 65, 136% at 70
-- CPP and OAS calculations with database-backed amounts
 - Earnings-based CPP estimation
-- Optimal start age calculators (lifetime benefit maximization)
-- Integrated with government_benefits table for accurate 2025 amounts
+- Optimal start age calculators
+- Database-backed 2025 amounts
 
-**3. Account Management Functions** (`src/lib/calculations/accounts.ts` - 438 lines)
-- **36 tests passing** - Comprehensive account projection coverage
-- RRIF minimum withdrawal calculations (age-based percentages from database)
-- Tax-efficient withdrawal sequencing:
-  1. Non-registered first (capital gains advantage)
-  2. RRSP/RRIF second (preserve TFSA)
-  3. TFSA last (preserve tax-free growth)
-- Account growth projections (single-year and multi-year)
-- RRSP to RRIF conversion at age 71
-- Integration with rrif_minimums table
+**3. Account Management** (`src/lib/calculations/accounts.ts` - 438 lines)
+- **36 tests passing**
+- RRIF minimum withdrawals (age-based percentages from database)
+- Tax-efficient sequencing: Non-registered → RRSP/RRIF → TFSA
+- Account growth projections (single + multi-year)
+- RRSP to RRIF conversion at 71
 
-**4. Main Calculation Engine** (`src/lib/calculations/engine.ts` - 401 lines)
-- **21 tests passing** - End-to-end simulation coverage
-- Master orchestration function: `calculateRetirementProjection()`
-  - Phase 1: Pre-retirement accumulation (contributions + growth)
-  - Phase 2: Retirement drawdown (withdrawals + taxes + benefits + growth)
-  - Year-by-year simulation from current age to longevity
-  - Integrates all calculation modules (tax, benefits, accounts)
-  - Returns complete CalculationResults with year-by-year breakdown
-- Scenario comparison function for what-if analysis
-- Portfolio depletion detection and success metrics
-- Summary statistics (final portfolio value, total taxes paid, total benefits received)
+**4. Main Engine** (`src/lib/calculations/engine.ts` - 401 lines)
+- **21 tests passing**
+- `calculateRetirementProjection()`: Phase 1 (pre-retirement accumulation) + Phase 2 (retirement drawdown)
+- Year-by-year simulation (current age to longevity)
+- Scenario comparison, depletion detection, success metrics
+- Summary statistics
 
 **Test Results**: **126 tests passing** (31 tax + 38 benefits + 36 accounts + 21 engine)
 
-**Key Architectural Decisions**:
-1. **Dependency Injection**: All functions accept Supabase client - enables testing with mocks
-2. **Database-Backed Data**: Tax data in Supabase, not hardcoded - enables multi-year support
-3. **Pure Functions**: Calculation logic separated from data retrieval - easier to test
-4. **Type Safety**: Strict TypeScript with auto-generated database types
+**Architecture**:
+1. Dependency Injection (all functions accept Supabase client)
+2. Database-backed tax data (enables multi-year support)
+3. Pure functions (calculation logic separated from data retrieval)
+4. Type safety (strict TypeScript)
 
-**Files Created**: 17 files (4 calculation engines, 4 test files, 4 test infrastructure files, 2 migrations, 3 config files)
+**Files Created**: 17 (4 engines, 4 tests, 4 infrastructure, 2 migrations, 3 configs)
 
-**Files Updated**: 4 files (tax-data.ts, database.ts, package.json, .npmrc)
+**Production Build Fixes**:
+- Optional asset field handling (rrsp, tfsa, non_registered)
+- CalculationResults interface alignment
+- AgeBasedExpenseChange property names
 
-**Post-Sprint Type Fixes** (Production Build):
-- Fixed optional asset field handling in engine.ts (rrsp, tfsa, non_registered)
-- Aligned CalculationResults interface with implementation (flat structure vs nested)
-- Fixed AgeBasedExpenseChange property names (age vs start_age, monthly_amount vs new_monthly_amount)
-- Production build and Vercel deployment successful
-
-**Achievement**: Complete, tested calculation engine ready for UI integration. All Canadian retirement income calculations (federal/provincial taxes, CPP/OAS, RRSP/RRIF/TFSA) implemented with 100% test coverage and successfully deployed to production.
+**Achievement**: Complete calculation engine with 100% test coverage, deployed to production.
 
 ### Sprint 3: Voice Interface & Data Collection ⏳ IN PROGRESS
 
-**Timeline**: 9.5 days total (2.5 days completed, 7 days remaining)
+**Goal**: Voice-first data collection with LLM-based parsing, 3 UX prototypes, production voice/form hybrid UI.
 
-**Goal**: Build voice-first data collection interface with LLM-based parsing, create 3 UX prototypes, and implement production-ready voice/form hybrid UI.
+#### ✅ Section 1: Layercode Voice Foundation
 
----
-
-#### ✅ COMPLETED: Section 1 - Layercode Voice Foundation (1 day)
-
-**Created Files**:
-- `/src/lib/ai-provider.ts` (159 lines) - Switchable OpenAI/Gemini provider
-- `/src/app/api/layercode/authorize/route.ts` (70 lines) - Secure session authorization
+**Files Created**:
+- `/src/lib/ai-provider.ts` (159 lines) - Switchable OpenAI/Gemini
+- `/src/app/api/layercode/authorize/route.ts` (70 lines) - Session authorization
 - `/src/app/api/layercode/webhook/route.ts` (270 lines) - SSE webhook handler
-- `/src/hooks/useLayercodeVoice.ts` (95 lines) - React hook for voice connection
-- `/src/app/test-voice/page.tsx` (32 lines) - Test page wrapper (SSR disabled)
-- `/src/app/test-voice/TestVoiceContent.tsx` (280+ lines) - Test UI component
-- `.env.example` (31 lines) - Environment variable documentation
+- `/src/hooks/useLayercodeVoice.ts` (95 lines) - React voice hook
+- `/src/app/test-voice/page.tsx` (32 lines) - Test wrapper (SSR disabled)
+- `/src/app/test-voice/TestVoiceContent.tsx` (280+ lines) - Test UI
+- `.env.example` (31 lines)
 
-**Key Features**:
-- WebRTC voice connection via Layercode SDK
-- Automatic speech-to-text (Layercode cloud STT)
-- Automatic text-to-speech (Layercode cloud TTS)
-- Voice activity detection (VAD) - hands-free conversation
-- Connection state management and audio level visualization
-- Test page at `/test-voice` for development
+**Features**:
+- WebRTC voice via Layercode SDK
+- Automatic STT/TTS (Layercode cloud)
+- Voice activity detection (VAD) - hands-free
+- Connection state management, audio visualization
+- Test page at `/test-voice`
 
-**AI Provider Configuration**:
+**AI Configuration**:
 - OpenAI: GPT-4.1-mini (`gpt-4-1106-preview`)
-- Gemini: Flash Lite (`gemini-2.5-flash-lite`) - faster, recommended
-- Switchable via `AI_PROVIDER` environment variable
-- Temperature: 0.7 for conversational responses
+- Gemini: Flash Lite (`gemini-2.5-flash-lite`) - faster
+- Switchable via `AI_PROVIDER` env var, temp 0.7
 
-**Architecture (UPDATED - Now with streaming!)**:
-```
-User speaks → Layercode WebRTC → Layercode Cloud STT →
-Webhook POST (transcribed text) → Backend AI (OpenAI/Gemini) →
-STREAMING via stream.ttsTextStream() → Layercode Cloud TTS →
-Layercode WebRTC → User hears AI (starts in ~300ms!)
-```
+**Architecture**: User speaks → WebRTC → Cloud STT → Webhook → AI → STREAMING `stream.ttsTextStream()` → Cloud TTS → User hears (~300ms)
 
-**Latency Optimization** (added after feedback from Layercode founder):
-- **Before**: Used `generateCompletion()` → waited 1-2s for full response → spoke entire response
-- **After**: Uses Vercel AI SDK `streamText()` → streams tokens as generated → speaks as tokens arrive
-- **Result**: User hears first words in ~300ms instead of 2-3 seconds (5-10x faster!)
-- **Implementation**:
-  - Added `generateStream()` method to ai-provider.ts using Vercel AI SDK
-  - Updated all webhook responses to use `stream.ttsTextStream()` instead of `stream.tts()`
-  - Models: GPT-4.1-mini (`gpt-4-1106-preview`), Gemini 2.5-flash-lite (same models, now with streaming)
+**Latency Optimization**:
+- Before: `generateCompletion()` → 1-2s wait → speak (2-3s total)
+- After: Vercel AI `streamText()` → stream tokens → speak as generated (~300ms, 5-10x faster)
+- Implementation: Added `generateStream()` to ai-provider.ts, all webhooks use `stream.ttsTextStream()`
 
 **Deployment**: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
 
 ---
 
-#### ✅ COMPLETED: Section 2 - Conversation Intelligence (2.5 days)
+#### ✅ Section 2: Conversation Intelligence
 
-**Major Architectural Decision**: Replaced regex pattern matching with LLM-based data extraction for superior natural language understanding.
+**Architecture**: LLM-based data extraction (replaced regex) for natural language understanding.
 
-**Created Files**:
-- `/src/lib/conversation/llm-parser.ts` (200+ lines) - LLM-based extraction
+**Files Created**:
+- `/src/lib/conversation/llm-parser.ts` (200+ lines) - LLM extraction
 - `/src/lib/conversation/question-flow-manager.ts` (380+ lines) - State machine
-- ~~`/src/lib/conversation/number-parser.ts`~~ (deprecated - replaced with LLM parser)
+- ~~`/src/lib/conversation/number-parser.ts`~~ (deprecated)
 
-**LLM Parser Functions** (all async):
-1. `extractAge(text)` - Extracts ages from natural language
-   - Handles: "I'm 58", "probably 62", "mid-fifties", "around 65"
-   - Returns: number (18-120) or null
-
-2. `extractAmount(text)` - Extracts dollar amounts
-   - Handles: "$500,000", "500k", "half a million", "1.5m", "about 300,000"
-   - Returns: number (0+) or null
-
-3. `extractProvince(text)` - Extracts Canadian province/territory
-   - Handles: "Ontario", "BC", "British Columbia", "I live in Alberta"
-   - Returns: Province code (AB, BC, etc.) or null
-
-4. `extractPercentage(text)` - Extracts percentages
-   - Handles: "5%", "five percent", "about 6.5%", "0.05"
-   - Returns: number (0-100) or null
-
-5. `extractYesNo(text)` - Natural yes/no detection
-   - Handles: "yeah", "I do", "nope", "I don't"
-   - Returns: true, false, or null
-
-6. `detectSkipIntent(text)` - Detects skip/decline intent
-   - Handles: "skip", "pass", "I don't know", "rather not say"
-   - Returns: boolean
-
-**Question Flow State Machine**:
-- **11 questions total** (Basic Tier)
-- **Conditional branching**: Only asks for account amounts if user has that account type
-- **In-memory state storage**: Map-based (production will use Redis/database)
-- **Progress tracking**: Current question / Total questions
-- **Validation**: Age ranges (18-100, 50-80), amount limits
+**LLM Parser Functions** (async):
+1. `extractAge(text)` - "I'm 58", "mid-fifties" → number (18-120) or null
+2. `extractAmount(text)` - "$500k", "half a million" → number or null
+3. `extractProvince(text)` - "Ontario", "BC" → Province code or null
+4. `extractPercentage(text)` - "5%", "five percent" → number (0-100) or null
+5. `extractYesNo(text)` - "yeah", "nope" → true/false/null
+6. `detectSkipIntent(text)` - "skip", "I don't know" → boolean
 
 **Question Flow**:
-1. Current age (required)
-2. Retirement age (required)
-3. Province (required)
-4. Has RRSP? → If yes: RRSP amount (conditional)
-5. Has TFSA? → If yes: TFSA amount (conditional)
-6. Has non-registered? → If yes: Non-registered amount (conditional)
-7. Monthly retirement spending (required)
-8. Expected investment return (optional, defaults to 5%)
+- 17 questions total across 5 batches
+- Conditional branching (only asks for account amounts if user has account)
+- In-memory state (Map-based)
+- Progress tracking, validation (age ranges, amount limits)
 
-**Conditional Logic** (Fixed in latest deployment):
-- `followUp` function on yes/no questions (not amount questions)
-- Checks answer immediately after user responds
-- Skips amount question if user said "no"
-- Example: "Do you have RRSP?" → "No" → Skip "RRSP amount?" → Jump to "Do you have TFSA?"
+**5 Batches**:
+1. Personal Info (5Q): current_age, retirement_age, longevity_age, province, current_income
+2. Current Savings (3Q): rrsp_amount, tfsa_amount, non_registered_amount
+3. Savings Contributions (3Q): rrsp_contribution, tfsa_contribution, non_registered_contribution
+4. Retirement Income (4Q): monthly_spending, pension_income, other_income, cpp_start_age
+5. Rate Assumptions (3Q): investment_return, post_retirement_return, inflation_rate
 
 **Webhook Integration**:
-- `session.start`: Initialize conversation → Ask first question
-- `message`: Parse user response → Validate → Next question or clarify
-- `session.end`: Clean up conversation state
-- Progress updates sent via `stream.data()` for UI display
-- Completion sends full `collectedData` object
+- `session.start`: Initialize → ask first batch
+- `message`: Parse → validate → next batch or clarify
+- `session.end`: Clean up state
+- Progress via `stream.data()`, completion sends `collectedData`
 
-**Data Output Format**:
-```typescript
-{
-  currentAge: number,
-  retirementAge: number,
-  province: Province,
-  rrsp?: number,
-  tfsa?: number,
-  non_registered?: number,
-  monthlySpending: number,
-  investmentReturn: number  // defaults to 5.0
-}
-```
+**Performance Optimizations**:
+- Opt 1: Eliminated wasted LLM calls → 44% faster (41s → 23s), 33% fewer calls (24 → 16)
+- Opt 2: Combined parse + response (`parseAndGenerateResponse()`) → 66% faster (41s → 13.8s), 50% fewer calls (16 → 8), ~1.7s avg latency
+- Batch mode: User answers all questions in batch → AI parses all at once → 3 turns vs 8 (62% reduction)
 
-**UI Enhancements**:
-- Real-time progress bar (X/11 questions)
-- Debug section showing conversation flow
-- Parsed values displayed in real-time
-- Green "Data Collection Complete!" panel
-- All collected data displayed in grid format
+**Database Persistence** (Oct 23):
+- `conversation_states` table (ephemeral, 24h TTL) - crash recovery
+- `scenarios` table (permanent) - saved plans with `source='voice'`
+- Auto-save on completion
+- Migrations: 006 (user_id), 007 (expiry), 008 (source tracking)
+- `voice-to-scenario-mapper.ts` - Transforms 17 flat fields to nested calculator format
+- `cleanup-conversations.ts` + `/api/cleanup-conversations` - Scheduled cleanup
+- Smart defaults (CPP/OAS from 2025 max, cost_base 70%)
 
-**Performance**:
-- LLM extraction: ~200-500ms per question (Gemini Flash)
-- Total conversation: ~2-3 minutes for 11 questions
-- Acceptable latency for superior parsing accuracy
-
-**Key Bug Fixes**:
-1. **Data Message Unwrapping**: Layercode wraps messages in `{type: 'response.data', content: {...}}` structure - fixed extraction logic
-2. **Conditional Logic Placement**: Moved `followUp` from amount questions to yes/no questions for proper skipping behavior
-
-**Performance Optimizations** (Oct 2025):
-
-**Optimization 1: Eliminate Wasted LLM Calls**
-- Made all questions required (questions asking "say 'none'" aren't truly optional)
-- Eliminated `detectSkipIntent()` calls: reduced from 8 to 0 (only check for optional questions)
-- Reduced webhook payloads: minimal `stream.data()` - only essential progress info
-- Added `/api/agent` route for Layercode CLI tunnel compatibility
-- Results: 44% faster (41s → 23s), 33% fewer LLM calls (24 → 16), ~2.5s avg latency per turn
-
-**Optimization 2: Combined Parse + Response Generation** (`parseAndGenerateResponse()`)
-- Single LLM call per turn does: parse answer + validate + generate transition response
-- Replaced sequential flow: `extractX()` → validate → AI transition (2 LLM calls)
-- New flow: `parseAndGenerateResponse()` returns `{parsedValue, isValid, spokenResponse}` (1 LLM call)
-- Results: **66% faster than original** (41s → 13.8s), 50% fewer LLM calls (16 → 8), ~1.7s avg latency per turn
-- Cost savings: 64% reduction in API calls
-- Maintained 100% parsing accuracy
-
-**AI Provider**: Switched from Gemini to OpenAI to avoid free-tier rate limits (15/min → 60/min)
-
-**Batch Conversation Mode** (Oct 22, 2025):
-- Implemented contextual batch questioning for `test-voice-first` page (Option 4+10 from exploration)
-- Questions grouped into 3 batches: Personal (3Q), Savings (3Q), Expectations (2Q)
-- User answers naturally in single response, AI parses all values at once with `parseBatchResponse()`
-- Questions displayed on-screen for user reference while speaking
-- New files: `batch-flow-manager.ts`, `batch-parser.ts`, `/api/batch-agent`, `/api/layercode/batch-webhook/route.ts`
-- Core files untouched (test-voice page still uses sequential `/api/agent`)
-- Expected: 3 turns vs 8 (62% reduction), ~3-4s total, more natural conversation flow
-- Gemini Flash recommended for best performance (700ms avg latency vs OpenAI 1,720ms)
-
-**Question Expansion Update** (Oct 22, 2025 - Later Session):
-- **Expanded from 8 to 17 questions total** to collect comprehensive retirement planning data
-- **Added 9 new questions** (Tier 1 + Tier 2):
-  - **Tier 1 (Critical)**: longevity_age, current_income, pension_income
-  - **Tier 2 (Enhanced Data)**: rrsp_contribution, tfsa_contribution, non_registered_contribution, cpp_start_age, post_retirement_return, inflation_rate
-- **Batch structure expanded from 3 to 5 batches** for better conversation flow:
-  1. Personal Info (5Q): current_age, retirement_age, longevity_age, province, current_income
-  2. Current Savings (3Q): rrsp_amount, tfsa_amount, non_registered_amount
-  3. Savings Contributions (3Q): rrsp_contribution, tfsa_contribution, non_registered_contribution - **NEW BATCH**
-  4. Retirement Income (3Q): monthly_spending, pension_income, cpp_start_age
-  5. Investment Assumptions (3Q): investment_return, post_retirement_return, inflation_rate - **NEW BATCH**
-- **Sequential flow also updated** to 17 questions (maintaining parity with batch mode)
-- **Files Modified**:
-  - `llm-parser.ts`: Added `extractCPPStartAge()` function with 60-70 age validation
-  - `question-flow-manager.ts`: Expanded BASIC_RETIREMENT_FLOW, updated `getCollectedData()` with all new fields
-  - `batch-flow-manager.ts`: Reorganized RETIREMENT_BATCHES to 5 batches, updated `getBatchCollectedData()`
-  - `batch-parser.ts`: Updated validation rules and examples for new question types
-  - `VoiceFirstContent.tsx`: Added 9 state variables, updated handlers, reorganized form display with sections
-- **Smart Defaults**: CPP start age (65), post-retirement return (4%), inflation rate (2%)
-- **Build Status**: ✅ Verified successful with zero TypeScript errors
-- **Key Achievement**: Voice interface now collects all critical data needed for calculator engine integration (previously missing longevity_age and contribution amounts)
-
-**Database Persistence & State Management** (Oct 23, 2025):
-- **Implemented database-backed conversation state** with automatic scenario saving
-- **Architecture**:
-  - `conversation_states` table (ephemeral, 24h TTL) - crash recovery and resume
-  - `scenarios` table (permanent) - saved retirement plans with audit trail
-  - Auto-save on conversation completion with `source='voice'` and `conversation_id` tracking
-- **New Files Created**:
-  - `voice-to-scenario-mapper.ts` - Transforms 17 flat voice fields to nested calculator format
-  - `cleanup-conversations.ts` + `/api/cleanup-conversations` - Scheduled cleanup job for expired states
-- **Database Migrations Applied**:
-  - `006_add_user_id_to_conversation_states.sql` - Links conversations to users
-  - `007_add_expiry_to_conversation_states.sql` - 24-hour auto-expiry with indexed cleanup
-  - `008_add_source_tracking_to_scenarios.sql` - Source tracking ('voice'|'form'|'manual'|'api')
-- **Key Functions**:
-  - `saveCompletedScenarioToDatabase()` in `batch-flow-manager.ts` - Saves voice data as permanent scenario
-  - `cleanupOldConversations()` - Deletes expired conversation_states (call via cron or API)
-- **Smart Defaults Applied**: voice-to-scenario mapper fills missing values (CPP/OAS from 2025 maximums, cost_base at 70%)
-- **Authentication**: Currently using placeholder user ID `00000000-0000-0000-0000-000000000000` (auth not yet implemented)
-
-**Critical Bug Fixes** (Oct 23, 2025):
-1. **Already-Collected Fields Re-Asked**: Fixed LLM prompt to prominently display `[ALREADY COLLECTED]` warning immediately after question list (was buried in rules section)
-2. **Final Batch Completion Bug**: Fixed retry limit logic for last batch - conversation now completes gracefully with partial data instead of getting stuck
-3. **"Use Defaults" Intent**: Enhanced LLM prompt with explicit "defaults"/"standard" keyword recognition and 2 new examples for investment assumptions batch
+**Bug Fixes**:
+1. Data message unwrapping (Layercode wrapper structure)
+2. Conditional logic placement (`followUp` on yes/no questions)
+3. Already-collected fields re-asked (prompt fix)
+4. Final batch completion with retry limit
+5. "Use defaults" intent recognition
 
 ---
 
-#### ⏳ REMAINING: Sprint 3 Sections (7 days)
+#### ⏳ REMAINING: Sprint 3 Sections
 
-**Section 3: UX Prototype A - Form-First (1 day)**
-- `/app/calculator/test-form-first/page.tsx`
-- Traditional form layout with floating voice assistant button
-- Fields update from voice OR manual typing
-- Voice provides convenience, form provides control
+**Sections 3-5: UX Prototypes (3 days)**
+- Form-First (`/app/calculator/test-form-first`) - Traditional form + floating voice button
+- Voice-First (`/app/calculator/test-voice-first`) - Two-panel: Conversation | Live form preview
+- Wizard (`/app/calculator/test-wizard`) - Multi-step with voice OR form per step
 
-**Section 4: UX Prototype B - Voice-First (1 day)**
-- `/app/calculator/test-voice-first/page.tsx`
-- Two-panel layout: Conversation (left) + Live form preview (right)
-- Voice is primary, form shows real-time data being collected
-- Can switch to manual editing if needed
+**Section 6: Production Components (2 days)**
+- Voice: `VoiceButton`, `VoiceVisualizer`, `ConversationDisplay`, `VoiceStatus`
+- Form: `CurrencyInput`, `AgeInput`, `PercentageInput`, `ProvinceSelect`, `ScenarioSummary`
+- Hybrid: `VoiceOrFormField`, `InputMethodToggle`, `FieldValidation`
 
-**Section 5: UX Prototype C - Wizard (1 day)**
-- `/app/calculator/test-wizard/page.tsx`
-- Multi-step wizard with progress indicator
-- Each step: Choose voice OR form input method
-- Clear navigation between steps
+**Section 7: Production Implementation (1 day)**
+- User testing → choose best UX
+- `/app/calculator/page.tsx` with chosen approach
+- Connect to Sprint 2 calculation engine
+- Results visualization with charts
 
-**Section 6: Reusable Production Components (2 days)**
-Voice Components:
-- `VoiceButton` - Start/stop voice with visual state
-- `VoiceVisualizer` - Audio level bars
-- `ConversationDisplay` - Chat-style message history
-- `VoiceStatus` - Connection indicator
+**Test URL**: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
 
-Form Components:
-- `CurrencyInput` - Formatted dollar input
-- `AgeInput` - Age selector with validation
-- `PercentageInput` - % input with slider
-- `ProvinceSelect` - Canadian province dropdown
-- `ScenarioSummary` - Data recap card
-
-Hybrid Components:
-- `VoiceOrFormField` - Toggle between input methods
-- `InputMethodToggle` - Voice/keyboard switcher
-- `FieldValidation` - Real-time validation UI
-
-**Section 7: Production Implementation & Polish (1 day)**
-- User tests 3 prototypes → Choose best approach
-- Create `/app/calculator/page.tsx` with chosen UX
-- Replace prototype components with production components
-- Styling and polish
-- Connect to calculation engine from Sprint 2
-- Display results with charts/visualizations
-
-**Final Deliverable**: Production-ready voice-first retirement calculator collecting data through natural conversation, feeding into Sprint 2 calculation engine.
-
----
-
-#### Sprint 3 Test URL
-- Test Voice: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
-- Vercel Auto-Deploy: Pushes to `main` branch trigger deployment
-
-#### Sprint 3 Key Files
-**Voice Integration**:
-- `/src/lib/ai-provider.ts` - AI provider abstraction
-- `/src/lib/conversation/llm-parser.ts` - LLM-based extraction
-- `/src/lib/conversation/question-flow-manager.ts` - Conversation state machine
+**Key Files**:
+- `/src/lib/ai-provider.ts` - AI abstraction (OpenAI/Gemini)
+- `/src/lib/conversation/llm-parser.ts` - LLM extraction
+- `/src/lib/conversation/question-flow-manager.ts` - State machine (sequential)
+- `/src/lib/conversation/batch-flow-manager.ts` - State machine (batch)
+- `/src/lib/conversation/batch-parser.ts` - Batch parsing
+- `/src/lib/conversation/voice-to-scenario-mapper.ts` - Voice → calculator format
 - `/src/hooks/useLayercodeVoice.ts` - React voice hook
-- `/src/app/api/layercode/authorize/route.ts` - Session authorization
-- `/src/app/api/layercode/webhook/route.ts` - Webhook handler
-
-**Test Pages**:
-- `/src/app/test-voice/page.tsx` - Voice test wrapper
-- `/src/app/test-voice/TestVoiceContent.tsx` - Test UI
-
-**Dependencies Added**:
-- `@layercode/react-sdk@^2.1.3`
-- `@layercode/node-server-sdk@^1.2.1`
-- (OpenAI and Gemini already installed in Sprint 1)
-
-#### Next Steps
-1. Build UX Prototype A (Form-First)
-2. Build UX Prototype B (Voice-First)
-3. Build UX Prototype C (Wizard)
-4. User testing to choose best approach
-5. Build reusable production components
-6. Implement production calculator page
-7. Connect to Sprint 2 calculation engine
-8. Deploy and polish
+- `/src/app/api/layercode/authorize/route.ts` - Session auth
+- `/src/app/api/layercode/webhook/route.ts` - Sequential webhook
+- `/src/app/api/layercode/batch-webhook/route.ts` - Batch webhook
+- `/src/app/test-voice/TestVoiceContent.tsx` - Sequential UI
+- `/src/app/calculator/test-voice-first/VoiceFirstContent.tsx` - Batch UI

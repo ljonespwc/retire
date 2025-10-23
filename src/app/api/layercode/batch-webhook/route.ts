@@ -51,7 +51,7 @@ function getBatchPrompt(batchId: string): string {
       return "How much do you contribute each year to your RRSP, TFSA, and non-registered accounts? Again, say 'none' if you don't contribute to any."
 
     case 'retirement_income':
-      return "Now for your retirement income: how much you'll need to spend each month, any pension income you expect, and when you want to start CPP."
+      return "Now for your retirement income: how much you'll need to spend each month, any pension income you expect, when you want to start CPP, and any other income sources like rental or business income."
 
     case 'investment_assumptions':
       return "Finally, your investment expectations: what return you expect before and after retirement, and what inflation rate to plan for. If you're not sure, I'll use standard assumptions of 6%, 4%, and 2%."

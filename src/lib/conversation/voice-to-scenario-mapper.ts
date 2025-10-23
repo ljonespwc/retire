@@ -25,6 +25,7 @@ export interface VoiceCollectedData {
   nonRegisteredContribution?: number | null
   monthlySpending?: number
   pensionIncome?: number | null
+  otherIncome?: number | null
   cppStartAge?: number
   investmentReturn?: number
   postRetirementReturn?: number
@@ -112,14 +113,29 @@ export function mapVoiceDataToScenario(
     monthly_amount: 713.34  // 2025 max OAS amount
   }
 
-  // Other income (pensions)
+  // Other income (pensions + other sources)
+  const otherIncomeItems = []
+
   if (voiceData.pensionIncome && voiceData.pensionIncome > 0) {
-    income_sources.other_income = [{
+    otherIncomeItems.push({
       description: 'Pension Income',
       annual_amount: voiceData.pensionIncome,
       start_age: voiceData.retirementAge,
       indexed_to_inflation: true
-    }]
+    })
+  }
+
+  if (voiceData.otherIncome && voiceData.otherIncome > 0) {
+    otherIncomeItems.push({
+      description: 'Other Income',
+      annual_amount: voiceData.otherIncome,
+      start_age: voiceData.retirementAge,
+      indexed_to_inflation: true
+    })
+  }
+
+  if (otherIncomeItems.length > 0) {
+    income_sources.other_income = otherIncomeItems
   }
 
   // Expenses

@@ -90,7 +90,10 @@ export async function parseBatchResponse(
   → rrsp_contribution: 18000, tfsa_contribution: 7000, non_registered_contribution: null
 
 "About 5 thousand a month, no pension, and I'll start CPP at 65"
-  → monthly_spending: 5000, pension_income: null, cpp_start_age: 65
+  → monthly_spending: 5000, pension_income: null, cpp_start_age: 65, other_income: null
+
+"5k monthly, 20k pension, CPP at 65, and 10k rental income"
+  → monthly_spending: 5000, pension_income: 20000, cpp_start_age: 65, other_income: 10000
 
 "I'm expecting 5% before retirement, 4% after, and 2% inflation"
   → investment_return: 5, post_retirement_return: 4, inflation_rate: 2
