@@ -188,11 +188,6 @@ export function VoiceFirstContentV2() {
               <CardContent className="pt-8">
                 {!isConnected && !isConnecting && (
                   <div className="text-center py-10">
-                    <div className="mb-6">
-                      <div className="inline-block w-24 h-24 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shadow-2xl shadow-rose-300/50">
-                        <Mic className="w-12 h-12 text-white" />
-                      </div>
-                    </div>
                     <p className="text-gray-600 mb-6 text-lg leading-relaxed">
                       Ready to explore your retirement? Just tap and start talking!
                     </p>
