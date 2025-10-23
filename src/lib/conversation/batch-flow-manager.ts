@@ -3,6 +3,8 @@
  *
  * Groups questions into contextual batches for more natural conversation.
  * Used by test-voice-first page for batch-based data collection.
+ *
+ * State is stored in-memory (will be lost on hot reload).
  */
 
 import { Province } from '@/types/constants'
@@ -164,9 +166,10 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
 ]
 
 /**
- * In-memory batch conversation state store
+ * In-memory conversation state storage
+ * Note: Will be lost on serverless cold starts in production
  */
-const batchConversationStates = new Map<string, BatchConversationState>()
+const conversationStates = new Map<string, BatchConversationState>()
 
 /**
  * Initialize a new batch conversation
@@ -180,7 +183,7 @@ export function initializeBatchConversation(conversationId: string): BatchConver
     startedAt: new Date()
   }
 
-  batchConversationStates.set(conversationId, state)
+  conversationStates.set(conversationId, state)
   console.log(`📋 Initialized batch conversation ${conversationId} with ${RETIREMENT_BATCHES.length} batches`)
 
   return state
@@ -190,14 +193,14 @@ export function initializeBatchConversation(conversationId: string): BatchConver
  * Get batch conversation state
  */
 export function getBatchConversationState(conversationId: string): BatchConversationState | null {
-  return batchConversationStates.get(conversationId) || null
+  return conversationStates.get(conversationId) || null
 }
 
 /**
  * Get current batch
  */
 export function getCurrentBatch(conversationId: string): QuestionBatch | null {
-  const state = batchConversationStates.get(conversationId)
+  const state = conversationStates.get(conversationId)
   if (!state) return null
 
   if (state.currentBatchIndex >= state.batches.length) {
@@ -217,7 +220,7 @@ export function storeBatchResponse(
   values: Map<string, any>,
   rawText: string
 ): boolean {
-  const state = batchConversationStates.get(conversationId)
+  const state = conversationStates.get(conversationId)
   if (!state) {
     console.error(`❌ No state found for conversation ${conversationId}`)
     return false
@@ -263,7 +266,7 @@ export function storeBatchResponse(
  * Move to next batch
  */
 export function getNextBatch(conversationId: string): QuestionBatch | null {
-  const state = batchConversationStates.get(conversationId)
+  const state = conversationStates.get(conversationId)
   if (!state) {
     console.error(`❌ getNextBatch: No state found for ${conversationId}`)
     return null
@@ -290,7 +293,7 @@ export function getNextBatch(conversationId: string): QuestionBatch | null {
  * Get progress (current batch / total batches)
  */
 export function getBatchProgress(conversationId: string): { current: number; total: number } | null {
-  const state = batchConversationStates.get(conversationId)
+  const state = conversationStates.get(conversationId)
   if (!state) return null
 
   return {
@@ -321,7 +324,7 @@ export function getBatchCollectedData(conversationId: string): {
   postRetirementReturn?: number
   inflationRate?: number
 } {
-  const state = batchConversationStates.get(conversationId)
+  const state = conversationStates.get(conversationId)
   if (!state) return {}
 
   // Flatten all batch responses into single object
@@ -357,7 +360,7 @@ export function getBatchCollectedData(conversationId: string): {
  * Mark batch conversation as complete
  */
 export function completeBatchConversation(conversationId: string): void {
-  const state = batchConversationStates.get(conversationId)
+  const state = conversationStates.get(conversationId)
   if (state) {
     state.completedAt = new Date()
     console.log(`✅ Marked batch conversation ${conversationId} as complete`)
@@ -368,6 +371,6 @@ export function completeBatchConversation(conversationId: string): void {
  * Clean up batch conversation (remove from memory)
  */
 export function cleanupBatchConversation(conversationId: string): void {
-  batchConversationStates.delete(conversationId)
+  conversationStates.delete(conversationId)
   console.log(`🧹 Cleaned up batch conversation ${conversationId}`)
 }

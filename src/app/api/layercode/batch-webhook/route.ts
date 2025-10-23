@@ -75,7 +75,7 @@ export async function POST(request: Request) {
           console.log(`📌 Handling batch session.start`)
 
           const state = initializeBatchConversation(conversationKey)
-          const firstBatch = getCurrentBatch(conversationKey)
+          const firstBatch = state.batches[state.currentBatchIndex]
 
           if (!firstBatch) {
             throw new Error('No batches in flow')
@@ -162,7 +162,10 @@ export async function POST(request: Request) {
             // Store all parsed values (merges with existing)
             storeBatchResponse(conversationKey, currentBatch.id, result.values, text)
 
-            // Get the ACCUMULATED values after storing
+            // Reload state to get ACCUMULATED values after storing
+            state = getBatchConversationState(conversationKey)
+            if (!state) throw new Error('State lost after storing')
+
             const updatedResponse = state.batchResponses.get(currentBatch.id)
             const accumulatedValues = updatedResponse ? updatedResponse.values : new Map<string, any>()
 

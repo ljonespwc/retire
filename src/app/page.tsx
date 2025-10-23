@@ -1,29 +1,6 @@
 import Link from 'next/link'
 
 export default function Home() {
-  const prototypes = [
-    {
-      href: '/calculator/test-form-first',
-      title: 'Prototype A: Form-First',
-      description: 'Traditional form layout with floating voice assistant button'
-    },
-    {
-      href: '/calculator/test-voice-first',
-      title: 'Prototype B: Voice-First',
-      description: 'Two-panel layout with conversation + live form preview'
-    },
-    {
-      href: '/calculator/test-wizard',
-      title: 'Prototype C: Wizard',
-      description: 'Step-by-step wizard with voice or manual input choice'
-    },
-    {
-      href: '/test-voice',
-      title: 'Voice Integration Test',
-      description: 'Basic voice conversation test (11-question flow)'
-    }
-  ]
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 md:p-24 bg-gray-50">
       <div className="z-10 max-w-4xl w-full flex flex-col gap-8">
@@ -37,23 +14,23 @@ export default function Home() {
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-semibold mb-6">UX Prototypes</h2>
-          <div className="grid gap-4">
-            {prototypes.map((prototype) => (
-              <Link
-                key={prototype.href}
-                href={prototype.href}
-                className="block p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors group"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 mb-2">
-                  {prototype.title}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {prototype.description}
-                </p>
-              </Link>
-            ))}
-          </div>
+          <h2 className="text-2xl font-semibold mb-6">Voice-First Calculator</h2>
+          <p className="text-gray-600 mb-6">
+            Have a natural conversation with our AI to plan your retirement.
+            Answer questions about your age, savings, and goals, and get instant projections.
+          </p>
+
+          <Link
+            href="/calculator/test-voice-first"
+            className="block p-6 border-2 border-blue-500 bg-blue-50 rounded-lg hover:border-blue-600 hover:bg-blue-100 transition-colors group"
+          >
+            <h3 className="text-lg font-semibold text-blue-900 group-hover:text-blue-700 mb-2">
+              Start Planning Your Retirement
+            </h3>
+            <p className="text-sm text-blue-700">
+              Voice-driven data collection with real-time form preview
+            </p>
+          </Link>
         </div>
 
         <div className="text-center text-sm text-gray-500">
