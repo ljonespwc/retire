@@ -54,7 +54,7 @@ export async function parseBatchResponse(
       case 'amount':
         if (q.id === 'current_income') return `${q.id}: >= 0, max 1000000`
         if (q.id === 'monthly_spending') return `${q.id}: > 0, max 100000`
-        return `${q.id}: >= 0, or null for "none"/"zero"`
+        return `${q.id}: >= 0, return 0 for "none"/"zero" (NOT null)`
       case 'province':
         return `${q.id}: AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT`
       case 'percentage':
@@ -71,13 +71,13 @@ export async function parseBatchResponse(
   → current_age: 58, retirement_age: 65, longevity_age: 90, province: "ON", current_income: 120000
 
 "1.7 million RRSP, 300k TFSA, no non-registered"
-  → rrsp_amount: 1700000, tfsa_amount: 300000, non_registered_amount: null
+  → rrsp_amount: 1700000, tfsa_amount: 300000, non_registered_amount: 0
 
 "I put 18k in RRSP, 7k in TFSA, and nothing in non-registered"
-  → rrsp_contribution: 18000, tfsa_contribution: 7000, non_registered_contribution: null
+  → rrsp_contribution: 18000, tfsa_contribution: 7000, non_registered_contribution: 0
 
 "About 5 thousand a month, no pension, and I'll start CPP at 65"
-  → monthly_spending: 5000, pension_income: null, cpp_start_age: 65
+  → monthly_spending: 5000, pension_income: 0, cpp_start_age: 65
 
 "I'm expecting 5% before retirement, 4% after, and 2% inflation"
   → investment_return: 5, post_retirement_return: 4, inflation_rate: 2`
@@ -110,7 +110,7 @@ TASK:
 CRITICAL RULES:
 - For questions marked [ALREADY COLLECTED], DO NOT ask for them again in spokenResponse
 - Only ask for questions that are NOT yet collected
-- For amount type, null is VALID (means "none"/"zero")
+- For amount type: return 0 for "none"/"zero" (NOT null). Only return null if not mentioned.
 - Don't assume values user didn't mention
 - Be conversational and friendly
 - Keep spoken response SHORT - under 20 words
@@ -173,15 +173,28 @@ Return JSON with this EXACT structure:
     const values = new Map<string, any>(Object.entries(parsed.values))
     const confidence = new Map<string, number>(Object.entries(parsed.confidence))
 
+    // Calculate ACTUAL missing fields by merging existing + just parsed
+    // This prevents asking about fields the user just answered
+    const mergedValues = new Map(existingValues)
+    for (const [key, value] of values) {
+      if (value !== undefined) {
+        mergedValues.set(key, value)
+      }
+    }
+
+    const actualMissingFields = batch.questions
+      .filter(q => !mergedValues.has(q.id))
+      .map(q => q.id)
+
     console.log(`✅ parseBatchResponse result:`, {
       values: Object.fromEntries(values),
-      missingFields: parsed.missingFields
+      missingFields: actualMissingFields
     })
 
     return {
       values,
       confidence,
-      missingFields: parsed.missingFields || [],
+      missingFields: actualMissingFields,
       spokenResponse: parsed.spokenResponse
     }
   } catch (error) {

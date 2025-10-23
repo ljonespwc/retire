@@ -397,7 +397,11 @@ export function VoiceFirstContent() {
                       />
                     ) : (
                       <div className="text-lg font-semibold text-gray-900">
-                        {currentIncome !== null ? `$${currentIncome.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                        {currentIncome !== null && currentIncome !== undefined ? (
+                          currentIncome === 0 ? <span className="text-gray-500">None</span> : `$${currentIncome.toLocaleString()}`
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -445,7 +449,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {rrsp !== null ? `$${rrsp.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {rrsp !== null && rrsp !== undefined ? (
+                              rrsp === 0 ? <span className="text-gray-500">None</span> : `$${rrsp.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -463,7 +471,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {rrspContribution !== null ? `$${rrspContribution.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {rrspContribution !== null && rrspContribution !== undefined ? (
+                              rrspContribution === 0 ? <span className="text-gray-500">None</span> : `$${rrspContribution.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -484,7 +496,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {tfsa !== null ? `$${tfsa.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {tfsa !== null && tfsa !== undefined ? (
+                              tfsa === 0 ? <span className="text-gray-500">None</span> : `$${tfsa.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -502,7 +518,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {tfsaContribution !== null ? `$${tfsaContribution.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {tfsaContribution !== null && tfsaContribution !== undefined ? (
+                              tfsaContribution === 0 ? <span className="text-gray-500">None</span> : `$${tfsaContribution.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -523,7 +543,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {nonRegistered !== null ? `$${nonRegistered.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {nonRegistered !== null && nonRegistered !== undefined ? (
+                              nonRegistered === 0 ? <span className="text-gray-500">None</span> : `$${nonRegistered.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -541,7 +565,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {nonRegisteredContribution !== null ? `$${nonRegisteredContribution.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {nonRegisteredContribution !== null && nonRegisteredContribution !== undefined ? (
+                              nonRegisteredContribution === 0 ? <span className="text-gray-500">None</span> : `$${nonRegisteredContribution.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -568,7 +596,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {monthlySpending !== null ? `$${monthlySpending.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {monthlySpending !== null && monthlySpending !== undefined ? (
+                              monthlySpending === 0 ? <span className="text-gray-500">None</span> : `$${monthlySpending.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -587,7 +619,11 @@ export function VoiceFirstContent() {
                           />
                         ) : (
                           <div className="text-lg font-semibold text-gray-900">
-                            {pensionIncome !== null ? `$${pensionIncome.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                            {pensionIncome !== null && pensionIncome !== undefined ? (
+                              pensionIncome === 0 ? <span className="text-gray-500">None</span> : `$${pensionIncome.toLocaleString()}`
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </div>
                         )}
                       </div>
