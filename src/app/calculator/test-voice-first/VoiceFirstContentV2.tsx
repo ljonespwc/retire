@@ -159,14 +159,14 @@ export function VoiceFirstContentV2() {
       <div className="bg-gradient-to-r from-rose-400 via-orange-400 to-amber-400">
         <div className="max-w-7xl mx-auto px-8 py-10">
           <div className="flex items-center gap-4 mb-3">
-            <div className="w-14 h-14 rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center">
-              <Heart className="w-8 h-8 text-white" fill="white" />
+            <div className="w-14 h-14 rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center text-4xl">
+              🇨🇦
             </div>
             <div>
               <h1 className="text-4xl font-bold text-white tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                Your Retirement Journey
+                The Ultimate Canadian Retirement Calculator
               </h1>
-              <p className="text-white/90 text-lg mt-1">V2: Warm & Approachable • Let's plan together</p>
+              <p className="text-white/90 text-lg mt-1">Voice-powered. Tax-accurate. See your future.</p>
             </div>
           </div>
         </div>
@@ -179,17 +179,11 @@ export function VoiceFirstContentV2() {
           <div className="col-span-5 space-y-6">
             {/* Voice Card */}
             <Card className="border-0 shadow-lg rounded-3xl overflow-hidden bg-white">
-              <CardHeader className="bg-gradient-to-r from-rose-50 to-orange-50 pb-6">
-                <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                  <MessageCircle className="w-7 h-7 text-rose-500" />
-                  Let's Chat
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-8">
+              <CardContent className="pt-10">
                 {!isConnected && !isConnecting && (
                   <div className="text-center py-10">
                     <p className="text-gray-600 mb-6 text-lg leading-relaxed">
-                      Ready to explore your retirement? Just tap and start talking!
+                      Let's figure out your retirement together. Just tap and our AI will assist you!
                     </p>
                     <Button
                       onClick={connect}
@@ -235,24 +229,24 @@ export function VoiceFirstContentV2() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
                           <span>You're speaking</span>
-                          <span className="text-rose-500">{Math.round((userAudioLevel || 0) * 100)}%</span>
+                          <span className="text-rose-500">{Math.round(Math.min((userAudioLevel || 0) * 300, 100))}%</span>
                         </div>
                         <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-rose-400 to-rose-500 transition-all duration-100 rounded-full"
-                            style={{ width: `${(userAudioLevel || 0) * 100}%` }}
+                            style={{ width: `${Math.min((userAudioLevel || 0) * 300, 100)}%` }}
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
                           <span>I'm speaking</span>
-                          <span className="text-teal-500">{Math.round((agentAudioLevel || 0) * 100)}%</span>
+                          <span className="text-teal-500">{Math.round(Math.min((agentAudioLevel || 0) * 300, 100))}%</span>
                         </div>
                         <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-100 rounded-full"
-                            style={{ width: `${(agentAudioLevel || 0) * 100}%` }}
+                            style={{ width: `${Math.min((agentAudioLevel || 0) * 300, 100)}%` }}
                           />
                         </div>
                       </div>
@@ -348,7 +342,7 @@ export function VoiceFirstContentV2() {
                   <div className="grid grid-cols-2 gap-5">
                     <WarmDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} />
                     <WarmDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} />
-                    <WarmDataField label="Life Expectancy" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} />
+                    <WarmDataField label="Planning Through Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} />
                     <WarmDataField label="Current Income" value={currentIncome} editMode={editMode} onEdit={setCurrentIncome} type="currency" isGlowing={glowingFields.has('current_income')} />
                   </div>
 
@@ -367,11 +361,11 @@ export function VoiceFirstContentV2() {
                     </h3>
                     <div className="grid grid-cols-2 gap-5">
                       <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isGlowing={glowingFields.has('rrsp')} />
-                      <WarmDataField label="RRSP Contribution" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} />
+                      <WarmDataField label="Annual RRSP Contribution" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} />
                       <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isGlowing={glowingFields.has('tfsa')} />
-                      <WarmDataField label="TFSA Contribution" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} />
+                      <WarmDataField label="Annual TFSA Contribution" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} />
                       <WarmDataField label="Non-Registered" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isGlowing={glowingFields.has('non_registered')} />
-                      <WarmDataField label="Non-Reg Contribution" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} />
+                      <WarmDataField label="Annual Non-Reg Contribution" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} />
                     </div>
                   </div>
 
@@ -407,7 +401,7 @@ export function VoiceFirstContentV2() {
                       className="w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 text-white shadow-2xl py-7 text-lg font-bold rounded-2xl"
                     >
                       <Heart className="w-6 h-6 mr-2" fill="white" />
-                      See Your Retirement Plan
+                      Calculate My Plan
                     </Button>
                   )}
                 </div>
