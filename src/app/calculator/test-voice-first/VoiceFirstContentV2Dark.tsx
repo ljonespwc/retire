@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Mic, MicOff, Heart, CheckCircle2, MessageCircle } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { SavePromptModal } from '@/components/auth/SavePromptModal'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -28,6 +30,9 @@ interface BatchPrompt {
 }
 
 export function VoiceFirstContentV2Dark() {
+  // Get auth context for user ID
+  const { user, isAnonymous } = useAuth()
+
   // Form state (read-only preview)
   const [currentAge, setCurrentAge] = useState<number | null>(null)
   const [retirementAge, setRetirementAge] = useState<number | null>(null)
@@ -56,6 +61,8 @@ export function VoiceFirstContentV2Dark() {
   const [editMode, setEditMode] = useState(false)
   const [glowingFields, setGlowingFields] = useState<Set<string>>(new Set())
   const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
 
   // All question sections (shown immediately)
   const allSections = [
@@ -87,6 +94,7 @@ export function VoiceFirstContentV2Dark() {
     disconnect,
   } = useLayercodeVoice({
     autoConnect: false,
+    metadata: user?.id ? { user_id: user.id } : undefined, // Pass user ID to webhook
     onDataMessage: (data) => {
       const content = data.type === 'response.data' ? data.content : data
 
@@ -156,6 +164,16 @@ export function VoiceFirstContentV2Dark() {
         if (d.investmentReturn) setInvestmentReturn(d.investmentReturn)
         if (d.postRetirementReturn) setPostRetirementReturn(d.postRetirementReturn)
         if (d.inflationRate) setInflationRate(d.inflationRate)
+
+        // Store scenario ID if returned from webhook
+        if (content.scenarioId) {
+          setScenarioId(content.scenarioId)
+        }
+
+        // Show save modal for anonymous users
+        if (isAnonymous) {
+          setShowSaveModal(true)
+        }
       }
     }
   })
@@ -443,6 +461,13 @@ export function VoiceFirstContentV2Dark() {
           </div>
         </div>
       </div>
+
+      {/* Save Prompt Modal (only for anonymous users) */}
+      <SavePromptModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        scenarioName={`Retirement Plan ${new Date().toLocaleDateString()}`}
+      />
     </div>
   )
 }

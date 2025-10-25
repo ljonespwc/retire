@@ -19,9 +19,9 @@ Your job is to:
 
 ## ⚠️ CRITICAL: Voice & LLM Architecture
 
-**DO NOT modify the Layercode streaming architecture or LLM implementation without explicit user permission.**
+**DO NOT modify any of the following without explicit user permission:**
 
-This includes:
+### Layercode Voice Infrastructure
 - Layercode WebRTC streaming setup
 - Text-to-speech streaming (`stream.ttsTextStream()`)
 - LLM response streaming (`generateStream()`)
@@ -29,7 +29,14 @@ This includes:
 - Voice conversation state management
 - AI provider configuration (OpenAI/Gemini)
 
-The current architecture is optimized and tested. Any changes to streaming, latency optimization, or conversation flow **must be approved by the user first**.
+### Batch Conversation System
+- Batch prompt structure and question grouping (5 batches: personal_info, savings, savings_contributions, retirement_income, investment_assumptions)
+- LLM parsing logic in `batch-parser.ts` (optimized prompts, confidence thresholds, field extraction)
+- Retry logic and missing field re-prompting
+- State management in `batch-flow-manager.ts`
+- Natural language transitions between batches
+
+**The current architecture is optimized and tested.** Any changes to streaming, latency optimization, conversation flow, batch parsing, or LLM prompts **must be approved by the user first**.
 
 If you identify potential improvements, **propose them and wait for approval** before implementing.
 
@@ -433,23 +440,21 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
-**2025-10-24**: Voice-First UI Polish & Responsive Design
-- Removed V1 (Modern Financial) and V3 (Minimalist/Zen) prototypes; V2 (Warm & Approachable) is now main `/calculator/test-voice-first` page
-- Updated copy: "Plan Your Retirement", "Your future", "You can edit these later", "Expected Monthly Spending", "Life Expectancy Age"
-- Added "(Annual)" suffix to all income/contribution fields for clarity
-- Fixed audio level bars: 3x multiplier for better visibility (capped at 100%)
-- Full responsive design: mobile (single column, full-width buttons), tablet (2-col grids), desktop (40/60 split, sticky panel)
-- Removed shaded card header for cleaner white design
-- 1-second glow animation on field updates (orange theme)
-- Glow duration reduced from 1.5s to 1.0s per user preference
+**2025-10-24**: Voice-First UI Polish
+- V2 (Warm & Approachable) is production UI at `/calculator/test-voice-first`
+- Responsive design (mobile/tablet/desktop), 1-second glow animation on field updates
+- Form labels: "Expected Monthly Spending", "Life Expectancy Age", "(Annual)" suffixes
 
-**2025-10-25**: Batch Conversation Performance Optimization & Bug Fixes
-- **30-40% latency reduction**: avg 1.35s per turn (down from 2+ seconds)
-- **50% prompt token reduction**: 1,800-2,000 → 800-1,000 tokens (batch-parser.ts)
-- **Code cleanup**: batch-parser (290→220 lines), batch-webhook (349→290 lines)
-- **Province field fixes**: Enhanced LLM parsing with explicit name-to-code mapping, added editable dropdown with all 13 provinces/territories
-- **Retry logic fix**: Corrected off-by-one bug in retry counter placement
-- **Transition message fix**: Eliminated field mentions during batch transitions on re-prompts (e.g., "Got your monthly spending. Now..." → "Perfect! Now...")
-- **Test coverage**: 12 comprehensive tests for batch parsing (all passing)
-- **Key optimizations**: Cached static prompt parts, extracted helper functions (handleRetryLimitExceeded, completeAndSaveConversation), removed redundant state reloads
-- **Verified working**: Full conversation tested with avg response times: Section 1 (1.32s), Section 2 (1.28s), Section 3 (1.25s), Section 4 (1.49s), Section 5 (1.72s)
+**2025-10-25**: Batch Conversation Optimization
+- 30-40% latency reduction (avg 1.35s per turn), 50% token reduction (800-1,000 tokens)
+- Fixed: transition message mentions, retry counter off-by-one, province parsing
+- 12 comprehensive tests for batch parsing (all passing)
+
+**2025-10-25**: Anonymous-First Authentication
+- Supabase anonymous auth with seamless upgrade flow
+- Auto-creates anonymous sessions on page load (`getOrCreateAnonUser()`)
+- SavePromptModal appears after calculation completion (anonymous users only)
+- User ID flows through Layercode metadata → webhook → database
+- RLS policies: `scenarios` and `users` tables use `auth.uid()`, `conversation_states` permissive (server-side access)
+- Files: `src/lib/supabase/auth.ts`, `src/contexts/AuthContext.tsx`, `src/components/auth/SavePromptModal.tsx`
+- **User action required**: Enable anonymous auth in Supabase dashboard before testing

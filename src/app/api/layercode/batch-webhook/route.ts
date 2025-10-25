@@ -33,6 +33,10 @@ type WebhookRequest = {
   text?: string
   turn_id?: string
   type: 'message' | 'session.start' | 'session.update' | 'session.end' | string
+  metadata?: {
+    user_id?: string
+    [key: string]: any
+  }
 }
 
 /**
@@ -43,7 +47,8 @@ async function handleRetryLimitExceeded(
   conversationKey: string,
   currentBatch: any,
   missingFields: string[],
-  stream: any
+  stream: any,
+  userId?: string
 ): Promise<void> {
   console.error(`❌ Exceeded retry limit for batch ${currentBatch.id}, skipping missing fields:`, missingFields)
 
@@ -70,7 +75,7 @@ async function handleRetryLimitExceeded(
     // Final batch - complete with partial data
     console.warn(`⚠️ Completing conversation with missing fields in final batch`)
     const completionMessage = "I'll use standard assumptions for the missing information. Your retirement projection is ready!"
-    await completeAndSaveConversation(conversationKey, completionMessage, stream)
+    await completeAndSaveConversation(conversationKey, completionMessage, stream, userId)
   }
 }
 
@@ -81,19 +86,21 @@ async function handleRetryLimitExceeded(
 async function completeAndSaveConversation(
   conversationKey: string,
   spokenResponse: string,
-  stream: any
+  stream: any,
+  userId?: string
 ): Promise<void> {
   await completeBatchConversation(conversationKey)
   const collectedData = getBatchCollectedData(conversationKey)
 
   console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
 
-  // Save as permanent scenario
-  // TODO: Replace with actual userId from auth session
-  const tempUserId = '00000000-0000-0000-0000-000000000000'  // Placeholder until auth implemented
+  // Use provided userId or fall back to placeholder for backwards compatibility
+  const userIdToUse = userId || '00000000-0000-0000-0000-000000000000'
+  console.log(`💾 Saving scenario for user: ${userIdToUse}`)
+
   const scenarioId = await saveCompletedScenarioToDatabase(
     conversationKey,
-    tempUserId,
+    userIdToUse,
     `Retirement Plan ${new Date().toLocaleDateString()}`
   )
 
@@ -139,8 +146,15 @@ export async function POST(request: Request) {
 
     console.log(`🌐 Batch webhook received: type=${requestBody.type}, conversation_id=${requestBody.conversation_id}`)
 
-    const { type, text, conversation_id } = requestBody
+    const { type, text, conversation_id, metadata } = requestBody
     const conversationKey = conversation_id
+    const userId = metadata?.user_id
+
+    if (userId) {
+      console.log(`👤 User ID from session metadata: ${userId}`)
+    } else {
+      console.warn(`⚠️ No user_id in metadata, will use fallback placeholder`)
+    }
 
     return streamResponse(requestBody, async ({ stream }) => {
       console.log(`🎬 Batch streamResponse started for type=${type}`)
@@ -286,7 +300,7 @@ export async function POST(request: Request) {
 
               // Check retry limit to prevent infinite loops
               if (hasExceededRetryLimit(conversationKey, currentBatch.id)) {
-                await handleRetryLimitExceeded(conversationKey, currentBatch, actuallyMissingFields, stream)
+                await handleRetryLimitExceeded(conversationKey, currentBatch, actuallyMissingFields, stream, userId)
                 return
               }
 
@@ -335,7 +349,7 @@ export async function POST(request: Request) {
               return
             } else {
               // Final batch complete (SAVES TO SUPABASE)
-              await completeAndSaveConversation(conversationKey, result.spokenResponse, stream)
+              await completeAndSaveConversation(conversationKey, result.spokenResponse, stream, userId)
               return
             }
           } catch (error) {
