@@ -273,23 +273,25 @@ export function VoiceFirstContentV2Dark() {
                     </div>
 
                     {/* Status */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-700">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-gray-200">
-                          {isComplete ? 'All done! 🎉' : 'Listening...'}
-                        </span>
+                    {!isComplete && (
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-700">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-gray-200">
+                            Listening...
+                          </span>
+                        </div>
+                        <Button
+                          onClick={disconnect}
+                          variant="outline"
+                          className="border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl"
+                          size="sm"
+                        >
+                          <MicOff className="w-4 h-4 mr-2" />
+                          End
+                        </Button>
                       </div>
-                      <Button
-                        onClick={disconnect}
-                        variant="outline"
-                        className="border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl"
-                        size="sm"
-                      >
-                        <MicOff className="w-4 h-4 mr-2" />
-                        End
-                      </Button>
-                    </div>
+                    )}
 
                     {isComplete && (
                       <div className="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 rounded-2xl p-5 border-2 border-emerald-700">

@@ -273,23 +273,25 @@ export function VoiceFirstContentV2() {
                     </div>
 
                     {/* Status */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {isComplete ? 'All done! 🎉' : 'Listening...'}
-                        </span>
+                    {!isComplete && (
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-gray-700">
+                            Listening...
+                          </span>
+                        </div>
+                        <Button
+                          onClick={disconnect}
+                          variant="outline"
+                          className="border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"
+                          size="sm"
+                        >
+                          <MicOff className="w-4 h-4 mr-2" />
+                          End
+                        </Button>
                       </div>
-                      <Button
-                        onClick={disconnect}
-                        variant="outline"
-                        className="border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"
-                        size="sm"
-                      >
-                        <MicOff className="w-4 h-4 mr-2" />
-                        End
-                      </Button>
-                    </div>
+                    )}
 
                     {isComplete && (
                       <div className="bg-gradient-to-r from-emerald-100 to-teal-100 rounded-2xl p-5 border-2 border-emerald-200">

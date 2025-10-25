@@ -203,16 +203,9 @@ export async function POST(request: Request) {
 
             const currentBatch = getCurrentBatch(conversationKey)
             if (!currentBatch) {
-              // Conversation complete
-              const collectedData = getBatchCollectedData(conversationKey)
-              console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
-
-              stream.tts("Perfect! I have everything I need. I'm now calculating your retirement projection.")
-              stream.data({
-                type: 'complete',
-                collectedData
-              })
-
+              // Conversation already complete - silently ignore further messages
+              // This prevents the AI from responding after the "Calculate" message
+              console.log(`🔇 Ignoring message - conversation ${conversationKey} already complete`)
               stream.end()
               return
             }

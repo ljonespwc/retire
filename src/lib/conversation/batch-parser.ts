@@ -109,6 +109,11 @@ export async function parseBatchResponse(
 
   const systemPrompt = `Parse user's response for retirement planning questions.
 
+⚠️ CRITICAL REQUIREMENTS:
+1. You MUST return ALL ${batch.questions.length} fields in the JSON response
+2. MANDATORY: Include every field listed below - incomplete JSON causes errors
+3. Every field must have a value (number/string/null) AND confidence score
+
 QUESTIONS:
 ${questionList}
 
@@ -142,7 +147,7 @@ TIME PERIODS:
 EXAMPLES:
 ${PARSING_EXAMPLES}
 
-Return ONLY JSON (no text before/after):
+Return ONLY JSON (no text before/after). ALL ${batch.questions.length} fields REQUIRED:
 {
   "values": {${batch.questions.map(q => `"${q.id}": <value|null>`).join(', ')}},
   "confidence": {${batch.questions.map(q => `"${q.id}": <0.0-1.0>`).join(', ')}},
@@ -159,7 +164,7 @@ Return ONLY JSON (no text before/after):
       role: 'user',
       content: 'Parse and respond:'
     }
-  ], { temperature: 0.7, maxTokens: 800 })
+  ], { temperature: 0.2, maxTokens: 1200 })
 
   console.log(`🤖 parseBatchResponse raw: "${response}"`)
 

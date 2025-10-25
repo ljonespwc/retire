@@ -60,7 +60,7 @@ class OpenAIProvider implements AIProvider {
       model: 'gpt-4-1106-preview', // gpt-4.1-mini
       messages: messages as any,
       temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens ?? 200
+      max_tokens: options.maxTokens ?? 600
     })
 
     const timeoutPromise = new Promise<never>((_, reject) => {
