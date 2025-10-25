@@ -23,9 +23,6 @@ import {
   saveCompletedScenarioToDatabase
 } from '@/lib/conversation/batch-flow-manager'
 import { parseBatchResponse } from '@/lib/conversation/batch-parser'
-import { mapVoiceDataToScenario } from '@/lib/conversation/voice-to-scenario-mapper'
-import { calculateRetirementProjection } from '@/lib/calculations/engine'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,6 +82,10 @@ async function handleRetryLimitExceeded(
 /**
  * Complete the conversation and save to database
  * Extracted as helper to avoid duplication
+ *
+ * NOTE: Calculation is now triggered by user clicking "Calculate" button
+ * instead of auto-running here. This gives users a chance to review/edit
+ * the collected data before running the projection.
  */
 async function completeAndSaveConversation(
   conversationKey: string,
@@ -107,41 +108,12 @@ async function completeAndSaveConversation(
     `Retirement Plan ${new Date().toLocaleDateString()}`
   )
 
-  // Run calculation engine on collected data
-  let calculationResults = null
-  try {
-    console.log(`🔢 Running calculation engine on collected data...`)
-
-    // Transform voice data to scenario format
-    const scenarioData = mapVoiceDataToScenario(collectedData, `Retirement Plan ${new Date().toLocaleDateString()}`)
-
-    // Add user_id to make it a complete Scenario object
-    const scenario = {
-      ...scenarioData,
-      id: scenarioId || 'temp-id',
-      user_id: userIdToUse,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    // Get Supabase client and run calculation
-    const supabase = await createClient()
-    calculationResults = await calculateRetirementProjection(supabase, scenario)
-
-    const firstRetirementYear = calculationResults.year_by_year.find(y => y.age >= scenario.basic_inputs.retirement_age)
-    const monthlyAfterTax = firstRetirementYear ? (firstRetirementYear.income.total - firstRetirementYear.tax.total) / 12 : 0
-    console.log(`✅ Calculation complete. Monthly after-tax income: $${monthlyAfterTax.toFixed(2)}`)
-  } catch (error) {
-    console.error(`❌ Calculation error:`, error)
-    // Don't fail the entire flow if calculation fails - just log and continue
-  }
-
+  // Send completion data (calculation will be triggered by UI button click)
   stream.tts(spokenResponse)
   stream.data({
     type: 'complete',
     collectedData,
-    scenarioId: scenarioId || undefined,  // Include scenario ID if saved successfully
-    calculationResults: calculationResults || undefined  // Include calculation results if available
+    scenarioId: scenarioId || undefined  // Include scenario ID if saved successfully
   })
 
   stream.end()

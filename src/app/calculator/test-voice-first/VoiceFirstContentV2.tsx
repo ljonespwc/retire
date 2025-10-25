@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, ArrowLeft } from 'lucide-react'
+import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, ArrowLeft, Calculator } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SavePromptModal } from '@/components/auth/SavePromptModal'
 import { CalculationResults } from '@/types/calculator'
@@ -70,6 +70,7 @@ export function VoiceFirstContentV2() {
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   // All question sections (shown immediately)
   const allSections = [
@@ -222,6 +223,81 @@ export function VoiceFirstContentV2() {
     { value: 'SK', label: 'Saskatchewan' },
     { value: 'YT', label: 'Yukon' }
   ]
+
+  // Handle Calculate button click
+  const handleCalculate = async () => {
+    if (!currentAge || !retirementAge || !longevityAge || !province) {
+      alert('Please complete at least the basic information before calculating')
+      return
+    }
+
+    setIsCalculating(true)
+
+    try {
+      // Build scenario object from collected data
+      const scenario = {
+        id: scenarioId || 'temp-id',
+        user_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        name: `Retirement Plan ${new Date().toLocaleDateString()}`,
+        basic_inputs: {
+          current_age: currentAge,
+          retirement_age: retirementAge,
+          longevity_age: longevityAge,
+          province
+        },
+        assets: {
+          rrsp: rrsp !== null ? { balance: rrsp, rate_of_return: (investmentReturn || 6) / 100, annual_contribution: rrspContribution || 0 } : undefined,
+          tfsa: tfsa !== null ? { balance: tfsa, rate_of_return: (investmentReturn || 6) / 100, annual_contribution: tfsaContribution || 0 } : undefined,
+          non_registered: nonRegistered !== null ? {
+            balance: nonRegistered,
+            cost_base: nonRegistered * 0.7,
+            rate_of_return: (investmentReturn || 6) / 100,
+            annual_contribution: nonRegisteredContribution || 0
+          } : undefined
+        },
+        income_sources: {
+          cpp: { start_age: cppStartAge || 65, estimated_monthly_amount: 1364.60 },
+          oas: { start_age: 65, estimated_monthly_amount: 718.33 },
+          pension: pensionIncome ? { annual_amount: pensionIncome } : undefined,
+          other: otherIncome ? { annual_amount: otherIncome } : undefined
+        },
+        expenses: {
+          monthly_spending: monthlySpending || 4000,
+          age_based_changes: []
+        },
+        assumptions: {
+          pre_retirement_return: (investmentReturn || 6) / 100,
+          post_retirement_return: (postRetirementReturn || 4) / 100,
+          inflation_rate: (inflationRate || 2) / 100
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      // Call calculation API
+      const response = await fetch('/api/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario })
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.results) {
+        console.log('✅ Calculation successful:', data.results)
+        setCalculationResults(data.results)
+        setShowResults(true)
+      } else {
+        console.error('❌ Calculation failed:', data.error)
+        alert(`Calculation failed: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('❌ Calculate error:', error)
+      alert('An error occurred during calculation. Please try again.')
+    } finally {
+      setIsCalculating(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-teal-50">
@@ -467,27 +543,36 @@ export function VoiceFirstContentV2() {
                     </div>
                   </div>
 
-                  {/* Calculate Button */}
+                  {/* Calculate/View Results Button */}
                   {isComplete && !showResults && (
                     <Button
                       size="lg"
                       onClick={() => {
                         if (calculationResults) {
+                          // Results already calculated - just show them
                           setShowResults(true)
+                        } else {
+                          // Run calculation
+                          handleCalculate()
                         }
                       }}
-                      disabled={!calculationResults}
+                      disabled={isCalculating}
                       className="w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {calculationResults ? (
+                      {isCalculating ? (
+                        <>
+                          <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 animate-pulse" fill="white" />
+                          Calculating...
+                        </>
+                      ) : calculationResults ? (
                         <>
                           <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
                           View Results
                         </>
                       ) : (
                         <>
-                          <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="white" />
-                          Calculating...
+                          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                          Calculate
                         </>
                       )}
                     </Button>
