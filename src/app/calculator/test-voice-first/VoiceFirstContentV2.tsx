@@ -157,49 +157,49 @@ export function VoiceFirstContentV2() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-teal-50">
       {/* Warm Header */}
       <div className="bg-gradient-to-r from-rose-400 via-orange-400 to-amber-400">
-        <div className="max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="w-14 h-14 rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center text-4xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0">
               🇨🇦
             </div>
-            <div>
-              <h1 className="text-4xl font-bold text-white tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                 The Ultimate Canadian Retirement Calculator
               </h1>
-              <p className="text-white/90 text-lg mt-1">Voice-powered. Tax-accurate. See your future.</p>
+              <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Your future.</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Asymmetric Two-Column Layout */}
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        <div className="grid grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Left Column - Conversation (40%) */}
-          <div className="col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-6">
             {/* Voice Card */}
             <Card className="border-0 shadow-lg rounded-3xl overflow-hidden bg-white">
-              <CardContent className="pt-10">
+              <CardContent className="pt-6 sm:pt-8 lg:pt-10">
                 {!isConnected && !isConnecting && (
-                  <div className="text-center py-10">
-                    <p className="text-gray-600 mb-6 text-lg leading-relaxed">
+                  <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
+                    <p className="text-gray-600 mb-6 text-base sm:text-lg leading-relaxed">
                       Let's figure out your retirement together. Just tap and our AI will assist you!
                     </p>
                     <Button
                       onClick={connect}
                       size="lg"
-                      className="bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white px-10 py-7 text-lg font-semibold rounded-2xl shadow-xl"
+                      className="bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto"
                     >
-                      <Mic className="w-6 h-6 mr-3" />
+                      <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                       Start Conversation
                     </Button>
                   </div>
                 )}
 
                 {isConnecting && (
-                  <div className="text-center py-10">
-                    <div className="inline-block w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 animate-pulse mb-4"></div>
-                    <p className="text-gray-600 text-lg">Getting ready...</p>
+                  <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
+                    <div className="inline-block w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 animate-pulse mb-4"></div>
+                    <p className="text-gray-600 text-base sm:text-lg">Getting ready...</p>
                   </div>
                 )}
 
@@ -317,33 +317,33 @@ export function VoiceFirstContentV2() {
           </div>
 
           {/* Right Column - Data (60%) */}
-          <div className="col-span-7">
-            <Card className="border-0 shadow-xl rounded-3xl bg-white sticky top-8">
-              <CardHeader className="border-b border-gray-100 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-2xl font-bold text-gray-800">Your Details</CardTitle>
-                    <p className="text-gray-500 mt-1">Information we've gathered so far</p>
+          <div className="lg:col-span-7">
+            <Card className="border-0 shadow-xl rounded-3xl bg-white lg:sticky lg:top-8">
+              <CardHeader className="border-b border-gray-100 pb-4 sm:pb-6 px-4 sm:px-6">
+                <div className="flex items-start sm:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800">Your Details</CardTitle>
+                    <p className="text-gray-500 mt-1 text-sm sm:text-base">You can edit these later.</p>
                   </div>
                   {isComplete && (
                     <Button
                       onClick={() => setEditMode(!editMode)}
                       variant="outline"
-                      className="border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"
+                      className="border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-sm sm:text-base flex-shrink-0"
                     >
                       {editMode ? 'Done' : '✏️ Edit'}
                     </Button>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="pt-8">
-                <div className="space-y-8">
+              <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
+                <div className="space-y-6 sm:space-y-8">
                   {/* Basic Info */}
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <WarmDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} />
                     <WarmDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} />
-                    <WarmDataField label="Planning Through Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} />
-                    <WarmDataField label="Current Income" value={currentIncome} editMode={editMode} onEdit={setCurrentIncome} type="currency" isGlowing={glowingFields.has('current_income')} />
+                    <WarmDataField label="Plan Until Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} />
+                    <WarmDataField label="Current Income (Annual)" value={currentIncome} editMode={editMode} onEdit={setCurrentIncome} type="currency" isGlowing={glowingFields.has('current_income')} />
                   </div>
 
                   <WarmDataField
@@ -356,38 +356,38 @@ export function VoiceFirstContentV2() {
 
                   {/* Accounts */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-800 pb-2 border-b-2 border-rose-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 pb-2 border-b-2 border-rose-200">
                       💰 Your Accounts
                     </h3>
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                       <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isGlowing={glowingFields.has('rrsp')} />
-                      <WarmDataField label="Annual RRSP Contribution" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} />
+                      <WarmDataField label="RRSP Contribution (Annual)" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} />
                       <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isGlowing={glowingFields.has('tfsa')} />
-                      <WarmDataField label="Annual TFSA Contribution" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} />
-                      <WarmDataField label="Non-Registered" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isGlowing={glowingFields.has('non_registered')} />
-                      <WarmDataField label="Annual Non-Reg Contribution" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} />
+                      <WarmDataField label="TFSA Contribution (Annual)" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} />
+                      <WarmDataField label="Non-Registered Balance" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isGlowing={glowingFields.has('non_registered')} />
+                      <WarmDataField label="Non-Registered Contribution (Annual)" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} />
                     </div>
                   </div>
 
                   {/* Retirement */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-800 pb-2 border-b-2 border-orange-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 pb-2 border-b-2 border-orange-200">
                       🏖️ In Retirement
                     </h3>
-                    <div className="grid grid-cols-2 gap-5">
-                      <WarmDataField label="Monthly Spending" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} />
-                      <WarmDataField label="Pension Income" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isGlowing={glowingFields.has('pension_income')} />
-                      <WarmDataField label="Other Income" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isGlowing={glowingFields.has('other_income')} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                      <WarmDataField label="Monthly Income Needs" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} />
+                      <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isGlowing={glowingFields.has('pension_income')} />
+                      <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isGlowing={glowingFields.has('other_income')} />
                       <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isGlowing={glowingFields.has('cpp_start_age')} />
                     </div>
                   </div>
 
                   {/* Rates */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-800 pb-2 border-b-2 border-teal-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 pb-2 border-b-2 border-teal-200">
                       📊 Rate Assumptions
                     </h3>
-                    <div className="grid grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                       <WarmDataField label="Pre-Retirement" value={investmentReturn} editMode={editMode} onEdit={setInvestmentReturn} type="percentage" isGlowing={glowingFields.has('investment_return')} />
                       <WarmDataField label="Post-Retirement" value={postRetirementReturn} editMode={editMode} onEdit={setPostRetirementReturn} type="percentage" isGlowing={glowingFields.has('post_retirement_return')} />
                       <WarmDataField label="Inflation" value={inflationRate} editMode={editMode} onEdit={setInflationRate} type="percentage" isGlowing={glowingFields.has('inflation_rate')} />
@@ -398,9 +398,9 @@ export function VoiceFirstContentV2() {
                   {isComplete && (
                     <Button
                       size="lg"
-                      className="w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 text-white shadow-2xl py-7 text-lg font-bold rounded-2xl"
+                      className="w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl"
                     >
-                      <Heart className="w-6 h-6 mr-2" fill="white" />
+                      <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="white" />
                       Calculate My Plan
                     </Button>
                   )}
@@ -432,15 +432,15 @@ function WarmDataField({
 }) {
   const formatValue = () => {
     if (value === null || value === undefined) return <span className="text-gray-300 text-sm">—</span>
-    if (type === 'currency') return <span className="text-gray-800 font-bold text-xl">${value.toLocaleString()}</span>
-    if (type === 'percentage') return <span className="text-gray-800 font-bold text-xl">{value}%</span>
-    if (type === 'number') return <span className="text-gray-800 font-bold text-xl">{value}</span>
-    return <span className="text-gray-800 font-semibold text-lg">{value}</span>
+    if (type === 'currency') return <span className="text-gray-800 font-bold text-lg sm:text-xl">${value.toLocaleString()}</span>
+    if (type === 'percentage') return <span className="text-gray-800 font-bold text-lg sm:text-xl">{value}%</span>
+    if (type === 'number') return <span className="text-gray-800 font-bold text-lg sm:text-xl">{value}</span>
+    return <span className="text-gray-800 font-semibold text-base sm:text-lg">{value}</span>
   }
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+      <label className="block text-xs sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
         {label}
       </label>
       {editMode && onEdit ? (
@@ -448,11 +448,11 @@ function WarmDataField({
           type={type === 'text' ? 'text' : 'number'}
           value={value || ''}
           onChange={(e) => onEdit(type === 'text' ? e.target.value : Number(e.target.value) || null)}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl text-gray-800 focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all"
+          className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl text-gray-800 text-base sm:text-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all"
           step={type === 'percentage' ? '0.1' : '1'}
         />
       ) : (
-        <div className={`px-5 py-4 bg-gradient-to-br from-gray-50 to-orange-50/20 rounded-2xl border-2 transition-all duration-300 ${
+        <div className={`px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-br from-gray-50 to-orange-50/20 rounded-2xl border-2 transition-all duration-300 ${
           isGlowing
             ? 'border-orange-400 shadow-[0_0_25px_rgba(251,146,60,0.7)] animate-pulse'
             : 'border-gray-200'
