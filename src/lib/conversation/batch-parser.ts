@@ -97,6 +97,9 @@ export async function parseBatchResponse(
 
   console.log(`🎯 parseBatchResponse: batch=${batch.id}, questions=${batch.questions.length}, existing=${existingValues.size}`)
 
+  // Detect if this is a re-prompt turn (filling in missing fields from previous attempt)
+  const isRepromptTurn = existingValues.size > 0
+
   // Build question list for prompt, marking already-collected values
   const questionList = batch.questions.map((q, idx) => {
     const hasValue = existingValues.has(q.id)  // Check if key exists in Map (works for null too!)
@@ -107,7 +110,12 @@ export async function parseBatchResponse(
   // Build validation rules using helper function
   const validationRules = batch.questions.map(q => getValidationRule(q.id, q.type)).join('\n')
 
-  const systemPrompt = `Parse user's response for retirement planning questions.
+  // Special instruction for re-prompt turns to prevent mentioning fields in transition
+  const repromptInstruction = isRepromptTurn && nextBatch
+    ? `\n\n⚠️ RE-PROMPT CONTEXT: User is filling in missing fields from a previous turn. If the batch is now complete with this response, give ONLY a brief 1-2 word acknowledgment like "Perfect!", "Great!", or "Got it!". DO NOT mention specific field names or values in the transition.`
+    : ''
+
+  const systemPrompt = `Parse user's response for retirement planning questions.${repromptInstruction}
 
 ⚠️ CRITICAL REQUIREMENTS:
 1. You MUST return ALL ${batch.questions.length} fields in the JSON response
@@ -133,7 +141,7 @@ PARSING RULES:
 7. Generate spoken response:
    - Invalid values: Explain error + ask again
    - Missing fields: Acknowledge received + ask for missing (ignore [ALREADY COLLECTED])
-   - All complete: ${nextBatch ? `Brief "Perfect!"/"Got it!"` : `Tell them to click the Calculate button`}
+   - All complete: ${nextBatch ? `ONLY say "Perfect!", "Great!", or "Got it!" - NO field names` : `Tell them to click the Calculate button`}
 
 CONFIDENCE SCORING:
 - 1.0 = [ALREADY COLLECTED] (always), explicit value, or user said "none"
