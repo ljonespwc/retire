@@ -425,3 +425,17 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - `/src/app/api/layercode/batch-webhook/route.ts` - Batch webhook
 - `/src/app/test-voice/TestVoiceContent.tsx` - Sequential UI
 - `/src/app/calculator/test-voice-first/VoiceFirstContent.tsx` - Batch UI
+
+---
+
+## Recent Updates
+
+**2025-01-24**: Voice-First UI Polish & Responsive Design
+- Removed V1 (Modern Financial) and V3 (Minimalist/Zen) prototypes; V2 (Warm & Approachable) is now main `/calculator/test-voice-first` page
+- Updated copy: "Plan Your Retirement", "Your future", "You can edit these later", "Monthly Income Needs", "Plan Until Age"
+- Added "(Annual)" suffix to all income/contribution fields for clarity
+- Fixed audio level bars: 3x multiplier for better visibility (capped at 100%)
+- Full responsive design: mobile (single column, full-width buttons), tablet (2-col grids), desktop (40/60 split, sticky panel)
+- Removed shaded card header for cleaner white design
+- 1-second glow animation on field updates (orange theme)
+- Glow duration reduced from 1.5s to 1.0s per user preference
