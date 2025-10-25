@@ -128,7 +128,7 @@ PARSING RULES:
 7. Generate spoken response:
    - Invalid values: Explain error + ask again
    - Missing fields: Acknowledge received + ask for missing (ignore [ALREADY COLLECTED])
-   - All complete: ${nextBatch ? `Brief "Perfect!"/"Got it!"` : `Tell them to click orange Calculate button`}
+   - All complete: ${nextBatch ? `Brief "Perfect!"/"Got it!"` : `Tell them to click the Calculate button`}
 
 CONFIDENCE SCORING:
 - 1.0 = [ALREADY COLLECTED] (always), explicit value, or user said "none"

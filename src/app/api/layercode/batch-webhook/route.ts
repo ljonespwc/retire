@@ -278,6 +278,7 @@ export async function POST(request: Request) {
             console.log(`📊 Actually missing fields:`, actuallyMissingFields)
 
             // Send accumulated values to UI for form update
+            // DON'T send progress here - only send when batch is complete
             stream.data({
               type: 'batch_response',
               batchId: currentBatch.id,
@@ -306,6 +307,17 @@ export async function POST(request: Request) {
             // All values received for current batch - move to next batch (AUTO-SAVES TO SUPABASE)
             const nextBatchObj = await getNextBatch(conversationKey)
 
+            // Send progress update NOW (batch complete, fields filled, moving to next)
+            const progress = getBatchProgress(conversationKey)
+            stream.data({
+              type: 'batch_complete',
+              completedBatchId: currentBatch.id,
+              progress: progress ? {
+                current: progress.current,
+                total: progress.total
+              } : undefined
+            })
+
             if (nextBatchObj) {
               console.log(`📨 Sending batch_prompt for: ${nextBatchObj.id}`)
               // More batches to go - ask next batch
@@ -317,7 +329,6 @@ export async function POST(request: Request) {
               stream.tts(transitionPrompt)
 
               // Send next batch data to UI
-              const progress = getBatchProgress(conversationKey)
               stream.data({
                 type: 'batch_prompt',
                 batchId: nextBatchObj.id,

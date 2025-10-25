@@ -87,11 +87,19 @@ export function VoiceFirstContentV2Dark() {
           batchIndex: content.batchIndex,
           totalBatches: content.totalBatches
         }])
-        setProgress({ current: content.batchIndex + 1, total: content.totalBatches })
+        // Don't update progress here - wait for batch_response after fields are filled
+      }
+
+      if (content.type === 'batch_complete') {
+        // Batch is fully complete - update progress before moving to next batch
+        if (content.progress) {
+          setProgress({ current: content.progress.current, total: content.progress.total })
+        }
       }
 
       if (content.type === 'batch_response') {
         const values = content.values
+        // Fill fields with glow animation (progress updates later on batch_complete)
         if (values.current_age !== undefined) { setCurrentAge(values.current_age); triggerGlow('current_age') }
         if (values.retirement_age !== undefined) { setRetirementAge(values.retirement_age); triggerGlow('retirement_age') }
         if (values.longevity_age !== undefined) { setLongevityAge(values.longevity_age); triggerGlow('longevity_age') }
