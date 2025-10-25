@@ -256,13 +256,13 @@ export function VoiceFirstContentV2Dark() {
           } : undefined
         },
         income_sources: {
-          cpp: { start_age: cppStartAge || 65, estimated_monthly_amount: 1364.60 },
-          oas: { start_age: 65, estimated_monthly_amount: 718.33 },
+          cpp: { start_age: cppStartAge || 65, monthly_amount_at_65: 1364.60 },
+          oas: { start_age: 65, monthly_amount: 718.33 },
           pension: pensionIncome ? { annual_amount: pensionIncome } : undefined,
           other: otherIncome ? { annual_amount: otherIncome } : undefined
         },
         expenses: {
-          monthly_spending: monthlySpending || 4000,
+          fixed_monthly: monthlySpending || 4000,
           age_based_changes: []
         },
         assumptions: {

@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
       : 0
 
     console.log(`✅ Calculation complete. Monthly after-tax income: $${monthlyAfterTax.toFixed(2)}`)
+    console.log(`📊 Results structure:`, {
+      totalYears: results.year_by_year.length,
+      firstYear: results.year_by_year[0],
+      retirementYear: firstRetirementYear,
+      lastYear: results.year_by_year[results.year_by_year.length - 1]
+    })
 
     return NextResponse.json({
       success: true,
