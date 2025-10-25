@@ -7,9 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle } from 'lucide-react'
+import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SavePromptModal } from '@/components/auth/SavePromptModal'
+import { CalculationResults } from '@/types/calculator'
+import { ResultsSummary } from '@/components/results/ResultsSummary'
+import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
+import { IncomeCompositionChart } from '@/components/results/IncomeCompositionChart'
+import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -63,6 +68,8 @@ export function VoiceFirstContentV2Dark() {
   const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
+  const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
+  const [showResults, setShowResults] = useState(false)
 
   // All question sections (shown immediately)
   const allSections = [
@@ -168,6 +175,12 @@ export function VoiceFirstContentV2Dark() {
         // Store scenario ID if returned from webhook
         if (content.scenarioId) {
           setScenarioId(content.scenarioId)
+        }
+
+        // Store calculation results if returned from webhook
+        if (content.calculationResults) {
+          console.log('📊 Calculation results received:', content.calculationResults)
+          setCalculationResults(content.calculationResults)
         }
 
         // Show save modal for anonymous users
@@ -385,8 +398,17 @@ export function VoiceFirstContentV2Dark() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
-                <div className="space-y-6 sm:space-y-8">
-                  {/* Basic Info */}
+                {/* Results View */}
+                {showResults && calculationResults ? (
+                  <div className="space-y-6">
+                    <ResultsSummary results={calculationResults} />
+                    <BalanceOverTimeChart results={calculationResults} />
+                    <IncomeCompositionChart results={calculationResults} />
+                    <TaxSummaryCard results={calculationResults} />
+                  </div>
+                ) : (
+                  <div className="space-y-6 sm:space-y-8">
+                    {/* Basic Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <DarkDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} />
                     <DarkDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} />
@@ -446,16 +468,45 @@ export function VoiceFirstContentV2Dark() {
                   </div>
 
                   {/* Calculate Button */}
-                  {isComplete && (
+                  {isComplete && !showResults && (
                     <Button
                       size="lg"
-                      className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl"
+                      onClick={() => {
+                        if (calculationResults) {
+                          setShowResults(true)
+                        }
+                      }}
+                      disabled={!calculationResults}
+                      className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="white" />
-                      Calculate My Plan
+                      {calculationResults ? (
+                        <>
+                          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                          View Results
+                        </>
+                      ) : (
+                        <>
+                          <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="white" />
+                          Calculating...
+                        </>
+                      )}
                     </Button>
                   )}
-                </div>
+
+                  {/* Back to Form Button (when viewing results) */}
+                  {showResults && (
+                    <Button
+                      size="lg"
+                      onClick={() => setShowResults(false)}
+                      variant="outline"
+                      className="w-full border-2 border-gray-600 hover:border-gray-500 text-gray-100 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl"
+                    >
+                      <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                      Back to Form
+                    </Button>
+                  )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

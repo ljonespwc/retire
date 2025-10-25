@@ -402,23 +402,20 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ---
 
-#### ⏳ REMAINING: Sprint 3 Sections
+#### ~~SKIPPED: Sprint 3 Sections 3-7~~ (Superseded by direct integration)
 
-**Sections 3-5: UX Prototypes (3 days)**
-- Form-First (`/app/calculator/test-form-first`) - Traditional form + floating voice button
-- Voice-First (`/app/calculator/test-voice-first`) - Two-panel: Conversation | Live form preview
-- Wizard (`/app/calculator/test-wizard`) - Multi-step with voice OR form per step
+**Decision**: Instead of building 3 separate UX prototypes and then choosing one, we integrated the calculation engine directly into the existing VoiceFirstContentV2 UI (which was already the preferred design from Section 2). This saved development time and delivered working end-to-end functionality immediately.
 
-**Section 6: Production Components (2 days)**
-- Voice: `VoiceButton`, `VoiceVisualizer`, `ConversationDisplay`, `VoiceStatus`
-- Form: `CurrencyInput`, `AgeInput`, `PercentageInput`, `ProvinceSelect`, `ScenarioSummary`
-- Hybrid: `VoiceOrFormField`, `InputMethodToggle`, `FieldValidation`
+**Skipped Sections**:
+- ~~Sections 3-5: UX Prototypes~~ - Form-First, additional Voice-First variants, Wizard
+- ~~Section 6: Production Components~~ - Reusable component library
+- ~~Section 7: Production Implementation~~ - User testing and final UX selection
 
-**Section 7: Production Implementation (1 day)**
-- User testing → choose best UX
-- `/app/calculator/page.tsx` with chosen approach
-- Connect to Sprint 2 calculation engine
-- Results visualization with charts
+**What We Built Instead**:
+- Direct calculation integration into VoiceFirstContentV2 (light & dark themes)
+- Results visualization components (charts, summaries, tax breakdown)
+- End-to-end flow: Voice → Data Collection → Calculation → Results Display
+- See "Calculation Engine Integration" entry below for full details
 
 **Test URL**: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
 
@@ -458,3 +455,32 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - RLS policies: `scenarios` and `users` tables use `auth.uid()`, `conversation_states` permissive (server-side access)
 - Files: `src/lib/supabase/auth.ts`, `src/contexts/AuthContext.tsx`, `src/components/auth/SavePromptModal.tsx`
 - **User action required**: Enable anonymous auth in Supabase dashboard before testing
+
+**2025-10-25**: Calculation Engine Integration (Sprint 3 → Sprint 4 Bridge)
+- **Goal**: End-to-end flow from voice conversation → automatic calculation → results visualization
+- **Architecture**: Webhook triggers calculation on completion, streams results to UI via SSE
+- **Components Created** (4 files):
+  - `/src/components/results/ResultsSummary.tsx` (~150 lines) - Monthly income, success indicator, key metrics grid
+  - `/src/components/results/BalanceOverTimeChart.tsx` (~200 lines) - Area chart with milestone markers (CPP/OAS/RRIF)
+  - `/src/components/results/IncomeCompositionChart.tsx` (~180 lines) - Stacked area chart (RRSP/TFSA/CPP/OAS/Other)
+  - `/src/components/results/TaxSummaryCard.tsx` (~120 lines) - Effective rate, total tax, gross vs net breakdown
+- **Utilities Created**:
+  - `/src/lib/calculations/results-formatter.ts` (~195 lines) - Transforms engine output to display format
+  - Functions: `formatSummary()`, `formatBalanceData()`, `formatIncomeData()`, `formatTaxSummary()`
+  - Handles type conversion (snake_case → camelCase), currency/percentage formatting
+- **Integration Points**:
+  - `batch-webhook/route.ts`: Added calculation trigger in `completeAndSaveConversation()`
+  - Calls `calculateRetirementProjection()` with mapped scenario data
+  - Returns `calculationResults` via `stream.data({ type: 'complete', calculationResults })`
+  - Both VoiceFirstContentV2 and VoiceFirstContentV2Dark updated with results view
+- **UI Flow**:
+  1. Voice conversation completes → webhook saves scenario + runs calculation
+  2. Results streamed to UI → "View Results" button appears
+  3. Click button → form replaced with charts/summaries
+  4. "Back to Form" button toggles back to collected data view
+- **Dependencies**: Installed `recharts` for chart visualizations
+- **Type Alignment**: Fixed results-formatter to match actual `CalculationResults` type structure
+  - Used `year_by_year`, `portfolio_depleted_age`, `final_portfolio_value` (snake_case)
+  - Nested properties: `balances.total`, `income.total`, `tax.total`, `withdrawals.rrsp_rrif`
+- **Build Status**: ✅ All type errors resolved, production build passes
+- **Testing Status**: Awaiting user to enable anonymous auth in Supabase dashboard for end-to-end testing
