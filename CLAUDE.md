@@ -433,9 +433,9 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
-**2025-01-24**: Voice-First UI Polish & Responsive Design
+**2025-10-24**: Voice-First UI Polish & Responsive Design
 - Removed V1 (Modern Financial) and V3 (Minimalist/Zen) prototypes; V2 (Warm & Approachable) is now main `/calculator/test-voice-first` page
-- Updated copy: "Plan Your Retirement", "Your future", "You can edit these later", "Monthly Income Needs", "Plan Until Age"
+- Updated copy: "Plan Your Retirement", "Your future", "You can edit these later", "Expected Monthly Spending", "Life Expectancy Age"
 - Added "(Annual)" suffix to all income/contribution fields for clarity
 - Fixed audio level bars: 3x multiplier for better visibility (capped at 100%)
 - Full responsive design: mobile (single column, full-width buttons), tablet (2-col grids), desktop (40/60 split, sticky panel)
@@ -443,7 +443,7 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - 1-second glow animation on field updates (orange theme)
 - Glow duration reduced from 1.5s to 1.0s per user preference
 
-**2025-01-25**: Batch Conversation Performance Optimization
+**2025-10-25**: Batch Conversation Performance Optimization
 - **30-40% latency reduction**: avg 1.35s per turn (down from 2+ seconds)
 - **50% prompt token reduction**: 1,800-2,000 → 800-1,000 tokens (batch-parser.ts)
 - **Code cleanup**: batch-parser (290→220 lines), batch-webhook (349→290 lines)
