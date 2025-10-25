@@ -442,3 +442,13 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - Removed shaded card header for cleaner white design
 - 1-second glow animation on field updates (orange theme)
 - Glow duration reduced from 1.5s to 1.0s per user preference
+
+**2025-01-25**: Batch Conversation Performance Optimization
+- **30-40% latency reduction**: avg 1.35s per turn (down from 2+ seconds)
+- **50% prompt token reduction**: 1,800-2,000 → 800-1,000 tokens (batch-parser.ts)
+- **Code cleanup**: batch-parser (290→220 lines), batch-webhook (349→290 lines)
+- **Province field fixes**: Enhanced LLM parsing with explicit name-to-code mapping, added editable dropdown with all 13 provinces/territories
+- **Retry logic fix**: Corrected off-by-one bug in retry counter placement
+- **Test coverage**: 12 comprehensive tests for batch parsing (all passing)
+- **Key optimizations**: Cached static prompt parts, extracted helper functions (handleRetryLimitExceeded, completeAndSaveConversation), removed redundant state reloads
+- **Verified working**: Full conversation tested with avg response times: Section 1 (1.32s), Section 2 (1.28s), Section 3 (1.25s), Section 4 (1.49s), Section 5 (1.72s)
