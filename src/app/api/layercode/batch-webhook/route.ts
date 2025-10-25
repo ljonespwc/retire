@@ -36,6 +36,78 @@ type WebhookRequest = {
 }
 
 /**
+ * Handle retry limit exceeded - skip to next batch or complete with partial data
+ * Extracted as helper to simplify main webhook logic
+ */
+async function handleRetryLimitExceeded(
+  conversationKey: string,
+  currentBatch: any,
+  missingFields: string[],
+  stream: any
+): Promise<void> {
+  console.error(`❌ Exceeded retry limit for batch ${currentBatch.id}, skipping missing fields:`, missingFields)
+
+  const nextBatchObj = await getNextBatch(conversationKey)
+
+  if (nextBatchObj) {
+    // Not final batch - move to next batch
+    const nextPrompt = getBatchPrompt(nextBatchObj.id)
+    const combinedMessage = `I'm having trouble collecting all the information for this section. Let's move on and you can fill in the missing details later. ${nextPrompt}`
+
+    stream.tts(combinedMessage)
+
+    const progress = getBatchProgress(conversationKey)
+    stream.data({
+      type: 'batch_prompt',
+      batchId: nextBatchObj.id,
+      batchTitle: nextBatchObj.title,
+      questions: nextBatchObj.questions,
+      batchIndex: (progress?.current || 1) - 1,
+      totalBatches: progress?.total || 0
+    })
+    stream.end()
+  } else {
+    // Final batch - complete with partial data
+    console.warn(`⚠️ Completing conversation with missing fields in final batch`)
+    const completionMessage = "I'll use standard assumptions for the missing information. Your retirement projection is ready!"
+    await completeAndSaveConversation(conversationKey, completionMessage, stream)
+  }
+}
+
+/**
+ * Complete the conversation and save to database
+ * Extracted as helper to avoid duplication
+ */
+async function completeAndSaveConversation(
+  conversationKey: string,
+  spokenResponse: string,
+  stream: any
+): Promise<void> {
+  await completeBatchConversation(conversationKey)
+  const collectedData = getBatchCollectedData(conversationKey)
+
+  console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
+
+  // Save as permanent scenario
+  // TODO: Replace with actual userId from auth session
+  const tempUserId = '00000000-0000-0000-0000-000000000000'  // Placeholder until auth implemented
+  const scenarioId = await saveCompletedScenarioToDatabase(
+    conversationKey,
+    tempUserId,
+    `Retirement Plan ${new Date().toLocaleDateString()}`
+  )
+
+  stream.tts(spokenResponse)
+  stream.data({
+    type: 'complete',
+    collectedData,
+    scenarioId: scenarioId || undefined  // Include scenario ID if saved successfully
+  })
+
+  stream.end()
+}
+
+/**
  * Generate natural conversational prompt for a batch
  * Instead of reading all questions verbatim, summarize naturally
  */
@@ -184,12 +256,10 @@ export async function POST(request: Request) {
             }
 
             // Store only high-confidence values (merges with existing) - AUTO-SAVES TO SUPABASE
+            // Note: storeBatchResponse updates the in-memory state directly, no need to reload
             await storeBatchResponse(conversationKey, currentBatch.id, highConfidenceValues, text)
 
-            // Reload state to get ACCUMULATED values after storing
-            state = getBatchConversationState(conversationKey)
-            if (!state) throw new Error('State lost after storing')
-
+            // Get ACCUMULATED values from state (already updated by storeBatchResponse)
             const updatedResponse = state.batchResponses.get(currentBatch.id)
             const accumulatedValues = updatedResponse ? updatedResponse.values : new Map<string, any>()
 
@@ -217,55 +287,14 @@ export async function POST(request: Request) {
 
             // Check if we got all values or need clarification
             if (actuallyMissingFields.length > 0) {
+              // Increment retry counter FIRST (fixes off-by-one issue)
+              incrementRetryCount(conversationKey, currentBatch.id)
+
               // Check retry limit to prevent infinite loops
               if (hasExceededRetryLimit(conversationKey, currentBatch.id)) {
-                console.error(`❌ Exceeded retry limit for batch ${currentBatch.id}, skipping missing fields:`, actuallyMissingFields)
-
-                // Log warning and move to next batch (partial data is better than stuck conversation)
-                stream.tts("I'm having trouble collecting all the information for this section. Let's move on and you can fill in the missing details later.")
-
-                const nextBatchObj = await getNextBatch(conversationKey)
-                if (nextBatchObj) {
-                  const nextPrompt = getBatchPrompt(nextBatchObj.id)
-                  stream.tts(nextPrompt)
-
-                  const progress = getBatchProgress(conversationKey)
-                  stream.data({
-                    type: 'batch_prompt',
-                    batchId: nextBatchObj.id,
-                    batchTitle: nextBatchObj.title,
-                    questions: nextBatchObj.questions,
-                    batchIndex: (progress?.current || 1) - 1,
-                    totalBatches: progress?.total || 0
-                  })
-                  stream.end()
-                  return
-                } else {
-                  // Hit retry limit on final batch - complete with partial data
-                  console.warn(`⚠️ Completing conversation with missing fields in final batch`)
-                  await completeBatchConversation(conversationKey)
-                  const collectedData = getBatchCollectedData(conversationKey)
-
-                  const tempUserId = '00000000-0000-0000-0000-000000000000'
-                  const scenarioId = await saveCompletedScenarioToDatabase(
-                    conversationKey,
-                    tempUserId,
-                    `Retirement Plan ${new Date().toLocaleDateString()}`
-                  )
-
-                  stream.tts("I'll use standard assumptions for the missing information. Your retirement projection is ready!")
-                  stream.data({
-                    type: 'complete',
-                    collectedData,
-                    scenarioId: scenarioId || undefined
-                  })
-                  stream.end()
-                  return
-                }
+                await handleRetryLimitExceeded(conversationKey, currentBatch, actuallyMissingFields, stream)
+                return
               }
-
-              // Increment retry counter
-              incrementRetryCount(conversationKey, currentBatch.id)
 
               // User didn't answer all questions - ask for missing ones
               console.warn(`⚠️ Missing fields in batch ${currentBatch.id}:`, actuallyMissingFields)
@@ -302,33 +331,18 @@ export async function POST(request: Request) {
               return
             } else {
               // Final batch complete (SAVES TO SUPABASE)
-              await completeBatchConversation(conversationKey)
-              const collectedData = getBatchCollectedData(conversationKey)
-
-              console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
-
-              // Save as permanent scenario
-              // TODO: Replace with actual userId from auth session
-              const tempUserId = '00000000-0000-0000-0000-000000000000'  // Placeholder until auth implemented
-              const scenarioId = await saveCompletedScenarioToDatabase(
-                conversationKey,
-                tempUserId,
-                `Retirement Plan ${new Date().toLocaleDateString()}`
-              )
-
-              stream.tts(result.spokenResponse)
-              stream.data({
-                type: 'complete',
-                collectedData,
-                scenarioId: scenarioId || undefined  // Include scenario ID if saved successfully
-              })
-
-              stream.end()
+              await completeAndSaveConversation(conversationKey, result.spokenResponse, stream)
               return
             }
           } catch (error) {
             console.error('Error processing batch message:', error)
-            stream.tts("I'm sorry, I didn't quite catch that. Could you try again?")
+
+            // Provide more helpful error message based on error type
+            const errorMessage = error instanceof Error && error.message.includes('parse')
+              ? "I had trouble understanding that. Could you try rephrasing?"
+              : "I'm sorry, I didn't quite catch that. Could you try again?"
+
+            stream.tts(errorMessage)
             stream.end()
             return
           }

@@ -153,6 +153,22 @@ export function VoiceFirstContentV2() {
     YT: 'Yukon'
   }
 
+  const provinceOptions = [
+    { value: 'AB', label: 'Alberta' },
+    { value: 'BC', label: 'British Columbia' },
+    { value: 'MB', label: 'Manitoba' },
+    { value: 'NB', label: 'New Brunswick' },
+    { value: 'NL', label: 'Newfoundland and Labrador' },
+    { value: 'NT', label: 'Northwest Territories' },
+    { value: 'NS', label: 'Nova Scotia' },
+    { value: 'NU', label: 'Nunavut' },
+    { value: 'ON', label: 'Ontario' },
+    { value: 'PE', label: 'Prince Edward Island' },
+    { value: 'QC', label: 'Quebec' },
+    { value: 'SK', label: 'Saskatchewan' },
+    { value: 'YT', label: 'Yukon' }
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-teal-50">
       {/* Warm Header */}
@@ -350,8 +366,11 @@ export function VoiceFirstContentV2() {
                   <WarmDataField
                     label="Province/Territory"
                     value={province ? provinceNames[province] : null}
-                    editMode={false}
-                    type="text"
+                    editValue={province}
+                    editMode={editMode}
+                    onEdit={setProvince}
+                    type="select"
+                    options={provinceOptions}
                     isGlowing={glowingFields.has('province')}
                   />
 
@@ -422,14 +441,18 @@ function WarmDataField({
   editMode,
   onEdit,
   type,
-  isGlowing
+  isGlowing,
+  options,
+  editValue
 }: {
   label: string
   value: any
   editMode: boolean
   onEdit?: (val: any) => void
-  type: 'number' | 'currency' | 'percentage' | 'text'
+  type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
   isGlowing?: boolean
+  options?: { value: string; label: string }[]
+  editValue?: any  // Separate value for edit mode (e.g., province code vs name)
 }) {
   const formatValue = () => {
     if (value === null || value === undefined) return <span className="text-gray-300 text-sm">—</span>
@@ -445,13 +468,26 @@ function WarmDataField({
         {label}
       </label>
       {editMode && onEdit ? (
-        <input
-          type={type === 'text' ? 'text' : 'number'}
-          value={value || ''}
-          onChange={(e) => onEdit(type === 'text' ? e.target.value : Number(e.target.value) || null)}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl text-gray-800 text-base sm:text-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all"
-          step={type === 'percentage' ? '0.1' : '1'}
-        />
+        type === 'select' ? (
+          <select
+            value={editValue !== undefined ? editValue : value || ''}
+            onChange={(e) => onEdit(e.target.value || null)}
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl text-gray-800 text-base sm:text-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all bg-white"
+          >
+            <option value="">Select...</option>
+            {options?.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type === 'text' ? 'text' : 'number'}
+            value={value || ''}
+            onChange={(e) => onEdit(type === 'text' ? e.target.value : Number(e.target.value) || null)}
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl text-gray-800 text-base sm:text-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all"
+            step={type === 'percentage' ? '0.1' : '1'}
+          />
+        )
       ) : (
         <div className={`px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-br from-gray-50 to-orange-50/20 rounded-2xl border-2 transition-all duration-300 ${
           isGlowing
