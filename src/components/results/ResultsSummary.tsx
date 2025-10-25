@@ -12,10 +12,11 @@ import { formatSummary, formatCurrency, formatCompactCurrency } from '@/lib/calc
 
 interface ResultsSummaryProps {
   results: CalculationResults
+  retirementAge: number
 }
 
-export function ResultsSummary({ results }: ResultsSummaryProps) {
-  const summary = formatSummary(results)
+export function ResultsSummary({ results, retirementAge }: ResultsSummaryProps) {
+  const summary = formatSummary(results, retirementAge)
 
   const successConfig = {
     sufficient: {

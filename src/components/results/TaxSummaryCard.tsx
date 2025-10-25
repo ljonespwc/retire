@@ -12,10 +12,11 @@ import { formatTaxSummary, formatCurrency, formatPercentage, formatCompactCurren
 
 interface TaxSummaryCardProps {
   results: CalculationResults
+  retirementAge: number
 }
 
-export function TaxSummaryCard({ results }: TaxSummaryCardProps) {
-  const taxSummary = formatTaxSummary(results)
+export function TaxSummaryCard({ results, retirementAge }: TaxSummaryCardProps) {
+  const taxSummary = formatTaxSummary(results, retirementAge)
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">

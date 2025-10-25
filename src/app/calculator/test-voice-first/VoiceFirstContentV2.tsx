@@ -477,10 +477,10 @@ export function VoiceFirstContentV2() {
                 {/* Results View */}
                 {showResults && calculationResults ? (
                   <div className="space-y-6">
-                    <ResultsSummary results={calculationResults} />
+                    <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} />
                     <BalanceOverTimeChart results={calculationResults} />
                     <IncomeCompositionChart results={calculationResults} />
-                    <TaxSummaryCard results={calculationResults} />
+                    <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
                   </div>
                 ) : (
                   <div className="space-y-6 sm:space-y-8">

@@ -99,7 +99,7 @@ describe('formatSummary', () => {
       final_portfolio_value: 200000
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     expect(summary.retirementAge).toBe(65)
     expect(summary.yearsInRetirement).toBe(25)
@@ -119,7 +119,7 @@ describe('formatSummary', () => {
       ]
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     // Annual after-tax: 40000 - 6000 = 34000
     // Monthly: 34000 / 12 = 2833.33
@@ -135,7 +135,7 @@ describe('formatSummary', () => {
       final_portfolio_value: 800000
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     expect(summary.successIndicator).toBe('sufficient')
   })
@@ -149,7 +149,7 @@ describe('formatSummary', () => {
       final_portfolio_value: 500000
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     // Ending balance (100000) < final_portfolio_value * 0.3 (500000 * 0.3 = 150000)
     expect(summary.successIndicator).toBe('concerning')
@@ -165,7 +165,7 @@ describe('formatSummary', () => {
       final_portfolio_value: 0
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     expect(summary.successIndicator).toBe('depleted')
     expect(summary.depletionAge).toBe(80)
@@ -178,7 +178,7 @@ describe('formatSummary', () => {
       ]
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     expect(summary.retirementAge).toBe(65)
     expect(summary.yearsInRetirement).toBe(0)
@@ -380,7 +380,7 @@ describe('formatTaxSummary', () => {
       average_tax_rate_in_retirement: 0.13
     })
 
-    const taxSummary = formatTaxSummary(results)
+    const taxSummary = formatTaxSummary(results, 65)
 
     expect(taxSummary.totalTaxPaid).toBe(6000)
     expect(taxSummary.effectiveRate).toBeCloseTo(13.0, 1) // Converted to percentage
@@ -402,7 +402,7 @@ describe('formatTaxSummary', () => {
       average_tax_rate_in_retirement: 0.13
     })
 
-    const taxSummary = formatTaxSummary(results)
+    const taxSummary = formatTaxSummary(results, 65)
 
     expect(taxSummary.annualEstimate).toBe(3000)
   })
@@ -420,7 +420,7 @@ describe('formatTaxSummary', () => {
       average_tax_rate_in_retirement: 0
     })
 
-    const taxSummary = formatTaxSummary(results)
+    const taxSummary = formatTaxSummary(results, 65)
 
     expect(taxSummary.totalTaxPaid).toBe(0)
     expect(taxSummary.effectiveRate).toBe(0)
@@ -428,12 +428,16 @@ describe('formatTaxSummary', () => {
   })
 
   it('should calculate effective rate as percentage', () => {
+    // Create year with 25.6% effective rate: $5,888 tax on $23,000 income
     const results = createCalculationResults({
-      year_by_year: [createYearResult({ age: 65 })],
+      year_by_year: [createYearResult({
+        age: 65,
+        tax: { federal: 4000, provincial: 1888, total: 5888 }
+      })],
       average_tax_rate_in_retirement: 0.256
     })
 
-    const taxSummary = formatTaxSummary(results)
+    const taxSummary = formatTaxSummary(results, 65)
 
     expect(taxSummary.effectiveRate).toBeCloseTo(25.6, 1)
   })
@@ -538,7 +542,7 @@ describe('Edge Cases and Error Handling', () => {
       final_portfolio_value: 150000000
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
     const balanceData = formatBalanceData(results)
 
     expect(summary.totalAssets).toBe(150000000)
@@ -559,7 +563,7 @@ describe('Edge Cases and Error Handling', () => {
       final_portfolio_value: 200
     })
 
-    const summary = formatSummary(results)
+    const summary = formatSummary(results, 65)
 
     expect(summary.totalAssets).toBe(200)
     // With very small income (150) and zero tax, monthly after-tax should be positive
@@ -582,8 +586,8 @@ describe('Edge Cases and Error Handling', () => {
       final_portfolio_value: 0
     })
 
-    const summary = formatSummary(results)
-    const taxSummary = formatTaxSummary(results)
+    const summary = formatSummary(results, 65)
+    const taxSummary = formatTaxSummary(results, 65)
     const incomeData = formatIncomeData(results)
 
     expect(summary.totalAssets).toBe(0)

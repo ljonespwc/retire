@@ -56,15 +56,19 @@ export interface FormattedTaxSummary {
 /**
  * Format calculation results into summary metrics
  */
-export function formatSummary(results: CalculationResults): FormattedSummary {
-  // Find first retirement year
-  const firstRetirementYear = results.year_by_year[0] // First year in results is retirement start
+export function formatSummary(results: CalculationResults, retirementAge: number): FormattedSummary {
+  // Find first retirement year (first year where income > 0 or at retirement age)
+  const firstRetirementYear = results.year_by_year.find(
+    year => year.age >= retirementAge
+  )
   const lastYear = results.year_by_year[results.year_by_year.length - 1]
 
+  if (!firstRetirementYear) {
+    throw new Error('No retirement years found in results')
+  }
+
   // Calculate monthly after-tax income (first year of retirement)
-  const annualAfterTax = firstRetirementYear
-    ? firstRetirementYear.income.total - firstRetirementYear.tax.total
-    : 0
+  const annualAfterTax = firstRetirementYear.income.total - firstRetirementYear.tax.total
   const monthlyAfterTaxIncome = annualAfterTax / 12
 
   // Determine success indicator
@@ -86,7 +90,7 @@ export function formatSummary(results: CalculationResults): FormattedSummary {
     successIndicator,
     retirementAge: firstRetirementYear.age,
     yearsInRetirement,
-    totalAssets: results.year_by_year[0].balances.total, // Starting balance
+    totalAssets: results.year_by_year[0].balances.total, // Starting balance (current age)
     endingBalance: results.final_portfolio_value,
     depletionAge: results.portfolio_depleted_age
   }
@@ -139,16 +143,26 @@ export function formatIncomeData(
 /**
  * Format tax information for summary card
  */
-export function formatTaxSummary(results: CalculationResults): FormattedTaxSummary {
-  const totalTaxPaid = results.total_taxes_paid_in_retirement
-  const totalGrossIncome = results.year_by_year.reduce(
+export function formatTaxSummary(results: CalculationResults, retirementAge: number): FormattedTaxSummary {
+  // Only sum taxes and income from retirement years (not pre-retirement)
+  const retirementYears = results.year_by_year.filter(year => year.age >= retirementAge)
+
+  const totalTaxPaid = retirementYears.reduce(
+    (sum, year) => sum + year.tax.total,
+    0
+  )
+  const totalGrossIncome = retirementYears.reduce(
     (sum, year) => sum + year.income.total,
     0
   )
   const totalNetIncome = totalGrossIncome - totalTaxPaid
-  const effectiveRate = results.average_tax_rate_in_retirement * 100 // Convert to percentage
 
-  const yearsInRetirement = results.year_by_year.length
+  // Calculate effective rate from retirement years only
+  const effectiveRate = totalGrossIncome > 0
+    ? (totalTaxPaid / totalGrossIncome) * 100
+    : 0
+
+  const yearsInRetirement = retirementYears.length
   const annualEstimate = yearsInRetirement > 0
     ? totalTaxPaid / yearsInRetirement
     : 0
