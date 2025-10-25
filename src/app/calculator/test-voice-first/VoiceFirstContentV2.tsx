@@ -182,7 +182,7 @@ export function VoiceFirstContentV2() {
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                 The Ultimate Canadian Retirement Calculator
               </h1>
-              <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Your future.</p>
+              <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Future teller.</p>
             </div>
           </div>
         </div>
@@ -199,7 +199,7 @@ export function VoiceFirstContentV2() {
                 {!isConnected && !isConnecting && (
                   <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
                     <p className="text-gray-600 mb-6 text-base sm:text-lg leading-relaxed">
-                      Let's figure out your retirement together. Just tap and our AI will assist you!
+                      Let's figure out your retirement together. Just tap and our AI retirement expert will assist you!
                     </p>
                     <Button
                       onClick={connect}
@@ -340,7 +340,6 @@ export function VoiceFirstContentV2() {
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
                     <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800">Your Details</CardTitle>
-                    <p className="text-gray-500 mt-1 text-sm sm:text-base">You can edit these later.</p>
                   </div>
                   {isComplete && (
                     <Button
