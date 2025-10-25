@@ -4,13 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ IMPORTANT: Development Workflow
 
-**ALWAYS run `npm run build` after making changes to verify the build succeeds locally.**
+**Build verification strategy (to save time):**
+- **UI/Component changes only**: Run `npm run build 2>&1 | head -n 50` (partial build check - catches most issues quickly)
+- **Backend/API/calculation changes**: Run full `npm run build` (complete verification required)
+- **Type changes or library updates**: Run full `npm run build` (complete verification required)
 
 **DO NOT push to git or deploy to Vercel.** The user will handle all git commits, pushes, and deployments manually.
 
 Your job is to:
 1. Make the requested changes
-2. Run `npm run build` to verify it works
+2. Run appropriate build verification (partial or full based on change type)
 3. Report the results to the user
 4. Let the user handle git/deployment
 

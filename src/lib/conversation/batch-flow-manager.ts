@@ -72,7 +72,7 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
       },
       {
         id: 'longevity_age',
-        text: 'How long you expect to live (most people say 90 or 95)',
+        text: 'How long you expect to live (most people plan for age 90 or 95)',
         type: 'age'
       },
       {
@@ -93,17 +93,17 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
     questions: [
       {
         id: 'rrsp_amount',
-        text: "Your RRSP balance (say 'none' if you don't have one)",
+        text: 'Your RRSP balance',
         type: 'amount'
       },
       {
         id: 'tfsa_amount',
-        text: "Your TFSA balance (say 'none' if you don't have one)",
+        text: 'Your TFSA balance',
         type: 'amount'
       },
       {
         id: 'non_registered_amount',
-        text: "Your non-registered investments (say 'none' if you don't have any)",
+        text: 'Your non-registered investments (stocks, bonds, mutual funds outside of RRSP/TFSA)',
         type: 'amount'
       }
     ]
@@ -114,17 +114,17 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
     questions: [
       {
         id: 'rrsp_contribution',
-        text: "How much you contribute to RRSP each year (say 'none' if you don't)",
+        text: 'How much you contribute to your RRSP each year',
         type: 'amount'
       },
       {
         id: 'tfsa_contribution',
-        text: "How much you contribute to TFSA each year (say 'none' if you don't)",
+        text: 'How much you contribute to your TFSA each year',
         type: 'amount'
       },
       {
         id: 'non_registered_contribution',
-        text: "How much you contribute to non-registered accounts each year (say 'none' if you don't)",
+        text: 'How much you contribute to non-registered accounts each year',
         type: 'amount'
       }
     ]
@@ -135,22 +135,22 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
     questions: [
       {
         id: 'monthly_spending',
-        text: 'How much you think you\'ll need to spend per month in retirement',
+        text: 'How much you\'ll need to spend per month in retirement',
         type: 'amount'
       },
       {
         id: 'pension_income',
-        text: "Expected annual pension income (say 'none' if you don't have a pension)",
+        text: 'Expected pension income, if you have one',
         type: 'amount'
       },
       {
         id: 'cpp_start_age',
-        text: 'At what age you want to start receiving CPP (between 60 and 70, say 65 if unsure)',
+        text: 'At what age you want to start receiving CPP (between 60 and 70)',
         type: 'age'
       },
       {
         id: 'other_income',
-        text: "Any other annual income you expect in retirement, like rental income (say 'none' if you don't have any)",
+        text: 'Any other annual income you expect in retirement, like rental income',
         type: 'amount'
       }
     ]
@@ -161,17 +161,17 @@ const RETIREMENT_BATCHES: QuestionBatch[] = [
     questions: [
       {
         id: 'investment_return',
-        text: 'Expected annual return before retirement (say 5% if unsure)',
+        text: 'Expected annual return on investments before retirement',
         type: 'percentage'
       },
       {
         id: 'post_retirement_return',
-        text: 'Expected annual return after retirement (say 4% if unsure)',
+        text: 'Expected annual return on investments after retirement',
         type: 'percentage'
       },
       {
         id: 'inflation_rate',
-        text: 'Expected inflation rate for planning (say 2% if unsure)',
+        text: 'Expected inflation rate for planning purposes',
         type: 'percentage'
       }
     ]

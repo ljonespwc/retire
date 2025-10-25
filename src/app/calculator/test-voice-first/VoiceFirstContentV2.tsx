@@ -289,6 +289,7 @@ export function VoiceFirstContentV2() {
               <Card className="border-0 shadow-lg rounded-3xl bg-white">
                 <CardHeader>
                   <CardTitle className="text-lg font-bold text-gray-800">What we're discussing</CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">If something doesn't apply to you, just say the item name and "none" or "zero"</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-5">
