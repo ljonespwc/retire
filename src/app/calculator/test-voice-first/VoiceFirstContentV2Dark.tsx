@@ -50,11 +50,21 @@ export function VoiceFirstContentV2Dark() {
 
   const [messages, setMessages] = useState<Message[]>([])
   const [batchPrompts, setBatchPrompts] = useState<BatchPrompt[]>([])
+  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [isComplete, setIsComplete] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [glowingFields, setGlowingFields] = useState<Set<string>>(new Set())
   const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
+
+  // All question sections (shown immediately)
+  const allSections = [
+    { id: 'personal_info', title: 'Tell me about yourself', index: 0 },
+    { id: 'savings', title: 'Tell me about your current savings', index: 1 },
+    { id: 'savings_contributions', title: 'Tell me about your annual contributions', index: 2 },
+    { id: 'retirement_income', title: 'Tell me about your retirement income', index: 3 },
+    { id: 'investment_assumptions', title: 'Tell me about your investment expectations', index: 4 }
+  ]
 
   // Helper function to trigger glow effect on a field
   const triggerGlow = (fieldName: string) => {
@@ -88,6 +98,8 @@ export function VoiceFirstContentV2Dark() {
           batchIndex: content.batchIndex,
           totalBatches: content.totalBatches
         }])
+        // Mark this batch as the current active batch
+        setCurrentBatchId(content.batchId)
         // Don't update progress here - wait for batch_response after fields are filled
       }
 
@@ -293,7 +305,7 @@ export function VoiceFirstContentV2Dark() {
             </Card>
 
             {/* Questions Timeline */}
-            {batchPrompts.length > 0 && (
+            {isConnected && (
               <Card className="border-0 shadow-lg rounded-3xl bg-slate-800">
                 <CardHeader>
                   <CardTitle className="text-lg font-bold text-gray-100">What we're discussing</CardTitle>
@@ -301,20 +313,29 @@ export function VoiceFirstContentV2Dark() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {batchPrompts.map((batch, idx) => {
-                      const isCompleted = completedBatches.has(batch.batchId)
+                    {allSections.map((section) => {
+                      const isCompleted = completedBatches.has(section.id)
+                      const isActive = currentBatchId === section.id
+                      const isInactive = !isCompleted && !isActive
+
                       return (
-                        <div key={batch.batchId} className="flex items-center gap-4">
+                        <div key={section.id} className="flex items-center gap-4">
                           {isCompleted ? (
                             <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-lg">
                               <CheckCircle2 className="w-6 h-6" />
                             </div>
-                          ) : (
+                          ) : isActive ? (
                             <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg">
-                              {batch.batchIndex + 1}
+                              {section.index + 1}
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-slate-700 flex items-center justify-center text-gray-500 font-bold">
+                              {section.index + 1}
                             </div>
                           )}
-                          <h4 className="font-bold text-gray-200">{batch.batchTitle}</h4>
+                          <h4 className={`font-bold ${isInactive ? 'text-gray-500' : 'text-gray-200'}`}>
+                            {section.title}
+                          </h4>
                         </div>
                       )
                     })}
