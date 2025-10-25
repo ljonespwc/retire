@@ -54,6 +54,7 @@ export function VoiceFirstContentV2() {
   const [isComplete, setIsComplete] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [glowingFields, setGlowingFields] = useState<Set<string>>(new Set())
+  const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
 
   // Helper function to trigger glow effect on a field
   const triggerGlow = (fieldName: string) => {
@@ -91,10 +92,12 @@ export function VoiceFirstContentV2() {
       }
 
       if (content.type === 'batch_complete') {
-        // Batch is fully complete - update progress before moving to next batch
+        // Batch is fully complete - update progress and mark batch as completed
         if (content.progress) {
           setProgress({ current: content.progress.current, total: content.progress.total })
         }
+        // Mark this batch as completed (for green checkmark)
+        setCompletedBatches(prev => new Set(prev).add(content.completedBatchId))
       }
 
       if (content.type === 'batch_response') {
@@ -229,25 +232,6 @@ export function VoiceFirstContentV2() {
 
                 {isConnected && (
                   <div className="space-y-6">
-                    {/* Friendly Progress */}
-                    {progress && !isComplete && (
-                      <div className="bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl p-5 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-gray-700">
-                            Step {progress.current} of {progress.total}
-                          </span>
-                          <Badge className="bg-gradient-to-r from-rose-500 to-orange-500 text-white border-0 rounded-full px-3">
-                            {Math.round((progress.current / progress.total) * 100)}%
-                          </Badge>
-                        </div>
-                        <Progress
-                          value={(progress.current / progress.total) * 100}
-                          className="h-4 bg-white/50 rounded-full"
-                        />
-                        <p className="text-xs text-gray-600 mt-2">We're making great progress!</p>
-                      </div>
-                    )}
-
                     {/* Audio Levels */}
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -316,25 +300,24 @@ export function VoiceFirstContentV2() {
                   <p className="text-sm text-gray-600 mt-2">If something doesn't apply to you, just say the item name and "none" or "zero"</p>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-5">
-                    {batchPrompts.map((batch, idx) => (
-                      <div key={batch.batchId} className="relative pl-6">
-                        <div className="absolute left-0 top-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center text-white font-bold shadow-lg">
-                          {batch.batchIndex + 1}
+                  <div className="space-y-6">
+                    {batchPrompts.map((batch, idx) => {
+                      const isCompleted = completedBatches.has(batch.batchId)
+                      return (
+                        <div key={batch.batchId} className="flex items-center gap-4">
+                          {isCompleted ? (
+                            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-white shadow-lg">
+                              <CheckCircle2 className="w-6 h-6" />
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center text-white font-bold shadow-lg">
+                              {batch.batchIndex + 1}
+                            </div>
+                          )}
+                          <h4 className="font-bold text-gray-800">{batch.batchTitle}</h4>
                         </div>
-                        <div className="pl-6">
-                          <h4 className="font-bold text-gray-800 mb-2">{batch.batchTitle}</h4>
-                          <ul className="space-y-1.5">
-                            {batch.questions.map(q => (
-                              <li key={q.id} className="text-sm text-gray-600 flex items-start gap-2">
-                                <span className="text-orange-400">•</span>
-                                {q.text}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
