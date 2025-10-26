@@ -360,7 +360,7 @@ export function VoiceFirstContentV2() {
       </div>
 
       {/* Asymmetric Two-Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 space-y-6 lg:space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Left Column - Conversation (40%) */}
           <div className="lg:col-span-5 space-y-6">
@@ -515,18 +515,9 @@ export function VoiceFirstContentV2() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
-                {/* Results View */}
-                {showResults && calculationResults ? (
-                  <div className="space-y-6">
-                    <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} />
-                    <BalanceOverTimeChart results={calculationResults} />
-                    <IncomeCompositionChart results={calculationResults} />
-                    <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
-                  </div>
-                ) : (
-                  <div className="space-y-6 sm:space-y-8">
-                    {/* Basic Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div className="space-y-6 sm:space-y-8">
+                  {/* Basic Info */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <WarmDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} />
                     <WarmDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} />
                     <WarmDataField label="Life Expectancy Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} />
@@ -584,19 +575,11 @@ export function VoiceFirstContentV2() {
                     </div>
                   </div>
 
-                  {/* Calculate/View Results Button */}
-                  {isComplete && !showResults && (
+                  {/* Calculate/Recalculate Button */}
+                  {isComplete && (
                     <Button
                       size="lg"
-                      onClick={() => {
-                        if (calculationResults) {
-                          // Results already calculated - just show them
-                          setShowResults(true)
-                        } else {
-                          // Run calculation
-                          handleCalculate()
-                        }
-                      }}
+                      onClick={handleCalculate}
                       disabled={isCalculating}
                       className="w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -607,8 +590,8 @@ export function VoiceFirstContentV2() {
                         </>
                       ) : calculationResults ? (
                         <>
-                          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                          View Results
+                          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                          Recalculate
                         </>
                       ) : (
                         <>
@@ -618,12 +601,30 @@ export function VoiceFirstContentV2() {
                       )}
                     </Button>
                   )}
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Results Section - Full Width Below Form */}
+        {calculationResults && (
+          <div className="w-full mt-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">Your Retirement Projection</h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} />
+              <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
+              <div className="lg:col-span-2">
+                <BalanceOverTimeChart results={calculationResults} />
+              </div>
+              <div className="lg:col-span-2">
+                <IncomeCompositionChart results={calculationResults} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Save Prompt Modal (only for anonymous users) */}

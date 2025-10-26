@@ -515,17 +515,8 @@ export function VoiceFirstContentV2Dark() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
-                {/* Results View */}
-                {showResults && calculationResults ? (
-                  <div className="space-y-6">
-                    <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} />
-                    <BalanceOverTimeChart results={calculationResults} />
-                    <IncomeCompositionChart results={calculationResults} />
-                    <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
-                  </div>
-                ) : (
-                  <div className="space-y-6 sm:space-y-8">
-                    {/* Basic Info */}
+                <div className="space-y-6 sm:space-y-8">
+                  {/* Basic Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <DarkDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} />
                     <DarkDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} />
@@ -584,19 +575,11 @@ export function VoiceFirstContentV2Dark() {
                     </div>
                   </div>
 
-                  {/* Calculate/View Results Button */}
-                  {isComplete && !showResults && (
+                  {/* Calculate/Recalculate Button */}
+                  {isComplete && (
                     <Button
                       size="lg"
-                      onClick={() => {
-                        if (calculationResults) {
-                          // Results already calculated - just show them
-                          setShowResults(true)
-                        } else {
-                          // Run calculation
-                          handleCalculate()
-                        }
-                      }}
+                      onClick={handleCalculate}
                       disabled={isCalculating}
                       className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -607,8 +590,8 @@ export function VoiceFirstContentV2Dark() {
                         </>
                       ) : calculationResults ? (
                         <>
-                          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                          View Results
+                          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                          Recalculate
                         </>
                       ) : (
                         <>
@@ -618,12 +601,30 @@ export function VoiceFirstContentV2Dark() {
                       )}
                     </Button>
                   )}
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Results Section - Full Width Below Form */}
+        {calculationResults && (
+          <div className="w-full mt-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-100">Your Retirement Projection</h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} />
+              <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
+              <div className="lg:col-span-2">
+                <BalanceOverTimeChart results={calculationResults} />
+              </div>
+              <div className="lg:col-span-2">
+                <IncomeCompositionChart results={calculationResults} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Save Prompt Modal (only for anonymous users) */}
