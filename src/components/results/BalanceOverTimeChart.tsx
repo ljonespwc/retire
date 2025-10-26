@@ -22,17 +22,29 @@ import {
 
 interface BalanceOverTimeChartProps {
   results: CalculationResults
+  isDarkMode?: boolean
 }
 
-export function BalanceOverTimeChart({ results }: BalanceOverTimeChartProps) {
+export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOverTimeChartProps) {
   const data = formatBalanceData(results)
 
   // Find milestones for markers
   const milestones = data.filter(d => d.milestone)
 
+  // Theme-aware colors
+  const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
+  const cardBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  const textPrimary = isDarkMode ? 'text-gray-100' : 'text-gray-900'
+  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600'
+  const gridStroke = isDarkMode ? '#374151' : '#e5e7eb'
+  const axisStroke = isDarkMode ? '#9ca3af' : '#6b7280'
+  const tooltipBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
+  const tooltipBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  const markerStroke = isDarkMode ? '#1f2937' : '#fff'
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
+      <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
         Portfolio Balance Over Time
       </h3>
 
@@ -49,23 +61,23 @@ export function BalanceOverTimeChart({ results }: BalanceOverTimeChartProps) {
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
 
             <XAxis
               dataKey="age"
-              stroke="#6b7280"
+              stroke={axisStroke}
               style={{ fontSize: '12px' }}
-              label={{ value: 'Age', position: 'insideBottom', offset: -5 }}
+              label={{ value: 'Age', position: 'insideBottom', offset: -5, fill: axisStroke }}
             />
 
             <YAxis
-              stroke="#6b7280"
+              stroke={axisStroke}
               style={{ fontSize: '12px' }}
               tickFormatter={(value) => formatCompactCurrency(value)}
             />
 
             <Tooltip
-              content={<CustomTooltip />}
+              content={<CustomTooltip isDarkMode={isDarkMode} />}
               cursor={{ stroke: '#9ca3af', strokeWidth: 1 }}
             />
 
@@ -85,7 +97,7 @@ export function BalanceOverTimeChart({ results }: BalanceOverTimeChartProps) {
                 y={milestone.balance}
                 r={6}
                 fill="#f59e0b"
-                stroke="#fff"
+                stroke={markerStroke}
                 strokeWidth={2}
               />
             ))}
@@ -98,8 +110,8 @@ export function BalanceOverTimeChart({ results }: BalanceOverTimeChartProps) {
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
           {milestones.map((milestone, index) => (
             <div key={index} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-500 border-2 border-white" />
-              <span className="text-gray-600">
+              <div className={`w-3 h-3 rounded-full bg-amber-500 border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'}`} />
+              <span className={textSecondary}>
                 {milestone.milestone} (Age {milestone.age})
               </span>
             </div>
@@ -113,18 +125,23 @@ export function BalanceOverTimeChart({ results }: BalanceOverTimeChartProps) {
 /**
  * Custom tooltip for balance chart
  */
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload, isDarkMode }: any) {
   if (!active || !payload || !payload.length) {
     return null
   }
 
   const data = payload[0].payload
 
+  const tooltipBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
+  const tooltipBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  const textPrimary = isDarkMode ? 'text-gray-100' : 'text-gray-900'
+  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600'
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-      <div className="font-medium text-gray-900 mb-2">Age {data.age}</div>
-      <div className="text-sm text-gray-600">
-        Balance: <span className="font-semibold text-gray-900">
+    <div className={`${tooltipBg} border ${tooltipBorder} rounded-lg shadow-lg p-3`}>
+      <div className={`font-medium ${textPrimary} mb-2`}>Age {data.age}</div>
+      <div className={`text-sm ${textSecondary}`}>
+        Balance: <span className={`font-semibold ${textPrimary}`}>
           {formatCompactCurrency(data.balance)}
         </span>
       </div>

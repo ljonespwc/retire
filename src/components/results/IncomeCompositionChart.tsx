@@ -22,9 +22,10 @@ import {
 
 interface IncomeCompositionChartProps {
   results: CalculationResults
+  isDarkMode?: boolean
 }
 
-export function IncomeCompositionChart({ results }: IncomeCompositionChartProps) {
+export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCompositionChartProps) {
   const data = formatIncomeData(results)
 
   // Income source colors (matching brand palette)
@@ -37,9 +38,16 @@ export function IncomeCompositionChart({ results }: IncomeCompositionChartProps)
     other: '#6b7280'      // Gray for other
   }
 
+  // Theme-aware colors
+  const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
+  const cardBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  const textPrimary = isDarkMode ? 'text-gray-100' : 'text-gray-900'
+  const gridStroke = isDarkMode ? '#374151' : '#e5e7eb'
+  const axisStroke = isDarkMode ? '#9ca3af' : '#6b7280'
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
+      <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
         Income Sources Over Time
       </h3>
 
@@ -76,22 +84,22 @@ export function IncomeCompositionChart({ results }: IncomeCompositionChartProps)
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
 
             <XAxis
               dataKey="age"
-              stroke="#6b7280"
+              stroke={axisStroke}
               style={{ fontSize: '12px' }}
-              label={{ value: 'Age', position: 'insideBottom', offset: -5 }}
+              label={{ value: 'Age', position: 'insideBottom', offset: -5, fill: axisStroke }}
             />
 
             <YAxis
-              stroke="#6b7280"
+              stroke={axisStroke}
               style={{ fontSize: '12px' }}
               tickFormatter={(value) => formatCompactCurrency(value)}
             />
 
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip isDarkMode={isDarkMode} />} />
 
             <Legend
               wrapperStyle={{ fontSize: '12px' }}
@@ -157,7 +165,7 @@ export function IncomeCompositionChart({ results }: IncomeCompositionChartProps)
 /**
  * Custom tooltip for income composition chart
  */
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload, isDarkMode }: any) {
   if (!active || !payload || !payload.length) {
     return null
   }
@@ -171,47 +179,52 @@ function CustomTooltip({ active, payload }: any) {
     data.pensionIncome +
     data.otherIncome
 
+  const tooltipBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
+  const tooltipBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  const textPrimary = isDarkMode ? 'text-gray-100' : 'text-gray-900'
+  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600'
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-      <div className="font-medium text-gray-900 mb-2">Age {data.age}</div>
+    <div className={`${tooltipBg} border ${tooltipBorder} rounded-lg shadow-lg p-3`}>
+      <div className={`font-medium ${textPrimary} mb-2`}>Age {data.age}</div>
       <div className="space-y-1 text-sm">
-        <div className="font-semibold text-gray-900 border-b border-gray-200 pb-1">
+        <div className={`font-semibold ${textPrimary} border-b ${tooltipBorder} pb-1`}>
           Total: {formatCompactCurrency(totalIncome)}
         </div>
         {data.rrspIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-gray-600">RRSP/RRIF:</span>
-            <span className="font-medium">{formatCompactCurrency(data.rrspIncome)}</span>
+            <span className={textSecondary}>RRSP/RRIF:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.rrspIncome)}</span>
           </div>
         )}
         {data.tfsaIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-gray-600">TFSA:</span>
-            <span className="font-medium">{formatCompactCurrency(data.tfsaIncome)}</span>
+            <span className={textSecondary}>TFSA:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.tfsaIncome)}</span>
           </div>
         )}
         {data.cppIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-gray-600">CPP:</span>
-            <span className="font-medium">{formatCompactCurrency(data.cppIncome)}</span>
+            <span className={textSecondary}>CPP:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.cppIncome)}</span>
           </div>
         )}
         {data.oasIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-gray-600">OAS:</span>
-            <span className="font-medium">{formatCompactCurrency(data.oasIncome)}</span>
+            <span className={textSecondary}>OAS:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.oasIncome)}</span>
           </div>
         )}
         {data.pensionIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-gray-600">Pension:</span>
-            <span className="font-medium">{formatCompactCurrency(data.pensionIncome)}</span>
+            <span className={textSecondary}>Pension:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.pensionIncome)}</span>
           </div>
         )}
         {data.otherIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-gray-600">Other:</span>
-            <span className="font-medium">{formatCompactCurrency(data.otherIncome)}</span>
+            <span className={textSecondary}>Other:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.otherIncome)}</span>
           </div>
         )}
       </div>

@@ -736,10 +736,10 @@ export function VoiceFirstContentV2() {
               <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
               <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
               <div className="lg:col-span-2">
-                <BalanceOverTimeChart results={calculationResults} />
+                <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
               </div>
               <div className="lg:col-span-2">
-                <IncomeCompositionChart results={calculationResults} />
+                <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
               </div>
             </div>
           </div>
