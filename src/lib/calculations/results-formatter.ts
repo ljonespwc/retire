@@ -108,15 +108,28 @@ export function formatBalanceData(
       balance: year.balances.total
     }
 
-    // Add milestone markers (simple version - could be enhanced)
-    // Note: We'd need additional metadata to know CPP/OAS start ages
-    // For now, use common ages
-    if (year.income.cpp > 0 && results.year_by_year[results.year_by_year.indexOf(year) - 1]?.income.cpp === 0) {
-      dataPoint.milestone = 'CPP Starts'
-    } else if (year.income.oas > 0 && results.year_by_year[results.year_by_year.indexOf(year) - 1]?.income.oas === 0) {
-      dataPoint.milestone = 'OAS Starts'
-    } else if (year.age === 71) {
-      dataPoint.milestone = 'RRIF Conversion'
+    // Collect all milestones for this age (can have multiple)
+    const milestones: string[] = []
+
+    // Check for CPP start
+    const prevYear = results.year_by_year[results.year_by_year.indexOf(year) - 1]
+    if (year.income.cpp > 0 && (!prevYear || prevYear.income.cpp === 0)) {
+      milestones.push('CPP Starts')
+    }
+
+    // Check for OAS start
+    if (year.income.oas > 0 && (!prevYear || prevYear.income.oas === 0)) {
+      milestones.push('OAS Starts')
+    }
+
+    // Check for RRIF conversion
+    if (year.age === 71) {
+      milestones.push('RRIF Conversion')
+    }
+
+    // Join multiple milestones with comma
+    if (milestones.length > 0) {
+      dataPoint.milestone = milestones.join(', ')
     }
 
     return dataPoint

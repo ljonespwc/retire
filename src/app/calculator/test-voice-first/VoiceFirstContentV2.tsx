@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, ArrowLeft, Calculator } from 'lucide-react'
+import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SavePromptModal } from '@/components/auth/SavePromptModal'
 import { CalculationResults } from '@/types/calculator'
@@ -15,6 +15,7 @@ import { ResultsSummary } from '@/components/results/ResultsSummary'
 import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
 import { IncomeCompositionChart } from '@/components/results/IncomeCompositionChart'
 import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
+import confetti from 'canvas-confetti'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -224,6 +225,43 @@ export function VoiceFirstContentV2() {
     { value: 'YT', label: 'Yukon' }
   ]
 
+  // Confetti celebration effect
+  const fireConfetti = () => {
+    const duration = 3000
+    const animationEnd = Date.now() + duration
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+
+    function randomInRange(min: number, max: number) {
+      return Math.random() * (max - min) + min
+    }
+
+    const interval: NodeJS.Timeout = setInterval(function() {
+      const timeLeft = animationEnd - Date.now()
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval)
+      }
+
+      const particleCount = 50 * (timeLeft / duration)
+
+      // Fire from left side
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        colors: ['#f43f5e', '#fb923c', '#fbbf24', '#10b981', '#06b6d4']
+      })
+
+      // Fire from right side
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        colors: ['#f43f5e', '#fb923c', '#fbbf24', '#10b981', '#06b6d4']
+      })
+    }, 250)
+  }
+
   // Handle Calculate button click
   const handleCalculate = async () => {
     if (!currentAge || !retirementAge || !longevityAge || !province) {
@@ -232,6 +270,9 @@ export function VoiceFirstContentV2() {
     }
 
     setIsCalculating(true)
+
+    // Fire confetti celebration
+    fireConfetti()
 
     try {
       // Build scenario object from collected data
@@ -524,7 +565,7 @@ export function VoiceFirstContentV2() {
                       🏖️ In Retirement
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="Expected Monthly Spending" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} />
+                      <WarmDataField label="Desired Monthly Income (Net)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} />
                       <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isGlowing={glowingFields.has('pension_income')} />
                       <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isGlowing={glowingFields.has('other_income')} />
                       <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isGlowing={glowingFields.has('cpp_start_age')} />
@@ -575,19 +616,6 @@ export function VoiceFirstContentV2() {
                           Calculate
                         </>
                       )}
-                    </Button>
-                  )}
-
-                  {/* Back to Form Button (when viewing results) */}
-                  {showResults && (
-                    <Button
-                      size="lg"
-                      onClick={() => setShowResults(false)}
-                      variant="outline"
-                      className="w-full border-2 border-gray-300 hover:border-gray-400 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl"
-                    >
-                      <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                      Back to Form
                     </Button>
                   )}
                   </div>

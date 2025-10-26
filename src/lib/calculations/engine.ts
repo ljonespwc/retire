@@ -80,6 +80,32 @@ export async function calculateRetirementProjection(
   // ==================================================
   // PHASE 1: PRE-RETIREMENT (Accumulation)
   // ==================================================
+
+  // Calculate base CPP and OAS amounts (at start age, before inflation)
+  // We calculate these upfront to apply consistent inflation indexing
+  let baseCPPAmount = 0;
+  let baseOASAmount = 0;
+  let cppStartAge = income_sources.cpp?.start_age || 65;
+  let oasStartAge = income_sources.oas?.start_age || 65;
+
+  if (income_sources.cpp) {
+    const cppCalc = await calculateCPP(
+      client,
+      income_sources.cpp.monthly_amount_at_65,
+      income_sources.cpp.start_age
+    );
+    baseCPPAmount = cppCalc.annual_amount;
+  }
+
+  if (income_sources.oas) {
+    const oasCalc = await calculateOAS(
+      client,
+      income_sources.oas.monthly_amount,
+      income_sources.oas.start_age
+    );
+    baseOASAmount = oasCalc.annual_amount;
+  }
+
   for (let age = current_age; age < retirement_age; age++) {
     const year = currentYear + (age - current_age);
 
@@ -107,26 +133,22 @@ export async function calculateRetirementProjection(
     // Update cost basis for non-registered account
     nonRegCostBasis += assets.non_registered?.annual_contribution || 0;
 
-    // Calculate government benefits that start before retirement
+    // Calculate government benefits that start before retirement (with inflation indexing)
     let cppIncome = 0;
     let oasIncome = 0;
 
-    if (income_sources.cpp && age >= income_sources.cpp.start_age) {
-      const cppCalc = await calculateCPP(
-        client,
-        income_sources.cpp.monthly_amount_at_65,
-        income_sources.cpp.start_age
-      );
-      cppIncome = cppCalc.annual_amount;
+    if (income_sources.cpp && age >= cppStartAge) {
+      // Years since CPP started
+      const yearsFromStart = age - cppStartAge;
+      // Apply inflation indexing
+      cppIncome = baseCPPAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
-    if (income_sources.oas && age >= income_sources.oas.start_age) {
-      const oasCalc = await calculateOAS(
-        client,
-        income_sources.oas.monthly_amount,
-        income_sources.oas.start_age
-      );
-      oasIncome = oasCalc.annual_amount;
+    if (income_sources.oas && age >= oasStartAge) {
+      // Years since OAS started
+      const yearsFromStart = age - oasStartAge;
+      // Apply inflation indexing
+      oasIncome = baseOASAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
     // Calculate total income from government benefits
@@ -180,6 +202,9 @@ export async function calculateRetirementProjection(
   let annualExpenses =
     expenses.fixed_monthly * 12 + (expenses.variable_annual || 0);
 
+  // Note: baseCPPAmount, baseOASAmount, cppStartAge, oasStartAge
+  // are already calculated in Phase 1 section above
+
   for (let age = retirement_age; age <= longevity_age; age++) {
     const year = currentYear + (age - current_age);
 
@@ -196,26 +221,22 @@ export async function calculateRetirementProjection(
       annualExpenses = ageChange.monthly_amount * 12;
     }
 
-    // Calculate government benefits
+    // Calculate government benefits with inflation indexing
     let cppIncome = 0;
     let oasIncome = 0;
 
-    if (income_sources.cpp && age >= income_sources.cpp.start_age) {
-      const cppCalc = await calculateCPP(
-        client,
-        income_sources.cpp.monthly_amount_at_65,
-        income_sources.cpp.start_age
-      );
-      cppIncome = cppCalc.annual_amount;
+    if (income_sources.cpp && age >= cppStartAge) {
+      // Years since CPP started
+      const yearsFromStart = age - cppStartAge;
+      // Apply inflation indexing: CPP increases each year with inflation
+      cppIncome = baseCPPAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
-    if (income_sources.oas && age >= income_sources.oas.start_age) {
-      const oasCalc = await calculateOAS(
-        client,
-        income_sources.oas.monthly_amount,
-        income_sources.oas.start_age
-      );
-      oasIncome = oasCalc.annual_amount;
+    if (income_sources.oas && age >= oasStartAge) {
+      // Years since OAS started
+      const yearsFromStart = age - oasStartAge;
+      // Apply inflation indexing: OAS increases each year with inflation
+      oasIncome = baseOASAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
     // Calculate total income from benefits
