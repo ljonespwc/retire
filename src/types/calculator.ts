@@ -227,6 +227,8 @@ export interface YearlyTax {
   total: number;
   /** Effective tax rate */
   effective_rate: number;
+  /** Marginal tax rate (combined federal + provincial) */
+  marginal_rate: number;
 }
 
 /**

@@ -72,7 +72,7 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false }: E
           {formatCurrency(summary.monthlyAfterTaxIncome)}
         </div>
         <div className={`text-sm ${subLabelColor} mt-1`}>
-          per month
+          per month (all sources)
         </div>
       </div>
 

@@ -13,53 +13,93 @@ import { formatTaxSummary, formatCurrency, formatPercentage, formatCompactCurren
 interface TaxSummaryCardProps {
   results: CalculationResults
   retirementAge: number
+  isDarkMode?: boolean
 }
 
-export function TaxSummaryCard({ results, retirementAge }: TaxSummaryCardProps) {
+export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: TaxSummaryCardProps) {
   const taxSummary = formatTaxSummary(results, retirementAge)
 
+  // Theme-aware colors
+  const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
+  const cardBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  const textPrimary = isDarkMode ? 'text-gray-100' : 'text-gray-900'
+  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600'
+  const dividerBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
+
+  // Accent boxes
+  const orangeBox = isDarkMode ? 'bg-orange-900/30 border-orange-700' : 'bg-orange-50 border-orange-100'
+  const orangeText = isDarkMode ? 'text-orange-300' : 'text-orange-600'
+  const purpleBox = isDarkMode ? 'bg-purple-900/30 border-purple-700' : 'bg-purple-50 border-purple-100'
+  const purpleText = isDarkMode ? 'text-purple-300' : 'text-purple-600'
+  const blueBox = isDarkMode ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-50 border-blue-100'
+  const blueText = isDarkMode ? 'text-blue-300' : 'text-blue-800'
+  const blueTextMuted = isDarkMode ? 'text-blue-400' : 'text-blue-700'
+  const grayBox = isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'
+  const grayBorder = isDarkMode ? 'border-gray-600' : 'border-gray-300'
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
+      <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
         Tax Impact Summary
       </h3>
 
       <div className="space-y-4">
-        {/* Effective Tax Rate - Prominent */}
-        <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-          <div className="text-sm text-gray-600 mb-1">
-            Effective Tax Rate
+        {/* Tax Rates - Side by Side */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Effective Tax Rate */}
+          <div className={`${orangeBox} rounded-lg p-4 border`}>
+            <div className={`text-sm ${textSecondary} mb-1`}>
+              Effective Tax Rate
+            </div>
+            <div className={`text-3xl font-bold ${orangeText}`}>
+              {formatPercentage(taxSummary.effectiveRate)}
+            </div>
           </div>
-          <div className="text-3xl font-bold text-orange-600">
-            {formatPercentage(taxSummary.effectiveRate)}
+
+          {/* Marginal Tax Rate */}
+          <div className={`${purpleBox} rounded-lg p-4 border`}>
+            <div className={`text-sm ${textSecondary} mb-1`}>
+              Marginal Tax Rate
+            </div>
+            <div className={`text-3xl font-bold ${purpleText}`}>
+              {formatPercentage(taxSummary.marginalRate)}
+            </div>
           </div>
         </div>
 
         {/* Total Tax Paid */}
-        <div className="flex justify-between items-center py-3 border-b border-gray-200">
-          <span className="text-gray-600">Total Tax Paid (Retirement)</span>
-          <span className="font-semibold text-gray-900">
+        <div className={`flex justify-between items-center py-3 border-b ${dividerBorder}`}>
+          <span className={textSecondary}>Total Tax Paid (Retirement)</span>
+          <span className={`font-semibold ${textPrimary}`}>
             {formatCompactCurrency(taxSummary.totalTaxPaid)}
           </span>
         </div>
 
         {/* Annual Tax Estimate */}
-        <div className="flex justify-between items-center py-3 border-b border-gray-200">
-          <span className="text-gray-600">Annual Average</span>
-          <span className="font-semibold text-gray-900">
+        <div className={`flex justify-between items-center py-3 border-b ${dividerBorder}`}>
+          <span className={textSecondary}>Annual Average</span>
+          <span className={`font-semibold ${textPrimary}`}>
             {formatCurrency(taxSummary.annualEstimate)}
           </span>
         </div>
 
+        {/* Monthly Net Income */}
+        <div className={`flex justify-between items-center py-3 border-b ${dividerBorder}`}>
+          <span className={textSecondary}>Monthly Net Income (Average)</span>
+          <span className={`font-semibold ${textPrimary}`}>
+            {formatCurrency(taxSummary.monthlyNetIncome)}
+          </span>
+        </div>
+
         {/* Gross vs Net Comparison */}
-        <div className="bg-gray-50 rounded-lg p-4 mt-4">
-          <div className="text-sm font-medium text-gray-700 mb-3">
+        <div className={`${grayBox} rounded-lg p-4 mt-4`}>
+          <div className={`text-sm font-medium ${textPrimary} mb-3`}>
             Gross vs Net Income
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total Gross Income</span>
-              <span className="font-medium text-gray-900">
+              <span className={`text-sm ${textSecondary}`}>Total Gross Income</span>
+              <span className={`font-medium ${textPrimary}`}>
                 {formatCompactCurrency(taxSummary.grossIncome)}
               </span>
             </div>
@@ -69,20 +109,20 @@ export function TaxSummaryCard({ results, retirementAge }: TaxSummaryCardProps) 
                 -{formatCompactCurrency(taxSummary.totalTaxPaid)}
               </span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-gray-300">
-              <span className="text-sm font-medium text-gray-900">Net Income</span>
-              <span className="font-bold text-gray-900">
-                {formatCompactCurrency(taxSummary.netIncome)}
+            <div className={`flex justify-between items-center pt-2 border-t ${grayBorder}`}>
+              <span className={`text-sm font-medium ${textPrimary}`}>Net Income</span>
+              <span className={`font-bold ${textPrimary}`}>
+                {formatCurrency(taxSummary.netIncome)}
               </span>
             </div>
           </div>
         </div>
 
         {/* Tax Efficiency Note */}
-        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-4">
-          <div className="text-xs text-blue-800">
+        <div className={`${blueBox} border rounded-lg p-3 mt-4`}>
+          <div className={`text-xs ${blueText}`}>
             <div className="font-medium mb-1">Tax Efficiency Tips</div>
-            <ul className="list-disc list-inside space-y-1 text-blue-700">
+            <ul className={`list-disc list-inside space-y-1 ${blueTextMuted}`}>
               <li>TFSA withdrawals are tax-free</li>
               <li>Income splitting can reduce tax burden</li>
               <li>CPP/OAS timing affects total tax paid</li>

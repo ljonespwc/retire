@@ -734,7 +734,7 @@ export function VoiceFirstContentV2() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
-              <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
+              <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
               <div className="lg:col-span-2">
                 <BalanceOverTimeChart results={calculationResults} />
               </div>

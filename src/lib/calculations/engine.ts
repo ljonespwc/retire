@@ -183,6 +183,7 @@ export async function calculateRetirementProjection(
         provincial: 0,
         total: 0,
         effective_rate: 0,
+        marginal_rate: 0,
       },
       expenses: 0,
       net_cash_flow: 0,
@@ -322,6 +323,7 @@ export async function calculateRetirementProjection(
         effective_rate: taxCalc.taxable_income.total > 0
           ? taxCalc.total_tax / taxCalc.taxable_income.total
           : 0,
+        marginal_rate: taxCalc.combined_marginal_rate,
       },
       expenses: annualExpenses,
       net_cash_flow: netCashflow,

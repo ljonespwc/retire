@@ -48,7 +48,9 @@ export interface IncomeDataPoint {
 export interface FormattedTaxSummary {
   totalTaxPaid: number
   effectiveRate: number
+  marginalRate: number
   annualEstimate: number
+  monthlyNetIncome: number
   grossIncome: number
   netIncome: number
 }
@@ -175,15 +177,31 @@ export function formatTaxSummary(results: CalculationResults, retirementAge: num
     ? (totalTaxPaid / totalGrossIncome) * 100
     : 0
 
+  // Calculate average marginal rate across retirement years
+  const totalMarginalRate = retirementYears.reduce(
+    (sum, year) => sum + year.tax.marginal_rate,
+    0
+  )
+  const marginalRate = retirementYears.length > 0
+    ? (totalMarginalRate / retirementYears.length) * 100
+    : 0
+
   const yearsInRetirement = retirementYears.length
   const annualEstimate = yearsInRetirement > 0
     ? totalTaxPaid / yearsInRetirement
     : 0
 
+  // Calculate average monthly net income
+  const monthlyNetIncome = yearsInRetirement > 0
+    ? totalNetIncome / (yearsInRetirement * 12)
+    : 0
+
   return {
     totalTaxPaid,
     effectiveRate,
+    marginalRate,
     annualEstimate,
+    monthlyNetIncome,
     grossIncome: totalGrossIncome,
     netIncome: totalNetIncome
   }
