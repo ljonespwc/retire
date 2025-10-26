@@ -52,7 +52,7 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
           >
             <defs>
               <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
@@ -107,7 +107,7 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
 
       {/* Milestone Legend */}
       {milestones.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+        <div className="mt-6 flex flex-wrap gap-4 text-sm">
           {milestones.map((milestone, index) => (
             <div key={index} className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full bg-amber-500 border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'}`} />
