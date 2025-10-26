@@ -107,7 +107,32 @@ export async function calculateRetirementProjection(
     // Update cost basis for non-registered account
     nonRegCostBasis += assets.non_registered?.annual_contribution || 0;
 
-    // Create year result (pre-retirement years have minimal info)
+    // Calculate government benefits that start before retirement
+    let cppIncome = 0;
+    let oasIncome = 0;
+
+    if (income_sources.cpp && age >= income_sources.cpp.start_age) {
+      const cppCalc = await calculateCPP(
+        client,
+        income_sources.cpp.monthly_amount_at_65,
+        income_sources.cpp.start_age
+      );
+      cppIncome = cppCalc.annual_amount;
+    }
+
+    if (income_sources.oas && age >= income_sources.oas.start_age) {
+      const oasCalc = await calculateOAS(
+        client,
+        income_sources.oas.monthly_amount,
+        income_sources.oas.start_age
+      );
+      oasIncome = oasCalc.annual_amount;
+    }
+
+    // Calculate total income from government benefits
+    const totalIncome = cppIncome + oasIncome;
+
+    // Create year result
     const yearResult: YearByYearResult = {
       year,
       age,
@@ -125,11 +150,11 @@ export async function calculateRetirementProjection(
       },
       income: {
         employment: 0,
-        cpp: 0,
-        oas: 0,
+        cpp: cppIncome,
+        oas: oasIncome,
         other: 0,
         investment: 0,
-        total: 0,
+        total: totalIncome,
       },
       tax: {
         federal: 0,
