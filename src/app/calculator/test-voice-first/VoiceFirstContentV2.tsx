@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon } from 'lucide-react'
+import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon, Save } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SavePromptModal } from '@/components/auth/SavePromptModal'
 import { CalculationResults } from '@/types/calculator'
@@ -15,6 +15,9 @@ import { ResultsSummary } from '@/components/results/ResultsSummary'
 import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
 import { IncomeCompositionChart } from '@/components/results/IncomeCompositionChart'
 import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
+import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
+import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
+import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import confetti from 'canvas-confetti'
 
 interface Message {
@@ -73,6 +76,7 @@ export function VoiceFirstContentV2() {
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
 
   // Theme configuration
   const theme = {
@@ -374,6 +378,59 @@ export function VoiceFirstContentV2() {
     }
   }
 
+  // Get current form data for saving
+  const getCurrentFormData = (): FormData => {
+    return {
+      currentAge,
+      retirementAge,
+      longevityAge,
+      province,
+      currentIncome,
+      rrspAmount: rrsp,
+      tfsaAmount: tfsa,
+      nonRegisteredAmount: nonRegistered,
+      rrspContribution,
+      tfsaContribution,
+      nonRegisteredContribution,
+      monthlySpending,
+      pensionIncome,
+      otherIncome,
+      cppStartAge,
+      investmentReturn,
+      postRetirementReturn,
+      inflationRate,
+    }
+  }
+
+  // Handle loading a saved scenario
+  const handleLoadScenario = (formData: FormData, scenarioName: string) => {
+    // Populate all form fields
+    setCurrentAge(formData.currentAge)
+    setRetirementAge(formData.retirementAge)
+    setLongevityAge(formData.longevityAge)
+    setProvince(formData.province as Province | null)
+    setCurrentIncome(formData.currentIncome)
+    setRrsp(formData.rrspAmount)
+    setRrspContribution(formData.rrspContribution)
+    setTfsa(formData.tfsaAmount)
+    setTfsaContribution(formData.tfsaContribution)
+    setNonRegistered(formData.nonRegisteredAmount)
+    setNonRegisteredContribution(formData.nonRegisteredContribution)
+    setMonthlySpending(formData.monthlySpending)
+    setPensionIncome(formData.pensionIncome)
+    setOtherIncome(formData.otherIncome)
+    setCppStartAge(formData.cppStartAge)
+    setInvestmentReturn(formData.investmentReturn)
+    setPostRetirementReturn(formData.postRetirementReturn)
+    setInflationRate(formData.inflationRate)
+
+    // Mark as complete so form is visible
+    setIsComplete(true)
+
+    // Show success feedback
+    console.log(`✅ Loaded scenario: ${scenarioName}`)
+  }
+
   // WarmDataField - theme-aware form field component
   function WarmDataField({
     label,
@@ -487,18 +544,34 @@ export function VoiceFirstContentV2() {
             <Card className={`border-0 shadow-lg rounded-3xl overflow-hidden ${theme.card}`}>
               <CardContent className="pt-6 sm:pt-8 lg:pt-10">
                 {!isConnected && !isConnecting && (
-                  <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
-                    <p className={`${theme.text.secondary} mb-6 text-base sm:text-lg leading-relaxed`}>
+                  <div className="py-6 sm:py-8 lg:py-10 px-4 space-y-6">
+                    <p className={`${theme.text.secondary} text-center text-base sm:text-lg leading-relaxed`}>
                       Let's figure out your retirement together. Just tap and our AI retirement expert will assist you!
                     </p>
-                    <Button
-                      onClick={connect}
-                      size="lg"
-                      className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
-                    >
-                      <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                      Start Conversation
-                    </Button>
+
+                    {/* Load Saved Scenario */}
+                    <div className="max-w-xs mx-auto">
+                      <LoadScenarioDropdown onLoad={handleLoadScenario} isDarkMode={isDarkMode} />
+                    </div>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-4 my-4">
+                      <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                      <span className={`text-sm ${theme.text.muted}`}>or</span>
+                      <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                    </div>
+
+                    {/* Start Conversation Button */}
+                    <div className="text-center">
+                      <Button
+                        onClick={connect}
+                        size="lg"
+                        className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
+                      >
+                        <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
+                        Start Conversation
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -730,7 +803,14 @@ export function VoiceFirstContentV2() {
         {calculationResults && (
           <div className="w-full mt-12">
             <div className="text-center mb-8">
-              <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary}`}>Your Retirement Projection</h2>
+              <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
+              <Button
+                onClick={() => setShowScenarioSaveModal(true)}
+                className={`${theme.button.primary} text-white px-6 py-3 rounded-xl font-medium shadow-lg`}
+              >
+                <Save className="w-5 h-5 mr-2" />
+                Save Scenario
+              </Button>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
@@ -751,6 +831,15 @@ export function VoiceFirstContentV2() {
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
         scenarioName={`Retirement Plan ${new Date().toLocaleDateString()}`}
+      />
+
+      {/* Save Scenario Modal */}
+      <SaveScenarioModal
+        isOpen={showScenarioSaveModal}
+        onClose={() => setShowScenarioSaveModal(false)}
+        formData={getCurrentFormData()}
+        calculationResults={calculationResults}
+        isDarkMode={isDarkMode}
       />
     </div>
   )
