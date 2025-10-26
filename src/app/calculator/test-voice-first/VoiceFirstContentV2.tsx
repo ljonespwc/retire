@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator } from 'lucide-react'
+import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SavePromptModal } from '@/components/auth/SavePromptModal'
 import { CalculationResults } from '@/types/calculator'
@@ -72,6 +72,40 @@ export function VoiceFirstContentV2() {
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // Theme configuration
+  const theme = {
+    background: isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800' : 'bg-gradient-to-br from-orange-50 via-rose-50 to-teal-50',
+    headerBg: isDarkMode ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600' : 'bg-gradient-to-r from-rose-400 via-orange-400 to-amber-400',
+    card: isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white',
+    text: {
+      primary: isDarkMode ? 'text-gray-100' : 'text-gray-800',
+      secondary: isDarkMode ? 'text-gray-300' : 'text-gray-600',
+      muted: isDarkMode ? 'text-gray-400' : 'text-gray-500',
+    },
+    button: {
+      primary: isDarkMode
+        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+        : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600',
+      secondary: isDarkMode
+        ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+        : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600',
+    },
+    progress: isDarkMode
+      ? 'bg-gradient-to-r from-blue-500 to-purple-500'
+      : 'bg-gradient-to-r from-rose-500 to-orange-500',
+    badge: {
+      active: isDarkMode ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white',
+      inactive: isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700',
+    },
+    input: isDarkMode
+      ? 'bg-gray-700 border-gray-600 text-white'
+      : 'bg-white border-gray-200',
+    glow: isDarkMode
+      ? 'ring-4 ring-blue-400/50 ring-offset-2 ring-offset-gray-800'
+      : 'ring-4 ring-rose-300/50 ring-offset-2 ring-offset-white',
+  }
 
   // All question sections (shown immediately)
   const allSections = [
@@ -340,21 +374,106 @@ export function VoiceFirstContentV2() {
     }
   }
 
+  // WarmDataField - theme-aware form field component
+  function WarmDataField({
+    label,
+    value,
+    editMode,
+    onEdit,
+    type,
+    isGlowing,
+    options,
+    editValue
+  }: {
+    label: string
+    value: any
+    editMode: boolean
+    onEdit?: (val: any) => void
+    type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
+    isGlowing?: boolean
+    options?: { value: string; label: string }[]
+    editValue?: any
+  }) {
+    const formatValue = () => {
+      if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
+      if (type === 'currency') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>${value.toLocaleString()}</span>
+      if (type === 'percentage') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}%</span>
+      if (type === 'number') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}</span>
+      return <span className={`${theme.text.primary} font-semibold text-base sm:text-lg`}>{value}</span>
+    }
+
+    const glowClass = isGlowing ? theme.glow : ''
+
+    return (
+      <div className="space-y-2">
+        <label className={`block text-xs sm:text-xs font-bold ${theme.text.muted} uppercase tracking-wider`}>
+          {label}
+        </label>
+        {editMode && onEdit ? (
+          type === 'select' ? (
+            <select
+              value={editValue !== undefined ? editValue : value || ''}
+              onChange={(e) => onEdit(e.target.value || null)}
+              className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
+            >
+              <option value="">Select...</option>
+              {options?.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type={type === 'text' ? 'text' : 'number'}
+              value={value || ''}
+              onChange={(e) => onEdit(type === 'text' ? e.target.value : Number(e.target.value) || null)}
+              className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
+              step={type === 'percentage' ? '0.1' : '1'}
+            />
+          )
+        ) : (
+          <div className={`px-4 sm:px-5 py-3 sm:py-4 rounded-2xl border-2 transition-all duration-300 ${
+            isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800/20' : 'bg-gradient-to-br from-gray-50 to-orange-50/20'
+          } ${
+            isGlowing
+              ? `${isDarkMode ? 'border-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.7)]' : 'border-orange-400 shadow-[0_0_25px_rgba(251,146,60,0.7)]'} animate-pulse`
+              : isDarkMode ? 'border-gray-600' : 'border-gray-200'
+          }`}>
+            {formatValue()}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-teal-50">
-      {/* Warm Header */}
-      <div className="bg-gradient-to-r from-rose-400 via-orange-400 to-amber-400">
+    <div className={`min-h-screen ${theme.background}`}>
+      {/* Header with Theme Toggle */}
+      <div className={theme.headerBg}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0">
-              🇨🇦
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0">
+                🇨🇦
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                  The Ultimate Canadian Retirement Calculator
+                </h1>
+                <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Future teller.</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                The Ultimate Canadian Retirement Calculator
-              </h1>
-              <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Future teller.</p>
-            </div>
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-all duration-200"
+              aria-label="Toggle theme"
+            >
+              {isDarkMode ? (
+                <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              ) : (
+                <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -365,17 +484,17 @@ export function VoiceFirstContentV2() {
           {/* Left Column - Conversation (40%) */}
           <div className="lg:col-span-5 space-y-6">
             {/* Voice Card */}
-            <Card className="border-0 shadow-lg rounded-3xl overflow-hidden bg-white">
+            <Card className={`border-0 shadow-lg rounded-3xl overflow-hidden ${theme.card}`}>
               <CardContent className="pt-6 sm:pt-8 lg:pt-10">
                 {!isConnected && !isConnecting && (
                   <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
-                    <p className="text-gray-600 mb-6 text-base sm:text-lg leading-relaxed">
+                    <p className={`${theme.text.secondary} mb-6 text-base sm:text-lg leading-relaxed`}>
                       Let's figure out your retirement together. Just tap and our AI retirement expert will assist you!
                     </p>
                     <Button
                       onClick={connect}
                       size="lg"
-                      className="bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto"
+                      className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
                     >
                       <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                       Start Conversation
@@ -385,8 +504,8 @@ export function VoiceFirstContentV2() {
 
                 {isConnecting && (
                   <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
-                    <div className="inline-block w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 animate-pulse mb-4"></div>
-                    <p className="text-gray-600 text-base sm:text-lg">Getting ready...</p>
+                    <div className={`inline-block w-12 h-12 sm:w-16 sm:h-16 rounded-full ${theme.progress} animate-pulse mb-4`}></div>
+                    <p className={`${theme.text.secondary} text-base sm:text-lg`}>Getting ready...</p>
                   </div>
                 )}
 
@@ -395,25 +514,25 @@ export function VoiceFirstContentV2() {
                     {/* Audio Levels */}
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
+                        <div className={`flex items-center justify-between text-sm font-semibold ${theme.text.primary}`}>
                           <span>You're speaking</span>
-                          <span className="text-rose-500">{Math.round(Math.min((userAudioLevel || 0) * 300, 100))}%</span>
+                          <span className={isDarkMode ? "text-blue-400" : "text-rose-500"}>{Math.round(Math.min((userAudioLevel || 0) * 300, 100))}%</span>
                         </div>
-                        <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full overflow-hidden`}>
                           <div
-                            className="h-full bg-gradient-to-r from-rose-400 to-rose-500 transition-all duration-100 rounded-full"
+                            className={`h-full ${isDarkMode ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 'bg-gradient-to-r from-rose-400 to-rose-500'} transition-all duration-100 rounded-full`}
                             style={{ width: `${Math.min((userAudioLevel || 0) * 300, 100)}%` }}
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
+                        <div className={`flex items-center justify-between text-sm font-semibold ${theme.text.primary}`}>
                           <span>I'm speaking</span>
-                          <span className="text-teal-500">{Math.round(Math.min((agentAudioLevel || 0) * 300, 100))}%</span>
+                          <span className={isDarkMode ? "text-purple-400" : "text-teal-500"}>{Math.round(Math.min((agentAudioLevel || 0) * 300, 100))}%</span>
                         </div>
-                        <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full overflow-hidden`}>
                           <div
-                            className="h-full bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-100 rounded-full"
+                            className={`h-full ${isDarkMode ? 'bg-gradient-to-r from-purple-400 to-purple-500' : 'bg-gradient-to-r from-teal-400 to-teal-500'} transition-all duration-100 rounded-full`}
                             style={{ width: `${Math.min((agentAudioLevel || 0) * 300, 100)}%` }}
                           />
                         </div>
@@ -422,17 +541,17 @@ export function VoiceFirstContentV2() {
 
                     {/* Status */}
                     {!isComplete && (
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className={`flex items-center justify-between pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className={`text-sm font-medium ${theme.text.primary}`}>
                             Listening...
                           </span>
                         </div>
                         <Button
                           onClick={disconnect}
                           variant="outline"
-                          className="border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"
+                          className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl" : "border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"}
                           size="sm"
                         >
                           <MicOff className="w-4 h-4 mr-2" />
@@ -442,8 +561,8 @@ export function VoiceFirstContentV2() {
                     )}
 
                     {isComplete && (
-                      <div className="bg-gradient-to-r from-emerald-100 to-teal-100 rounded-2xl p-5 border-2 border-emerald-200">
-                        <p className="text-emerald-800 font-bold flex items-center gap-2 text-center justify-center">
+                      <div className={isDarkMode ? "bg-gradient-to-r from-emerald-900/30 to-teal-900/30 rounded-2xl p-5 border-2 border-emerald-700" : "bg-gradient-to-r from-emerald-100 to-teal-100 rounded-2xl p-5 border-2 border-emerald-200"}>
+                        <p className={`${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'} font-bold flex items-center gap-2 text-center justify-center`}>
                           <CheckCircle2 className="w-6 h-6" />
                           Wonderful! We've got everything we need!
                         </p>
@@ -456,10 +575,10 @@ export function VoiceFirstContentV2() {
 
             {/* Questions Timeline */}
             {isConnected && (
-              <Card className="border-0 shadow-lg rounded-3xl bg-white">
+              <Card className={`border-0 shadow-lg rounded-3xl ${theme.card}`}>
                 <CardHeader>
-                  <CardTitle className="text-lg font-bold text-gray-800">What we're discussing</CardTitle>
-                  <p className="text-sm text-gray-600 mt-2">If something doesn't apply to you, just say the item name and "none" or "zero"</p>
+                  <CardTitle className={`text-lg font-bold ${theme.text.primary}`}>What we're discussing</CardTitle>
+                  <p className={`text-sm ${theme.text.secondary} mt-2`}>If something doesn't apply to you, just say the item name and "none" or "zero"</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -475,15 +594,15 @@ export function VoiceFirstContentV2() {
                               <CheckCircle2 className="w-6 h-6" />
                             </div>
                           ) : isActive ? (
-                            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center text-white font-bold shadow-lg">
+                            <div className={`flex-shrink-0 w-10 h-10 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-500 to-purple-500' : 'bg-gradient-to-br from-rose-400 to-orange-400'} flex items-center justify-center text-white font-bold shadow-lg`}>
                               {section.index + 1}
                             </div>
                           ) : (
-                            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gray-300 flex items-center justify-center text-gray-500 font-bold">
+                            <div className={`flex-shrink-0 w-10 h-10 rounded-2xl ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-300 text-gray-500'} flex items-center justify-center font-bold`}>
                               {section.index + 1}
                             </div>
                           )}
-                          <h4 className={`font-bold ${isInactive ? 'text-gray-400' : 'text-gray-800'}`}>
+                          <h4 className={`font-bold ${isInactive ? theme.text.muted : theme.text.primary}`}>
                             {section.title}
                           </h4>
                         </div>
@@ -497,17 +616,17 @@ export function VoiceFirstContentV2() {
 
           {/* Right Column - Data (60%) */}
           <div className="lg:col-span-7">
-            <Card className="border-0 shadow-xl rounded-3xl bg-white lg:sticky lg:top-8">
-              <CardHeader className="border-b border-gray-100 pb-4 sm:pb-6 px-4 sm:px-6">
+            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card} lg:sticky lg:top-8`}>
+              <CardHeader className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} pb-4 sm:pb-6 px-4 sm:px-6`}>
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800">Your Details</CardTitle>
+                    <CardTitle className={`text-2xl sm:text-3xl font-bold ${theme.text.primary}`}>Your Details</CardTitle>
                   </div>
                   {isComplete && (
                     <Button
                       onClick={() => setEditMode(!editMode)}
                       variant="outline"
-                      className="border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-sm sm:text-base flex-shrink-0"
+                      className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl text-sm sm:text-base flex-shrink-0" : "border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-sm sm:text-base flex-shrink-0"}
                     >
                       {editMode ? 'Done' : '✏️ Edit'}
                     </Button>
@@ -537,7 +656,7 @@ export function VoiceFirstContentV2() {
 
                   {/* Accounts */}
                   <div className="space-y-4">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 pb-2 border-b-2 border-rose-200">
+                    <h3 className={`text-base sm:text-lg font-bold ${theme.text.primary} pb-2 border-b-2 ${isDarkMode ? 'border-blue-700' : 'border-rose-200'}`}>
                       💰 Your Accounts
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
@@ -552,7 +671,7 @@ export function VoiceFirstContentV2() {
 
                   {/* Retirement */}
                   <div className="space-y-4">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 pb-2 border-b-2 border-orange-200">
+                    <h3 className={`text-base sm:text-lg font-bold ${theme.text.primary} pb-2 border-b-2 ${isDarkMode ? 'border-indigo-700' : 'border-orange-200'}`}>
                       🏖️ In Retirement
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
@@ -565,7 +684,7 @@ export function VoiceFirstContentV2() {
 
                   {/* Rates */}
                   <div className="space-y-4">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 pb-2 border-b-2 border-teal-200">
+                    <h3 className={`text-base sm:text-lg font-bold ${theme.text.primary} pb-2 border-b-2 ${isDarkMode ? 'border-purple-700' : 'border-teal-200'}`}>
                       📊 Rate Assumptions
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
@@ -581,7 +700,7 @@ export function VoiceFirstContentV2() {
                       size="lg"
                       onClick={handleCalculate}
                       disabled={isCalculating}
-                      className="w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {isCalculating ? (
                         <>
@@ -611,10 +730,10 @@ export function VoiceFirstContentV2() {
         {calculationResults && (
           <div className="w-full mt-12">
             <div className="text-center mb-8">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">Your Retirement Projection</h2>
+              <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary}`}>Your Retirement Projection</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={false} />
+              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
               <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
               <div className="lg:col-span-2">
                 <BalanceOverTimeChart results={calculationResults} />
@@ -633,73 +752,6 @@ export function VoiceFirstContentV2() {
         onClose={() => setShowSaveModal(false)}
         scenarioName={`Retirement Plan ${new Date().toLocaleDateString()}`}
       />
-    </div>
-  )
-}
-
-// Warm data field component
-function WarmDataField({
-  label,
-  value,
-  editMode,
-  onEdit,
-  type,
-  isGlowing,
-  options,
-  editValue
-}: {
-  label: string
-  value: any
-  editMode: boolean
-  onEdit?: (val: any) => void
-  type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
-  isGlowing?: boolean
-  options?: { value: string; label: string }[]
-  editValue?: any  // Separate value for edit mode (e.g., province code vs name)
-}) {
-  const formatValue = () => {
-    if (value === null || value === undefined) return <span className="text-gray-300 text-sm">—</span>
-    if (type === 'currency') return <span className="text-gray-800 font-bold text-lg sm:text-xl">${value.toLocaleString()}</span>
-    if (type === 'percentage') return <span className="text-gray-800 font-bold text-lg sm:text-xl">{value}%</span>
-    if (type === 'number') return <span className="text-gray-800 font-bold text-lg sm:text-xl">{value}</span>
-    return <span className="text-gray-800 font-semibold text-base sm:text-lg">{value}</span>
-  }
-
-  return (
-    <div className="space-y-2">
-      <label className="block text-xs sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-        {label}
-      </label>
-      {editMode && onEdit ? (
-        type === 'select' ? (
-          <select
-            value={editValue !== undefined ? editValue : value || ''}
-            onChange={(e) => onEdit(e.target.value || null)}
-            className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl text-gray-800 text-base sm:text-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all bg-white"
-          >
-            <option value="">Select...</option>
-            {options?.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type={type === 'text' ? 'text' : 'number'}
-            value={value || ''}
-            onChange={(e) => onEdit(type === 'text' ? e.target.value : Number(e.target.value) || null)}
-            className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl text-gray-800 text-base sm:text-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 transition-all"
-            step={type === 'percentage' ? '0.1' : '1'}
-          />
-        )
-      ) : (
-        <div className={`px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-br from-gray-50 to-orange-50/20 rounded-2xl border-2 transition-all duration-300 ${
-          isGlowing
-            ? 'border-orange-400 shadow-[0_0_25px_rgba(251,146,60,0.7)] animate-pulse'
-            : 'border-gray-200'
-        }`}>
-          {formatValue()}
-        </div>
-      )}
     </div>
   )
 }
