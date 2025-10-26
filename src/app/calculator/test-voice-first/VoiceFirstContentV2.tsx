@@ -614,7 +614,7 @@ export function VoiceFirstContentV2() {
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">Your Retirement Projection</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} />
+              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={false} />
               <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} />
               <div className="lg:col-span-2">
                 <BalanceOverTimeChart results={calculationResults} />
