@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { CalculationResults } from '@/types/calculator'
-import { type FormData } from '@/lib/scenarios/scenario-mapper'
+import { type FormData, formDataToScenario } from '@/lib/scenarios/scenario-mapper'
 import { Save, X } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
@@ -83,43 +83,23 @@ export function SaveWithAccountModal({
         return
       }
 
+      // Convert form data to proper scenario structure
+      const scenario = formDataToScenario(formData, scenarioName)
+
       const { error: saveError } = await supabase
         .from('scenarios')
         .insert({
           user_id: user.id,
-          name: scenarioName,
+          name: scenario.name,
           inputs: {
-            basic_inputs: {
-              current_age: formData.currentAge,
-              retirement_age: formData.retirementAge,
-              longevity_age: formData.longevityAge,
-              province: formData.province,
-              current_income: formData.currentIncome
-            },
-            assets: {
-              rrsp: formData.rrspAmount,
-              tfsa: formData.tfsaAmount,
-              non_registered: formData.nonRegisteredAmount
-            },
-            income_sources: {
-              rrsp_contribution: formData.rrspContribution,
-              tfsa_contribution: formData.tfsaContribution,
-              non_registered_contribution: formData.nonRegisteredContribution,
-              pension_income: formData.pensionIncome,
-              other_income: formData.otherIncome,
-              cpp_start_age: formData.cppStartAge
-            },
-            expenses: {
-              monthly_spending: formData.monthlySpending
-            },
-            assumptions: {
-              investment_return: formData.investmentReturn,
-              post_retirement_return: formData.postRetirementReturn,
-              inflation_rate: formData.inflationRate
-            }
+            basic_inputs: scenario.basic_inputs,
+            assets: scenario.assets,
+            income_sources: scenario.income_sources,
+            expenses: scenario.expenses,
+            assumptions: scenario.assumptions
           },
           results: calculationResults as any,
-          source: 'voice'
+          source: 'manual'  // Manually saved by user
         } as any)
 
       if (saveError) {

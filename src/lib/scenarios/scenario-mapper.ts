@@ -80,6 +80,13 @@ export function formDataToScenario(
         : undefined,
     },
     income_sources: {
+      // Employment income (if current_income provided and not yet retired)
+      employment: formData.currentIncome && formData.currentIncome > 0
+        ? {
+            annual_amount: formData.currentIncome,
+            until_age: formData.retirementAge || 65,
+          }
+        : undefined,
       cpp: formData.cppStartAge
         ? {
             monthly_amount_at_65: 1364.60, // 2025 max
@@ -137,7 +144,8 @@ export function scenarioToFormData(scenario: Scenario): FormData {
     retirementAge: scenario.basic_inputs.retirement_age,
     longevityAge: scenario.basic_inputs.longevity_age,
     province: scenario.basic_inputs.province,
-    currentIncome: null, // Not stored in scenario
+    // Extract current income from employment income source
+    currentIncome: scenario.income_sources.employment?.annual_amount || null,
 
     // Assets
     rrspAmount: scenario.assets.rrsp?.balance || null,

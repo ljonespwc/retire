@@ -20,7 +20,8 @@ import {
   cleanupBatchConversation,
   hasExceededRetryLimit,
   incrementRetryCount,
-  saveCompletedScenarioToDatabase
+  saveCompletedScenarioToDatabase,
+  getUserIdForConversation
 } from '@/lib/conversation/batch-flow-manager'
 import { parseBatchResponse } from '@/lib/conversation/batch-parser'
 
@@ -98,8 +99,14 @@ async function completeAndSaveConversation(
 
   console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
 
-  // Use provided userId or fall back to placeholder for backwards compatibility
-  const userIdToUse = userId || '00000000-0000-0000-0000-000000000000'
+  // Get userId from provided param, or retrieve from database, or fall back to placeholder
+  let userIdToUse = userId
+
+  if (!userIdToUse) {
+    console.log(`📂 No userId provided, retrieving from database...`)
+    userIdToUse = await getUserIdForConversation(conversationKey) || '00000000-0000-0000-0000-000000000000'
+  }
+
   console.log(`💾 Saving scenario for user: ${userIdToUse}`)
 
   const scenarioId = await saveCompletedScenarioToDatabase(
@@ -150,15 +157,18 @@ export async function POST(request: Request) {
     const requestBody = await request.json() as WebhookRequest
 
     console.log(`🌐 Batch webhook received: type=${requestBody.type}, conversation_id=${requestBody.conversation_id}`)
+    console.log(`📦 Full webhook request:`, JSON.stringify(requestBody, null, 2))
 
     const { type, text, conversation_id, metadata } = requestBody
     const conversationKey = conversation_id
-    const userId = metadata?.user_id
+
+    // Try to get user_id from metadata first (passed from authorize endpoint)
+    let userId: string | undefined = metadata?.user_id
 
     if (userId) {
-      console.log(`👤 User ID from session metadata: ${userId}`)
+      console.log(`👤 User ID from webhook metadata: ${userId}`)
     } else {
-      console.warn(`⚠️ No user_id in metadata, will use fallback placeholder`)
+      console.warn(`⚠️ No user_id in webhook metadata`)
     }
 
     return streamResponse(requestBody, async ({ stream }) => {
@@ -168,7 +178,7 @@ export async function POST(request: Request) {
         if (type === 'session.start') {
           console.log(`📌 Handling batch session.start`)
 
-          const state = await initializeBatchConversation(conversationKey)
+          const state = await initializeBatchConversation(conversationKey, userId)
           const firstBatch = state.batches[state.currentBatchIndex]
 
           if (!firstBatch) {

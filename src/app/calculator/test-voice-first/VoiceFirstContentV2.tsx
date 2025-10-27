@@ -1,7 +1,7 @@
 'use client'
 
 import { useLayercodeVoice } from '@/hooks/useLayercodeVoice'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,7 +40,7 @@ interface BatchPrompt {
 
 export function VoiceFirstContentV2() {
   // Get auth context for user ID
-  const { user, isAnonymous } = useAuth()
+  const { user, isAnonymous, loading: authLoading } = useAuth()
 
   // Form state (read-only preview)
   const [currentAge, setCurrentAge] = useState<number | null>(null)
@@ -144,6 +144,16 @@ export function VoiceFirstContentV2() {
     }, 1000)
   }
 
+  // Create metadata object that updates when user changes
+  const metadata = useMemo(() => {
+    if (user?.id) {
+      console.log('📋 Creating Layercode metadata with user_id:', user.id)
+      return { user_id: user.id }
+    }
+    console.warn('⚠️ No user_id available for Layercode metadata')
+    return undefined
+  }, [user?.id])
+
   const {
     isConnected,
     isConnecting,
@@ -153,7 +163,7 @@ export function VoiceFirstContentV2() {
     disconnect,
   } = useLayercodeVoice({
     autoConnect: false,
-    metadata: user?.id ? { user_id: user.id } : undefined, // Pass user ID to webhook
+    metadata, // Pass user ID to webhook
     onDataMessage: (data) => {
       const content = data.type === 'response.data' ? data.content : data
 
@@ -575,11 +585,12 @@ export function VoiceFirstContentV2() {
                           setIsComplete(false)  // Reset completion state when starting new conversation
                           connect()
                         }}
+                        disabled={authLoading || !user}
                         size="lg"
-                        className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
+                        className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                        Start Conversation
+                        {authLoading ? 'Loading...' : 'Start Conversation'}
                       </Button>
                     </div>
                   </div>

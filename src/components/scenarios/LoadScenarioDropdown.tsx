@@ -70,10 +70,11 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       const client = createClient()
       console.log('📂 LoadScenarioDropdown - Supabase client created')
 
+      // Get all scenarios, then filter to only manually saved ones
       const { data, error: fetchError } = await getScenarios(client, {
         orderBy: 'updated_at',
         ascending: false,
-        limit: 10,
+        limit: 50,  // Increased limit to ensure we get enough manual scenarios
       })
 
       console.log('📂 LoadScenarioDropdown - getScenarios result:', {
@@ -86,8 +87,15 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         throw fetchError
       }
 
-      setScenarios((data || []) as SavedScenario[])
-      console.log('📂 LoadScenarioDropdown - Scenarios set:', data?.length || 0)
+      // Filter to only show manually saved scenarios (exclude auto-saved voice conversations)
+      const manualScenarios = (data || []).filter((s: any) => s.source !== 'voice')
+      console.log('📂 LoadScenarioDropdown - Filtered to manual scenarios:', {
+        total: data?.length || 0,
+        manual: manualScenarios.length
+      })
+
+      setScenarios(manualScenarios as SavedScenario[])
+      console.log('📂 LoadScenarioDropdown - Scenarios set:', manualScenarios.length)
     } catch (err) {
       console.error('📂 LoadScenarioDropdown - Error loading scenarios:', err)
       setError('Failed to load scenarios')

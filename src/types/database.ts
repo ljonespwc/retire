@@ -280,7 +280,9 @@ export interface Database {
           user_id: string;
           name: string;
           inputs: Json;
-          results: Json;
+          results: Json | null;
+          source: string | null;
+          conversation_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -289,7 +291,9 @@ export interface Database {
           user_id: string;
           name: string;
           inputs?: Json;
-          results?: Json;
+          results?: Json | null;
+          source?: string | null;
+          conversation_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -298,7 +302,9 @@ export interface Database {
           user_id?: string;
           name?: string;
           inputs?: Json;
-          results?: Json;
+          results?: Json | null;
+          source?: string | null;
+          conversation_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -316,22 +322,36 @@ export interface Database {
         Row: {
           conversation_id: string;
           state: Json;
+          user_id: string | null;
+          expires_at: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
         Insert: {
           conversation_id: string;
           state: Json;
+          user_id?: string | null;
+          expires_at?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
         Update: {
           conversation_id?: string;
           state?: Json;
+          user_id?: string | null;
+          expires_at?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_states_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
       };
     };
     Views: {

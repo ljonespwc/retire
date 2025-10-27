@@ -187,8 +187,17 @@ const conversationStates = new Map<string, BatchConversationState>()
 /**
  * Save conversation state to Supabase (for resilience)
  */
-async function saveConversationStateToDb(state: BatchConversationState): Promise<void> {
+async function saveConversationStateToDb(state: BatchConversationState, userId?: string): Promise<void> {
   try {
+    // If userId not provided, try to get existing one from database
+    if (!userId) {
+      const existingUserId = await getUserIdForConversation(state.conversationId)
+      if (existingUserId) {
+        userId = existingUserId
+        console.log(`📂 Preserving existing user_id: ${userId}`)
+      }
+    }
+
     // Convert Map to plain objects for JSON storage
     const batchResponsesObj: Record<string, {
       batchId: string
@@ -221,13 +230,14 @@ async function saveConversationStateToDb(state: BatchConversationState): Promise
       .upsert({
         conversation_id: state.conversationId,
         state: stateJson as any,
+        user_id: userId || null,
         updated_at: new Date().toISOString()
       })
 
     if (error) {
       console.error(`❌ Failed to save conversation state to DB:`, error)
     } else {
-      console.log(`💾 Saved conversation ${state.conversationId} to Supabase`)
+      console.log(`💾 Saved conversation ${state.conversationId} to Supabase${userId ? ` for user ${userId}` : ''}`)
     }
   } catch (error) {
     console.error(`❌ Error saving conversation state:`, error)
@@ -283,16 +293,49 @@ async function loadConversationStateFromDb(conversationId: string): Promise<Batc
 }
 
 /**
+ * Get user_id for a conversation from database
+ */
+export async function getUserIdForConversation(conversationId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('conversation_states')
+      .select('user_id')
+      .eq('conversation_id', conversationId)
+      .single()
+
+    if (error || !data) {
+      console.log(`📭 No user_id found for conversation ${conversationId}`)
+      return null
+    }
+
+    return (data as any).user_id
+  } catch (error) {
+    console.error(`❌ Error getting user_id for conversation:`, error)
+    return null
+  }
+}
+
+/**
  * Initialize a new batch conversation
  * Now async to support loading from Supabase
  */
-export async function initializeBatchConversation(conversationId: string): Promise<BatchConversationState> {
+export async function initializeBatchConversation(conversationId: string, userId?: string): Promise<BatchConversationState> {
   // Try to load existing state from DB first
   const existingState = await loadConversationStateFromDb(conversationId)
-  if (existingState) {
+
+  // Only restore if it has a valid state (not just placeholder from authorize endpoint)
+  if (existingState && existingState.batches && existingState.batches.length > 0) {
     conversationStates.set(conversationId, existingState)
     console.log(`📂 Restored batch conversation ${conversationId} from database`)
     return existingState
+  }
+
+  // If no userId provided, try to get it from the placeholder record
+  if (!userId) {
+    userId = await getUserIdForConversation(conversationId) || undefined
+    if (userId) {
+      console.log(`📂 Retrieved user_id from placeholder: ${userId}`)
+    }
   }
 
   // Create new state
@@ -307,8 +350,8 @@ export async function initializeBatchConversation(conversationId: string): Promi
 
   conversationStates.set(conversationId, state)
 
-  // Save to DB immediately
-  await saveConversationStateToDb(state)
+  // Save to DB immediately with user_id (this will overwrite the placeholder)
+  await saveConversationStateToDb(state, userId)
 
   console.log(`📋 Initialized new batch conversation ${conversationId} with ${RETIREMENT_BATCHES.length} batches`)
 

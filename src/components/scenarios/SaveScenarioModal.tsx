@@ -73,6 +73,7 @@ export function SaveScenarioModal({
           assumptions: scenario.assumptions,
         } as any,
         results: calculationResults as any,
+        source: 'manual',  // Manually saved by user
       })
 
       if (saveError) {
