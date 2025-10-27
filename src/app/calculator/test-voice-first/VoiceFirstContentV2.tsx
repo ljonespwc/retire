@@ -18,6 +18,7 @@ import { ResultsSummary } from '@/components/results/ResultsSummary'
 import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
 import { IncomeCompositionChart } from '@/components/results/IncomeCompositionChart'
 import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
+import { CalculationDisclosure } from '@/components/results/CalculationDisclosure'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
@@ -940,6 +941,9 @@ export function VoiceFirstContentV2() {
                 <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
               </div>
             </div>
+
+            {/* Calculation Disclosure */}
+            <CalculationDisclosure isDark={isDarkMode} />
           </div>
         )}
       </div>
