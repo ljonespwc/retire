@@ -342,7 +342,7 @@ export async function projectYearForward(
   }
 
   // Handle withdrawals (retirement only)
-  if (isRetired && targetWithdrawal > 0) {
+  if (isRetired) {
     projection.withdrawals = await calculateWithdrawalSequence(
       client,
       targetWithdrawal,

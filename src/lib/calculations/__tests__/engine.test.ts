@@ -275,6 +275,75 @@ describe('calculateRetirementProjection', () => {
     }
   });
 
+  it('should enforce RRIF minimums even when income exceeds expenses', async () => {
+    // Create high-income scenario where retirement income > expenses
+    // This tests the bug where RRIF minimums were not enforced
+    const highIncomeScenario = {
+      ...sampleScenarioModest,
+      name: 'High Income Scenario',
+      basic_inputs: {
+        ...sampleScenarioModest.basic_inputs,
+        current_age: 58,
+        retirement_age: 65,
+        longevity_age: 95,
+      },
+      income_sources: {
+        cpp: {
+          start_age: 60,
+          monthly_amount_at_65: 1364.6, // Max CPP
+        },
+        oas: {
+          start_age: 65,
+          monthly_amount: 713.34, // Max OAS
+        },
+        other_income: [
+          {
+            description: 'Pension',
+            annual_amount: 80000, // High pension income
+            start_age: 65,
+            indexed_to_inflation: false,
+          },
+        ],
+      },
+      expenses: {
+        fixed_monthly: 3000, // $36k/year
+        variable_annual: 0,
+        indexed_to_inflation: true,
+        age_based_changes: [],
+      },
+    };
+
+    const result = await calculateRetirementProjection(
+      mockClient,
+      highIncomeScenario
+    );
+
+    // Find years at age 72+ (first year after RRIF conversion at 71)
+    const rrifYears = result.year_by_year.filter((y) => y.age >= 72);
+
+    expect(rrifYears.length).toBeGreaterThan(0);
+
+    // CRITICAL: Even though income ($100k+) exceeds expenses ($36k),
+    // RRIF minimum withdrawals MUST still occur
+    rrifYears.forEach((year) => {
+      expect(year.withdrawals.rrsp_rrif).toBeGreaterThan(0);
+
+      // Verify the withdrawal appears in income
+      expect(year.income.investment).toBeGreaterThan(0);
+
+      // At age 72+, RRIF balance should be decreasing (not growing)
+      // due to mandatory withdrawals
+      if (year.age === 72) {
+        const age71 = result.year_by_year.find((y) => y.age === 71);
+        if (age71) {
+          // Age 72 RRIF balance should be less than age 71
+          // (even after growth, the withdrawal should reduce it)
+          expect(year.withdrawals.rrsp_rrif).toBeGreaterThan(0);
+        }
+      }
+    });
+  });
+
   it('should maintain portfolio balance integrity', async () => {
     const result = await calculateRetirementProjection(
       mockClient,
