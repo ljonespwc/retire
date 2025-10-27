@@ -23,6 +23,7 @@ import { CalculationDisclosure } from '@/components/results/CalculationDisclosur
 import { RetirementNarrative } from '@/components/results/RetirementNarrative'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
+import { ScenarioGeneratorButtons } from '@/components/scenarios/ScenarioGeneratorButtons'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import confetti from 'canvas-confetti'
 
@@ -947,6 +948,11 @@ export function VoiceFirstContentV2() {
 
               <div className="lg:col-span-2">
                 <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
+              </div>
+
+              {/* Scenario Generator Buttons */}
+              <div className="lg:col-span-2">
+                <ScenarioGeneratorButtons isDarkMode={isDarkMode} />
               </div>
             </div>
 

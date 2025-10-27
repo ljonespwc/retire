@@ -484,3 +484,25 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
   - Nested properties: `balances.total`, `income.total`, `tax.total`, `withdrawals.rrsp_rrif`
 - **Build Status**: ✅ All type errors resolved, production build passes
 - **Testing Status**: Awaiting user to enable anonymous auth in Supabase dashboard for end-to-end testing
+
+**2025-10-27**: Scenario Generator Buttons - Planning Phase
+- **Goal**: "What-If" quick explorer buttons for instant scenario comparison
+- **User Requirements**:
+  - Temporary comparison (no auto-save, just recalculate)
+  - Require saved baseline (user must save a scenario first)
+  - UI location: In results section (after initial calculation)
+- **Proposed 8 Buttons**:
+  1. 🎯 **Retire 3 Years Earlier** - Reduce retirement_age by 3, show portfolio longevity impact
+  2. 💎 **Spend 20% More in Retirement** - Increase fixed_monthly by 20%, show sustainability
+  3. 🏔️ **Spend More Early, Less Later** - Model "go-go, slow-go, no-go" years (+30% ages 65-75, -15% ages 75-85, -25% ages 85+)
+  4. 💰 **Max Out Your RRSP** - Set RRSP contribution to 18% of income (up to $31,560), show compounding
+  5. 🎁 **Add $100K Windfall at 60** - One-time TFSA boost, show trajectory change
+  6. 📈 **Contribute 10% More Everywhere** - Increase all contributions by 10%, emphasize compound growth
+  7. ⏰ **Optimize CPP/OAS Start Dates** - Test 6 combinations (CPP 60/65/70 + OAS 65/70), show highest lifetime value
+  8. 🎯 **Target Portfolio Reserve** - Preserve $500K (or 25% of starting portfolio), show spending vs estate trade-off
+- **Implementation Plan**:
+  - Components: ScenarioGeneratorButtons.tsx, ScenarioVariantCalculator.ts, ResultsComparison.tsx
+  - Workflow: User sees baseline results → clicks button → instant recalc using existing engine → overlay/side-by-side comparison → optional save
+  - Baseline pulled from saved scenario, variants are pure functions: `(baseline: Scenario) => Scenario`
+- **Status**: 🟡 Planning approved, implementation deferred for later
+- **Rationale**: Addresses top user pain points - "Can I retire early?", "Will I run out?", "Should I delay CPP?", "Is saving more worth it?"
