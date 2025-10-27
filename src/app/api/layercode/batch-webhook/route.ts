@@ -167,8 +167,6 @@ export async function POST(request: Request) {
 
     if (userId) {
       console.log(`👤 User ID from webhook metadata: ${userId}`)
-    } else {
-      console.warn(`⚠️ No user_id in webhook metadata`)
     }
 
     return streamResponse(requestBody, async ({ stream }) => {

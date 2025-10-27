@@ -72,6 +72,7 @@ export function VoiceFirstContentV2() {
   const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
   const [showSaveWithAccountModal, setShowSaveWithAccountModal] = useState(false)
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
+  const [loadedScenarioName, setLoadedScenarioName] = useState<string | null>(null)
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
@@ -444,6 +445,9 @@ export function VoiceFirstContentV2() {
     // Mark as complete so form is visible
     setIsComplete(true)
 
+    // Store the loaded scenario name
+    setLoadedScenarioName(scenarioName)
+
     // Show success feedback
     console.log(`✅ Loaded scenario: ${scenarioName}`)
   }
@@ -714,7 +718,9 @@ export function VoiceFirstContentV2() {
               <CardHeader className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} pb-4 sm:pb-6 px-4 sm:px-6`}>
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <CardTitle className={`text-2xl sm:text-3xl font-bold ${theme.text.primary}`}>Your Details</CardTitle>
+                    <CardTitle className={`text-2xl sm:text-3xl font-bold ${theme.text.primary}`}>
+                      Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
+                    </CardTitle>
                   </div>
                   {isComplete && (
                     <Button
@@ -827,10 +833,13 @@ export function VoiceFirstContentV2() {
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
               <Button
                 onClick={() => {
+                  console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
                   // Show appropriate modal based on user type
                   if (isAnonymous) {
+                    console.log('💾 Opening SaveWithAccountModal (anonymous user)')
                     setShowSaveWithAccountModal(true)
                   } else {
+                    console.log('💾 Opening SaveScenarioModal (authenticated user)')
                     setShowScenarioSaveModal(true)
                   }
                 }}

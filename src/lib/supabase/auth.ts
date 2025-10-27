@@ -124,27 +124,41 @@ export async function upgradeAnonUser(
       return { success: false, error: 'User is already authenticated' }
     }
 
-    console.log('🔄 Upgrading anonymous user to full account:', user.id)
+    const userId = user.id
+    console.log('🔄 Upgrading anonymous user to full account:', userId)
 
-    // Update the anonymous user with email and password
-    // This automatically sets is_anonymous = false
-    const { error } = await supabase.auth.updateUser({
+    // Step 1: Update user with email and password
+    const { error: updateError } = await supabase.auth.updateUser({
       email,
       password
     })
 
-    if (error) {
-      console.error('❌ Failed to upgrade user:', error)
-      return { success: false, error: error.message }
+    if (updateError) {
+      console.error('❌ Failed to update user:', updateError)
+      return { success: false, error: updateError.message }
     }
 
-    // Update public.users table with email
+    // Step 2: Sign out to clear the anonymous JWT token
+    await supabase.auth.signOut()
+
+    // Step 3: Sign in with new credentials to get a fresh JWT with is_anonymous=false
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (signInError) {
+      console.error('❌ Failed to sign in after upgrade:', signInError)
+      return { success: false, error: signInError.message }
+    }
+
+    // Step 4: Update public.users table with email
     await supabase
       .from('users')
       .update({ email })
-      .eq('id', user.id)
+      .eq('id', userId)
 
-    console.log('✅ User upgraded successfully')
+    console.log('✅ User upgraded successfully - new JWT issued with is_anonymous=false')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'

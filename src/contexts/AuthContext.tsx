@@ -54,7 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isAnonymous: session.user.is_anonymous || false,
           tier: 'basic'
         }
-        console.log('🔔 Auth state change - Setting user:', authUser.id)
+        console.log('🔔 Auth state change - Setting user:', {
+          userId: authUser.id,
+          email: authUser.email,
+          isAnonymous: authUser.isAnonymous,
+          event
+        })
         setUser(authUser)
       } else {
         console.log('🔔 Auth state change - No user, setting null')
@@ -99,9 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function handleUpgradeAccount(email: string, password: string) {
     const result = await upgradeAnonUser(email, password)
-    if (result.success) {
-      await refreshUser()
-    }
+    // No need to manually refresh - onAuthStateChange will handle it
     return result
   }
 

@@ -6,7 +6,7 @@
  * Displays saved retirement scenarios and loads them into the form.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FileText, Loader2, ChevronDown, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getScenarios } from '@/lib/supabase/queries'
@@ -32,6 +32,8 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'
@@ -125,11 +127,25 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
     }
   }
 
+  // Calculate dropdown position when opening
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+    setIsOpen(!isOpen)
+  }
+
   return (
     <div className="relative">
       {/* Dropdown Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         disabled={(authLoading || isLoading) || scenarios.length === 0}
         className={`w-full flex items-center justify-between gap-3 px-4 py-3 ${cardBg} border ${cardBorder} rounded-lg ${buttonBg} transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
       >
@@ -153,9 +169,15 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         </div>
       )}
 
-      {/* Dropdown Menu */}
-      {isOpen && scenarios.length > 0 && (
-        <div className={`absolute top-full left-0 right-0 mt-2 ${dropdownBg} border ${dropdownBorder} rounded-lg shadow-xl z-10 max-h-80 overflow-y-auto`}>
+      {/* Dropdown Menu - Fixed positioning to escape overflow:hidden parent */}
+      {isOpen && scenarios.length > 0 && dropdownPosition && (
+        <div className={`fixed ${dropdownBg} border ${dropdownBorder} rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto`}
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`
+          }}
+        >
           <div className="p-2">
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 mb-2">
               <span className={`text-xs font-semibold ${textSecondary} uppercase tracking-wide`}>
