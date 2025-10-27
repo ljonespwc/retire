@@ -187,17 +187,6 @@ function ComingSoonModal({ scenarioName, onClose, isDarkMode }: ComingSoonModalP
       : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600',
   }
 
-  // Humorous messages - randomly select one
-  const messages = [
-    "Our crystal ball is still in the shop! 🔮",
-    "The retirement robots are still learning math! 🤖",
-    "We're teaching the AI to count that high! 🧮",
-    "The future is still loading... (literally) ⏳",
-    "Even the calculator needs a vacation! 🏖️"
-  ]
-
-  const randomMessage = messages[Math.floor(Math.random() * messages.length)]
-
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${theme.overlay}`}
@@ -224,19 +213,15 @@ function ComingSoonModal({ scenarioName, onClose, isDarkMode }: ComingSoonModalP
           </div>
 
           <h3 className={`text-2xl font-bold ${theme.text.primary} mb-3`}>
-            Coming Soon!
+            Coming Soon
           </h3>
 
-          <p className={`text-lg ${theme.text.secondary} mb-2`}>
+          <p className={`text-lg ${theme.text.secondary} mb-6`}>
             <span className="font-semibold">{scenarioName}</span>
           </p>
 
-          <p className={`${theme.text.secondary} mb-6`}>
-            {randomMessage}
-          </p>
-
-          <p className={`text-sm ${theme.text.secondary} italic mb-6`}>
-            This feature is being built right now. Check back soon to explore this scenario!
+          <p className={`text-sm ${theme.text.secondary} mb-6`}>
+            This feature is currently in development. Check back soon to explore this scenario.
           </p>
 
           <button
