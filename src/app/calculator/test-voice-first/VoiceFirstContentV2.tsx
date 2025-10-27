@@ -1,7 +1,7 @@
 'use client'
 
 import { useLayercodeVoice } from '@/hooks/useLayercodeVoice'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -77,6 +77,18 @@ export function VoiceFirstContentV2() {
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
+
+  // Ref for auto-scrolling to results
+  const resultsRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to results when they appear
+  useEffect(() => {
+    if (calculationResults && resultsRef.current) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+    }
+  }, [calculationResults])
 
   // Theme configuration
   const theme = {
@@ -801,7 +813,7 @@ export function VoiceFirstContentV2() {
 
         {/* Results Section - Full Width Below Form */}
         {calculationResults && (
-          <div className="w-full mt-12">
+          <div ref={resultsRef} className="w-full mt-20">
             <div className="text-center mb-8">
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
               <Button

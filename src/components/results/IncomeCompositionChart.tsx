@@ -55,7 +55,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 10, right: 30, left: 0, bottom: 30 }}
+            margin={{ top: 10, right: 30, left: 0, bottom: 15 }}
           >
             <defs>
               <linearGradient id="rrspGradient" x1="0" y1="0" x2="0" y2="1">
@@ -102,8 +102,10 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
             <Tooltip content={<CustomTooltip isDarkMode={isDarkMode} />} />
 
             <Legend
-              wrapperStyle={{ fontSize: '12px' }}
+              wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }}
               iconType="square"
+              verticalAlign="bottom"
+              align="left"
             />
 
             {/* Stack areas from bottom to top */}
