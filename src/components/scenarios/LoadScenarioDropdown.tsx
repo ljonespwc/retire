@@ -7,9 +7,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { FileText, Loader2, ChevronDown, X } from 'lucide-react'
+import { FileText, Loader2, ChevronDown, X, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getScenarios } from '@/lib/supabase/queries'
+import { getScenarios, deleteScenario } from '@/lib/supabase/queries'
 import { scenarioToFormData, type FormData } from '@/lib/scenarios/scenario-mapper'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -34,6 +34,8 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'
@@ -127,6 +129,33 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
     }
   }
 
+  const handleDeleteScenario = async (scenarioId: string) => {
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const client = createClient()
+      const { error: deleteError } = await deleteScenario(client, scenarioId)
+
+      if (deleteError) {
+        throw deleteError
+      }
+
+      console.log('✅ Scenario deleted successfully')
+
+      // Refresh scenario list
+      await loadScenarios()
+
+      // Clear confirmation state
+      setConfirmDeleteId(null)
+    } catch (err) {
+      console.error('Error deleting scenario:', err)
+      setError('Failed to delete scenario')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   // Calculate dropdown position when opening
   const handleToggle = () => {
     if (!isOpen && buttonRef.current) {
@@ -192,22 +221,64 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
             </div>
 
             {scenarios.map((scenario) => (
-              <button
+              <div
                 key={scenario.id}
-                onClick={() => handleSelectScenario(scenario)}
-                className={`w-full text-left px-3 py-3 rounded-lg ${itemHover} transition-colors`}
+                className={`group relative rounded-lg ${itemHover} transition-colors`}
               >
-                <div className={`font-medium ${textPrimary} mb-1`}>
-                  {scenario.name}
-                </div>
-                <div className={`text-xs ${textMuted}`}>
-                  Updated {new Date(scenario.updated_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </div>
-              </button>
+                {confirmDeleteId === scenario.id ? (
+                  // Confirmation state
+                  <div className="px-3 py-3">
+                    <div className={`text-sm ${textPrimary} mb-3`}>
+                      Delete "{scenario.name}"?
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDeleteScenario(scenario.id)}
+                        disabled={isDeleting}
+                        className="flex-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                      >
+                        {isDeleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        disabled={isDeleting}
+                        className={`flex-1 px-3 py-1.5 ${buttonBg} text-xs rounded transition-colors disabled:opacity-50`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Normal state
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSelectScenario(scenario)}
+                      className="flex-1 text-left px-3 py-3"
+                    >
+                      <div className={`font-medium ${textPrimary} mb-1`}>
+                        {scenario.name}
+                      </div>
+                      <div className={`text-xs ${textMuted}`}>
+                        Updated {new Date(scenario.updated_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setConfirmDeleteId(scenario.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 px-3 py-3 text-red-600 hover:text-red-700 transition-all"
+                      aria-label="Delete scenario"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

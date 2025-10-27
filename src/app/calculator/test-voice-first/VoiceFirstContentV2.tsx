@@ -7,9 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon, Save } from 'lucide-react'
+import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon, Save, LogIn, LogOut, User } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
+import { LoginModal } from '@/components/auth/LoginModal'
+import { MergeAnonymousScenariosModal } from '@/components/scenarios/MergeAnonymousScenariosModal'
+import { getAnonymousScenarioCount } from '@/lib/scenarios/merge-helper'
 import { CalculationResults } from '@/types/calculator'
 import { ResultsSummary } from '@/components/results/ResultsSummary'
 import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
@@ -40,7 +43,7 @@ interface BatchPrompt {
 
 export function VoiceFirstContentV2() {
   // Get auth context for user ID
-  const { user, isAnonymous, loading: authLoading } = useAuth()
+  const { user, isAnonymous, loading: authLoading, logout } = useAuth()
 
   // Form state (read-only preview)
   const [currentAge, setCurrentAge] = useState<number | null>(null)
@@ -78,6 +81,10 @@ export function VoiceFirstContentV2() {
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showMergeModal, setShowMergeModal] = useState(false)
+  const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
+  const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
 
   // Ref for auto-scrolling to results
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -143,6 +150,34 @@ export function VoiceFirstContentV2() {
         return next
       })
     }, 1000)
+  }
+
+  // Handle login success - check for anonymous scenarios to merge
+  const handleLoginSuccess = async () => {
+    console.log('🔐 Login successful, checking for anonymous scenarios...')
+
+    // Check if we had anonymous scenarios before login
+    const anonCount = await getAnonymousScenarioCount()
+    console.log(`📊 Found ${anonCount} anonymous scenarios`)
+
+    if (anonCount > 0 && user?.id) {
+      // Store anonymous user_id and count for merge modal
+      setAnonymousUserIdBeforeLogin(user.id)
+      setAnonymousScenarioCountBeforeLogin(anonCount)
+      setShowMergeModal(true)
+    }
+  }
+
+  // Handle logout
+  const handleLogout = async () => {
+    await logout()
+    console.log('👋 Logged out successfully')
+  }
+
+  // Handle merge complete - refresh scenario list
+  const handleMergeComplete = () => {
+    console.log('✅ Merge complete, scenarios should now be visible')
+    // LoadScenarioDropdown will auto-refresh via useEffect when user changes
   }
 
   // Create metadata object that updates when user changes
@@ -540,18 +575,52 @@ export function VoiceFirstContentV2() {
                 <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Future teller.</p>
               </div>
             </div>
-            {/* Theme Toggle Button */}
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-all duration-200"
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? (
-                <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              ) : (
-                <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            {/* Auth & Theme Controls */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Login/Logout */}
+              {!authLoading && (
+                <>
+                  {isAnonymous ? (
+                    <button
+                      onClick={() => setShowLoginModal(true)}
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
+                      aria-label="Login"
+                    >
+                      <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="hidden sm:inline">Login</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/20 backdrop-blur text-white text-sm">
+                        <User className="w-4 h-4" />
+                        <span className="max-w-[120px] truncate">{user?.email}</span>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
+                        aria-label="Logout"
+                      >
+                        <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="hidden sm:inline">Logout</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
-            </button>
+
+              {/* Theme Toggle Button */}
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-all duration-200"
+                aria-label="Toggle theme"
+              >
+                {isDarkMode ? (
+                  <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                ) : (
+                  <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -879,6 +948,27 @@ export function VoiceFirstContentV2() {
         calculationResults={calculationResults}
         isDarkMode={isDarkMode}
       />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Merge Anonymous Scenarios Modal */}
+      {anonymousUserIdBeforeLogin && user && (
+        <MergeAnonymousScenariosModal
+          isOpen={showMergeModal}
+          onClose={() => setShowMergeModal(false)}
+          anonymousUserId={anonymousUserIdBeforeLogin}
+          authenticatedUserId={user.id}
+          anonymousScenarioCount={anonymousScenarioCountBeforeLogin}
+          onMergeComplete={handleMergeComplete}
+          isDarkMode={isDarkMode}
+        />
+      )}
     </div>
   )
 }
