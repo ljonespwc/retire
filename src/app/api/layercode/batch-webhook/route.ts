@@ -97,8 +97,6 @@ async function completeAndSaveConversation(
   await completeBatchConversation(conversationKey)
   const collectedData = getBatchCollectedData(conversationKey)
 
-  console.log(`✅ Batch conversation complete. Collected data:`, collectedData)
-
   // Get userId from provided param, or retrieve from database, or fall back to placeholder
   let userIdToUse = userId
 

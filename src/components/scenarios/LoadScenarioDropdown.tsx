@@ -81,31 +81,19 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         limit: 50,  // Increased limit to ensure we get enough manual scenarios
       })
 
-      console.log('📂 LoadScenarioDropdown - getScenarios result:', {
-        scenarioCount: data?.length || 0,
-        hasError: !!fetchError,
-        error: fetchError?.message
-      })
-
       if (fetchError) {
         throw fetchError
       }
 
       // Filter to only show manually saved scenarios (exclude auto-saved voice conversations)
       const manualScenarios = (data || []).filter((s: any) => s.source !== 'voice')
-      console.log('📂 LoadScenarioDropdown - Filtered to manual scenarios:', {
-        total: data?.length || 0,
-        manual: manualScenarios.length
-      })
 
       setScenarios(manualScenarios as SavedScenario[])
-      console.log('📂 LoadScenarioDropdown - Scenarios set:', manualScenarios.length)
     } catch (err) {
       console.error('📂 LoadScenarioDropdown - Error loading scenarios:', err)
       setError('Failed to load scenarios')
     } finally {
       setIsLoading(false)
-      console.log('📂 LoadScenarioDropdown - loadScenarios() complete, isLoading=false')
     }
   }
 

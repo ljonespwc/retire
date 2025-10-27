@@ -37,7 +37,6 @@ export function RetirementNarrative({ results, isDarkMode = false }: RetirementN
         }
 
         const data = await response.json();
-        console.log('📖 RetirementNarrative: Generated narrative:', data.narrative);
 
         if (isMounted) {
           setNarrative(data.narrative);

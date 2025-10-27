@@ -362,7 +362,6 @@ export function VoiceFirstContentV2() {
 
         // Store calculation results if returned from webhook
         if (content.calculationResults) {
-          console.log('📊 Calculation results received:', content.calculationResults)
           setCalculationResults(content.calculationResults)
         }
       }
@@ -513,7 +512,6 @@ export function VoiceFirstContentV2() {
       const data = await response.json()
 
       if (data.success && data.results) {
-        console.log('✅ Calculation successful:', data.results)
         setCalculationResults(data.results)
         setShowResults(true)
       } else {

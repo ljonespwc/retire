@@ -155,7 +155,6 @@ export async function POST(request: Request) {
             if (!currentQuestion) {
               // Conversation complete - send summary
               const collectedData = getCollectedData(conversationKey)
-              console.log(`✅ Conversation complete. Collected data:`, collectedData)
 
               stream.tts("Thank you! I'm now calculating your retirement projection.")
               stream.data({
@@ -176,8 +175,6 @@ export async function POST(request: Request) {
             // COMBINED LLM CALL: Parse answer AND generate response in one shot
             const result = await parseAndGenerateResponse(currentQuestion, text, nextQuestion)
 
-            console.log(`📊 Combined result:`, { parsedValue: result.parsedValue, isValid: result.isValid })
-
             if (!result.isValid) {
               // Parse failed - LLM already generated clarification response
               console.warn(`⚠️ Parse failed for ${currentQuestion.id}`)
@@ -185,8 +182,6 @@ export async function POST(request: Request) {
               stream.end()
               return
             }
-
-            console.log(`💾 Storing parsed value: ${result.parsedValue}`)
 
             // Manually store the parsed response (we already did the parsing)
             state.responses.set(currentQuestion.id, {
