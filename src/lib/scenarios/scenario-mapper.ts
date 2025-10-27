@@ -102,7 +102,7 @@ export function formDataToScenario(
           ? [
               {
                 description: 'Pension',
-                annual_amount: formData.pensionIncome * 12, // Convert monthly to annual
+                annual_amount: formData.pensionIncome, // Already annual (form says "Annual")
                 start_age: formData.retirementAge || 65,
                 indexed_to_inflation: false,
               },
@@ -160,7 +160,7 @@ export function scenarioToFormData(scenario: Scenario): FormData {
     // Income & expenses
     monthlySpending: scenario.expenses.fixed_monthly,
     pensionIncome: scenario.income_sources.other_income?.find(i => i.description === 'Pension')
-      ? scenario.income_sources.other_income.find(i => i.description === 'Pension')!.annual_amount / 12
+      ? scenario.income_sources.other_income.find(i => i.description === 'Pension')!.annual_amount
       : null,
     otherIncome: scenario.income_sources.other_income?.find(i => i.description === 'Other Income')?.annual_amount || null,
     cppStartAge: scenario.income_sources.cpp?.start_age || null,
