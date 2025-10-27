@@ -43,15 +43,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth state changes
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔔 Auth state changed:', event, session?.user?.is_anonymous ? 'anonymous' : 'authenticated')
 
       if (session?.user) {
-        const authUser = await getCurrentUser()
+        // Convert Supabase user to AuthUser immediately (no async delay)
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || null,
+          isAnonymous: session.user.is_anonymous || false,
+          tier: 'basic'
+        }
+        console.log('🔔 Auth state change - Setting user:', authUser.id)
         setUser(authUser)
       } else {
+        console.log('🔔 Auth state change - No user, setting null')
         setUser(null)
       }
+
+      // Always set loading to false after processing auth state change
+      setLoading(false)
     })
 
     return () => {
@@ -60,19 +71,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function initializeAuth() {
-    setLoading(true)
+    console.log('🔐 AuthContext - initializeAuth() started')
     try {
       // Try to get existing session or create anonymous user
+      console.log('🔐 AuthContext - Calling getOrCreateAnonUser()')
       const authUser = await getOrCreateAnonUser()
-
-      if (authUser) {
-        const currentUser = await getCurrentUser()
-        setUser(currentUser)
-      }
+      console.log('🔐 AuthContext - getOrCreateAnonUser() result:', {
+        hasUser: !!authUser,
+        userId: authUser?.id,
+        isAnonymous: authUser?.is_anonymous
+      })
+      // Note: onAuthStateChange will update user state
     } catch (error) {
-      console.error('❌ Error initializing auth:', error)
+      console.error('❌ AuthContext - Error initializing auth:', error)
     } finally {
+      // Always set loading to false after initialization attempt
+      // This prevents infinite loading state if auth fails or onAuthStateChange doesn't fire
       setLoading(false)
+      console.log('🔐 AuthContext - initializeAuth() complete, loading=false')
     }
   }
 

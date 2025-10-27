@@ -11,6 +11,7 @@ import { FileText, Loader2, ChevronDown, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getScenarios } from '@/lib/supabase/queries'
 import { scenarioToFormData, type FormData } from '@/lib/scenarios/scenario-mapper'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface LoadScenarioDropdownProps {
   onLoad: (formData: FormData, scenarioName: string) => void
@@ -26,8 +27,9 @@ interface SavedScenario {
 }
 
 export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenarioDropdownProps) {
+  const { user, loading: authLoading } = useAuth()
   const [scenarios, setScenarios] = useState<SavedScenario[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -42,26 +44,31 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
   const dropdownBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
   const itemHover = isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
 
+  // Wait for auth to initialize before loading scenarios
   useEffect(() => {
-    loadScenarios()
-  }, [])
+    console.log('📂 LoadScenarioDropdown - Auth state:', {
+      authLoading,
+      hasUser: !!user,
+      userId: user?.id,
+      isAnonymous: user?.isAnonymous
+    })
+
+    if (!authLoading && user) {
+      console.log('📂 LoadScenarioDropdown - Calling loadScenarios()')
+      loadScenarios()
+    } else if (!authLoading && !user) {
+      console.log('📂 LoadScenarioDropdown - Auth complete but no user (should not happen)')
+    }
+  }, [authLoading, user])
 
   const loadScenarios = async () => {
+    console.log('📂 LoadScenarioDropdown - loadScenarios() started')
     setIsLoading(true)
     setError(null)
 
     try {
       const client = createClient()
-
-      // Check if user is authenticated
-      const { data: { user } } = await client.auth.getUser()
-
-      if (!user) {
-        // Not authenticated - just show empty state
-        setScenarios([])
-        setIsLoading(false)
-        return
-      }
+      console.log('📂 LoadScenarioDropdown - Supabase client created')
 
       const { data, error: fetchError } = await getScenarios(client, {
         orderBy: 'updated_at',
@@ -69,16 +76,24 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         limit: 10,
       })
 
+      console.log('📂 LoadScenarioDropdown - getScenarios result:', {
+        scenarioCount: data?.length || 0,
+        hasError: !!fetchError,
+        error: fetchError?.message
+      })
+
       if (fetchError) {
         throw fetchError
       }
 
       setScenarios((data || []) as SavedScenario[])
+      console.log('📂 LoadScenarioDropdown - Scenarios set:', data?.length || 0)
     } catch (err) {
-      console.error('Error loading scenarios:', err)
+      console.error('📂 LoadScenarioDropdown - Error loading scenarios:', err)
       setError('Failed to load scenarios')
     } finally {
       setIsLoading(false)
+      console.log('📂 LoadScenarioDropdown - loadScenarios() complete, isLoading=false')
     }
   }
 
@@ -107,16 +122,16 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       {/* Dropdown Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        disabled={isLoading || scenarios.length === 0}
+        disabled={(authLoading || isLoading) || scenarios.length === 0}
         className={`w-full flex items-center justify-between gap-3 px-4 py-3 ${cardBg} border ${cardBorder} rounded-lg ${buttonBg} transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         <div className="flex items-center gap-2">
           <FileText className="w-5 h-5 text-orange-500" />
           <span className={`text-sm font-medium ${textPrimary}`}>
-            {isLoading ? 'Loading...' : scenarios.length > 0 ? 'Load Saved Plan' : 'No saved plans'}
+            {(authLoading || isLoading) ? 'Loading...' : scenarios.length > 0 ? 'Load Saved Plan' : 'No saved plans'}
           </span>
         </div>
-        {isLoading ? (
+        {(authLoading || isLoading) ? (
           <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
         ) : scenarios.length > 0 ? (
           <ChevronDown className={`w-4 h-4 ${textSecondary} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
