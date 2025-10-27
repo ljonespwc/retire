@@ -88,6 +88,26 @@ export async function calculateRetirementProjection(
   let cppStartAge = income_sources.cpp?.start_age || 65;
   let oasStartAge = income_sources.oas?.start_age || 65;
 
+  // Process other income sources (pensions, rental, etc.)
+  // Store base amounts and start ages for each income source
+  const otherIncomes: Array<{
+    description: string;
+    baseAmount: number;
+    startAge: number;
+    indexedToInflation: boolean;
+  }> = [];
+
+  if (income_sources.other_income) {
+    for (const income of income_sources.other_income) {
+      otherIncomes.push({
+        description: income.description,
+        baseAmount: income.annual_amount,
+        startAge: income.start_age ?? retirement_age, // Default to retirement age if not specified
+        indexedToInflation: income.indexed_to_inflation ?? true,
+      });
+    }
+  }
+
   if (income_sources.cpp) {
     const cppCalc = await calculateCPP(
       client,
@@ -151,8 +171,21 @@ export async function calculateRetirementProjection(
       oasIncome = baseOASAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
-    // Calculate total income from government benefits
-    const totalIncome = cppIncome + oasIncome;
+    // Calculate other income (pensions, rental, etc.)
+    let otherIncome = 0;
+    for (const income of otherIncomes) {
+      if (age >= income.startAge) {
+        const yearsFromStart = age - income.startAge;
+        if (income.indexedToInflation) {
+          otherIncome += income.baseAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
+        } else {
+          otherIncome += income.baseAmount;
+        }
+      }
+    }
+
+    // Calculate total income from government benefits + other income
+    const totalIncome = cppIncome + oasIncome + otherIncome;
 
     // Create year result
     const yearResult: YearByYearResult = {
@@ -174,7 +207,7 @@ export async function calculateRetirementProjection(
         employment: 0,
         cpp: cppIncome,
         oas: oasIncome,
-        other: 0,
+        other: otherIncome,
         investment: 0,
         total: totalIncome,
       },
@@ -240,8 +273,21 @@ export async function calculateRetirementProjection(
       oasIncome = baseOASAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
-    // Calculate total income from benefits
-    const governmentBenefits = cppIncome + oasIncome;
+    // Calculate other income (pensions, rental, etc.)
+    let otherIncome = 0;
+    for (const income of otherIncomes) {
+      if (age >= income.startAge) {
+        const yearsFromStart = age - income.startAge;
+        if (income.indexedToInflation) {
+          otherIncome += income.baseAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
+        } else {
+          otherIncome += income.baseAmount;
+        }
+      }
+    }
+
+    // Calculate total income from benefits + other income
+    const governmentBenefits = cppIncome + oasIncome + otherIncome;
 
     // Determine how much to withdraw from portfolio
     const targetWithdrawal = Math.max(0, annualExpenses - governmentBenefits);
@@ -270,6 +316,7 @@ export async function calculateRetirementProjection(
       capital_gains: projection.withdrawals.capital_gains,
       cpp: cppIncome,
       oas: oasIncome,
+      other: otherIncome, // Pension and other income (fully taxable)
     };
 
     // Calculate taxes
@@ -280,8 +327,8 @@ export async function calculateRetirementProjection(
       age
     );
 
-    // Calculate total income (including government benefits and investment income)
-    const totalIncome = cppIncome + oasIncome;
+    // Calculate total income (including government benefits, other income, and investment income)
+    const totalIncome = cppIncome + oasIncome + otherIncome;
 
     // Investment income from withdrawals (for reporting purposes)
     const investmentIncome =
@@ -312,7 +359,7 @@ export async function calculateRetirementProjection(
         employment: 0,
         cpp: cppIncome,
         oas: oasIncome,
-        other: 0,
+        other: otherIncome,
         investment: investmentIncome,
         total: totalIncome + investmentIncome,
       },
