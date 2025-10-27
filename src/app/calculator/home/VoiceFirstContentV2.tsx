@@ -89,6 +89,7 @@ export function VoiceFirstContentV2() {
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
   const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
+  const [formGlowing, setFormGlowing] = useState(false)
 
   // Ref for auto-scrolling to results
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -499,6 +500,10 @@ export function VoiceFirstContentV2() {
     // Store the loaded scenario name
     setLoadedScenarioName(scenarioName)
 
+    // Trigger green glow animation
+    setFormGlowing(true)
+    setTimeout(() => setFormGlowing(false), 2000) // 2 second glow
+
     // Show success feedback
     console.log(`✅ Loaded scenario: ${scenarioName}`)
   }
@@ -799,7 +804,11 @@ export function VoiceFirstContentV2() {
 
           {/* Right Column - Data (60%) */}
           <div className="lg:col-span-7">
-            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card} lg:sticky lg:top-8`}>
+            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card} lg:sticky lg:top-8 transition-all duration-500 ${
+              formGlowing
+                ? 'ring-4 ring-emerald-500 shadow-emerald-500/50'
+                : ''
+            }`}>
               <CardHeader className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} pb-4 sm:pb-6 px-4 sm:px-6`}>
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
