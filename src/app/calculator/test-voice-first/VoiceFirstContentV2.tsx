@@ -1,6 +1,7 @@
 'use client'
 
 import { useLayercodeVoice } from '@/hooks/useLayercodeVoice'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -81,7 +82,7 @@ export function VoiceFirstContentV2() {
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showMergeModal, setShowMergeModal] = useState(false)
