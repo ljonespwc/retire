@@ -45,6 +45,86 @@ interface BatchPrompt {
   totalBatches: number
 }
 
+// WarmDataField - theme-aware form field component (extracted to prevent re-creation on render)
+function WarmDataField({
+  label,
+  value,
+  editMode,
+  onEdit,
+  type,
+  isGlowing,
+  options,
+  editValue,
+  isDarkMode,
+  theme
+}: {
+  label: string
+  value: any
+  editMode: boolean
+  onEdit?: (val: any) => void
+  type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
+  isGlowing?: boolean
+  options?: { value: string; label: string }[]
+  editValue?: any
+  isDarkMode: boolean
+  theme: any
+}) {
+  const formatValue = () => {
+    if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
+    if (type === 'currency') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>${value.toLocaleString()}</span>
+    if (type === 'percentage') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}%</span>
+    if (type === 'number') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}</span>
+    return <span className={`${theme.text.primary} font-semibold text-base sm:text-lg`}>{value}</span>
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className={`block text-xs sm:text-xs font-bold ${theme.text.muted} uppercase tracking-wider`}>
+        {label}
+      </label>
+      {editMode && onEdit ? (
+        type === 'select' ? (
+          <select
+            value={editValue !== undefined ? editValue : value || ''}
+            onChange={(e) => onEdit(e.target.value || null)}
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
+          >
+            <option value="">Select...</option>
+            {options?.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type === 'text' ? 'text' : 'number'}
+            value={value ?? ''}
+            onChange={(e) => {
+              if (type === 'text') {
+                onEdit(e.target.value || null)
+              } else {
+                const numValue = e.target.value === '' ? null : Number(e.target.value)
+                onEdit(numValue)
+              }
+            }}
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
+            step={type === 'percentage' ? '0.1' : '1'}
+          />
+        )
+      ) : (
+        <div className={`px-4 sm:px-5 py-3 sm:py-4 rounded-2xl border-2 transition-all duration-300 ${
+          isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800/20' : 'bg-gradient-to-br from-gray-50 to-orange-50/20'
+        } ${
+          isGlowing
+            ? `${isDarkMode ? 'border-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.7)]' : 'border-orange-400 shadow-[0_0_25px_rgba(251,146,60,0.7)]'} animate-pulse`
+            : isDarkMode ? 'border-gray-600' : 'border-gray-200'
+        }`}>
+          {formatValue()}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function VoiceFirstContentV2() {
   // Get auth context for user ID
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
@@ -508,77 +588,6 @@ export function VoiceFirstContentV2() {
     console.log(`✅ Loaded scenario: ${scenarioName}`)
   }
 
-  // WarmDataField - theme-aware form field component
-  function WarmDataField({
-    label,
-    value,
-    editMode,
-    onEdit,
-    type,
-    isGlowing,
-    options,
-    editValue
-  }: {
-    label: string
-    value: any
-    editMode: boolean
-    onEdit?: (val: any) => void
-    type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
-    isGlowing?: boolean
-    options?: { value: string; label: string }[]
-    editValue?: any
-  }) {
-    const formatValue = () => {
-      if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
-      if (type === 'currency') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>${value.toLocaleString()}</span>
-      if (type === 'percentage') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}%</span>
-      if (type === 'number') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}</span>
-      return <span className={`${theme.text.primary} font-semibold text-base sm:text-lg`}>{value}</span>
-    }
-
-    const glowClass = isGlowing ? theme.glow : ''
-
-    return (
-      <div className="space-y-2">
-        <label className={`block text-xs sm:text-xs font-bold ${theme.text.muted} uppercase tracking-wider`}>
-          {label}
-        </label>
-        {editMode && onEdit ? (
-          type === 'select' ? (
-            <select
-              value={editValue !== undefined ? editValue : value || ''}
-              onChange={(e) => onEdit(e.target.value || null)}
-              className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
-            >
-              <option value="">Select...</option>
-              {options?.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type={type === 'text' ? 'text' : 'number'}
-              value={value || ''}
-              onChange={(e) => onEdit(type === 'text' ? e.target.value : Number(e.target.value) || null)}
-              className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
-              step={type === 'percentage' ? '0.1' : '1'}
-            />
-          )
-        ) : (
-          <div className={`px-4 sm:px-5 py-3 sm:py-4 rounded-2xl border-2 transition-all duration-300 ${
-            isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800/20' : 'bg-gradient-to-br from-gray-50 to-orange-50/20'
-          } ${
-            isGlowing
-              ? `${isDarkMode ? 'border-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.7)]' : 'border-orange-400 shadow-[0_0_25px_rgba(251,146,60,0.7)]'} animate-pulse`
-              : isDarkMode ? 'border-gray-600' : 'border-gray-200'
-          }`}>
-            {formatValue()}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div className={`min-h-screen ${theme.background}`}>
       {/* Header with Theme Toggle */}
@@ -831,10 +840,10 @@ export function VoiceFirstContentV2() {
                 <div className="space-y-6 sm:space-y-8">
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                    <WarmDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} />
-                    <WarmDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} />
-                    <WarmDataField label="Life Expectancy Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} />
-                    <WarmDataField label="Current Income (Annual)" value={currentIncome} editMode={editMode} onEdit={setCurrentIncome} type="currency" isGlowing={glowingFields.has('current_income')} />
+                    <WarmDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} isDarkMode={isDarkMode} theme={theme} />
+                    <WarmDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} isDarkMode={isDarkMode} theme={theme} />
+                    <WarmDataField label="Life Expectancy Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} isDarkMode={isDarkMode} theme={theme} />
+                    <WarmDataField label="Current Income (Annual)" value={currentIncome} editMode={editMode} onEdit={setCurrentIncome} type="currency" isGlowing={glowingFields.has('current_income')} isDarkMode={isDarkMode} theme={theme} />
                   </div>
 
                   <WarmDataField
@@ -846,6 +855,8 @@ export function VoiceFirstContentV2() {
                     type="select"
                     options={provinceOptions}
                     isGlowing={glowingFields.has('province')}
+                    isDarkMode={isDarkMode}
+                    theme={theme}
                   />
 
                   {/* Accounts */}
@@ -854,12 +865,12 @@ export function VoiceFirstContentV2() {
                       💰 Your Accounts
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isGlowing={glowingFields.has('rrsp')} />
-                      <WarmDataField label="RRSP Contribution (Annual)" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} />
-                      <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isGlowing={glowingFields.has('tfsa')} />
-                      <WarmDataField label="TFSA Contribution (Annual)" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} />
-                      <WarmDataField label="Non-Registered Balance" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isGlowing={glowingFields.has('non_registered')} />
-                      <WarmDataField label="Non-Registered Contribution (Annual)" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} />
+                      <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isGlowing={glowingFields.has('rrsp')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="RRSP Contribution (Annual)" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isGlowing={glowingFields.has('tfsa')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="TFSA Contribution (Annual)" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Non-Registered Balance" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isGlowing={glowingFields.has('non_registered')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Non-Registered Contribution (Annual)" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} isDarkMode={isDarkMode} theme={theme} />
                     </div>
                   </div>
 
@@ -869,10 +880,10 @@ export function VoiceFirstContentV2() {
                       🏖️ In Retirement
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="Monthly Spending (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} />
-                      <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isGlowing={glowingFields.has('pension_income')} />
-                      <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isGlowing={glowingFields.has('other_income')} />
-                      <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isGlowing={glowingFields.has('cpp_start_age')} />
+                      <WarmDataField label="Monthly Spending (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isGlowing={glowingFields.has('pension_income')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isGlowing={glowingFields.has('other_income')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isGlowing={glowingFields.has('cpp_start_age')} isDarkMode={isDarkMode} theme={theme} />
                     </div>
                   </div>
 
@@ -882,9 +893,9 @@ export function VoiceFirstContentV2() {
                       📊 Rate Assumptions
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-                      <WarmDataField label="Pre-Retirement" value={investmentReturn} editMode={editMode} onEdit={setInvestmentReturn} type="percentage" isGlowing={glowingFields.has('investment_return')} />
-                      <WarmDataField label="Post-Retirement" value={postRetirementReturn} editMode={editMode} onEdit={setPostRetirementReturn} type="percentage" isGlowing={glowingFields.has('post_retirement_return')} />
-                      <WarmDataField label="Inflation" value={inflationRate} editMode={editMode} onEdit={setInflationRate} type="percentage" isGlowing={glowingFields.has('inflation_rate')} />
+                      <WarmDataField label="Pre-Retirement" value={investmentReturn} editMode={editMode} onEdit={setInvestmentReturn} type="percentage" isGlowing={glowingFields.has('investment_return')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Post-Retirement" value={postRetirementReturn} editMode={editMode} onEdit={setPostRetirementReturn} type="percentage" isGlowing={glowingFields.has('post_retirement_return')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Inflation" value={inflationRate} editMode={editMode} onEdit={setInflationRate} type="percentage" isGlowing={glowingFields.has('inflation_rate')} isDarkMode={isDarkMode} theme={theme} />
                     </div>
                   </div>
 
