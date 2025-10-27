@@ -19,6 +19,7 @@ import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
 import { IncomeCompositionChart } from '@/components/results/IncomeCompositionChart'
 import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
 import { CalculationDisclosure } from '@/components/results/CalculationDisclosure'
+import { RetirementNarrative } from '@/components/results/RetirementNarrative'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
@@ -937,6 +938,12 @@ export function VoiceFirstContentV2() {
               <div className="lg:col-span-2">
                 <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
               </div>
+
+              {/* AI-Generated Narrative */}
+              <div className="lg:col-span-2">
+                <RetirementNarrative results={calculationResults} isDarkMode={isDarkMode} />
+              </div>
+
               <div className="lg:col-span-2">
                 <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
               </div>
