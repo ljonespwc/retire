@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon, Save } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { SavePromptModal } from '@/components/auth/SavePromptModal'
+import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
 import { CalculationResults } from '@/types/calculator'
 import { ResultsSummary } from '@/components/results/ResultsSummary'
 import { BalanceOverTimeChart } from '@/components/results/BalanceOverTimeChart'
@@ -70,7 +70,7 @@ export function VoiceFirstContentV2() {
   const [editMode, setEditMode] = useState(false)
   const [glowingFields, setGlowingFields] = useState<Set<string>>(new Set())
   const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
-  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showSaveWithAccountModal, setShowSaveWithAccountModal] = useState(false)
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
   const [showResults, setShowResults] = useState(false)
@@ -233,11 +233,6 @@ export function VoiceFirstContentV2() {
         if (content.calculationResults) {
           console.log('📊 Calculation results received:', content.calculationResults)
           setCalculationResults(content.calculationResults)
-        }
-
-        // Show save modal for anonymous users
-        if (isAnonymous) {
-          setShowSaveModal(true)
         }
       }
     }
@@ -576,7 +571,10 @@ export function VoiceFirstContentV2() {
                     {/* Start Conversation Button */}
                     <div className="text-center">
                       <Button
-                        onClick={connect}
+                        onClick={() => {
+                          setIsComplete(false)  // Reset completion state when starting new conversation
+                          connect()
+                        }}
                         size="lg"
                         className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
                       >
@@ -813,11 +811,18 @@ export function VoiceFirstContentV2() {
 
         {/* Results Section - Full Width Below Form */}
         {calculationResults && (
-          <div ref={resultsRef} className="w-full mt-20">
+          <div ref={resultsRef} className="w-full" style={{ marginTop: '128px' }}>
             <div className="text-center mb-8">
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
               <Button
-                onClick={() => setShowScenarioSaveModal(true)}
+                onClick={() => {
+                  // Show appropriate modal based on user type
+                  if (isAnonymous) {
+                    setShowSaveWithAccountModal(true)
+                  } else {
+                    setShowScenarioSaveModal(true)
+                  }
+                }}
                 className={`${theme.button.primary} text-white px-6 py-3 rounded-xl font-medium shadow-lg`}
               >
                 <Save className="w-5 h-5 mr-2" />
@@ -838,14 +843,15 @@ export function VoiceFirstContentV2() {
         )}
       </div>
 
-      {/* Save Prompt Modal (only for anonymous users) */}
-      <SavePromptModal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        scenarioName={`Retirement Plan ${new Date().toLocaleDateString()}`}
+      {/* Save With Account Modal (for anonymous users clicking Save Scenario) */}
+      <SaveWithAccountModal
+        isOpen={showSaveWithAccountModal}
+        onClose={() => setShowSaveWithAccountModal(false)}
+        formData={getCurrentFormData()}
+        calculationResults={calculationResults}
       />
 
-      {/* Save Scenario Modal */}
+      {/* Save Scenario Modal (for authenticated users) */}
       <SaveScenarioModal
         isOpen={showScenarioSaveModal}
         onClose={() => setShowScenarioSaveModal(false)}
