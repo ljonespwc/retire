@@ -48,8 +48,7 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
         Portfolio Balance Over Time
       </h3>
 
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={320}>
           <AreaChart
             data={data}
             margin={{ top: 10, right: 30, left: 0, bottom: 15 }}
@@ -103,7 +102,6 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
             ))}
           </AreaChart>
         </ResponsiveContainer>
-      </div>
 
       {/* Milestone Legend */}
       {milestones.length > 0 && (

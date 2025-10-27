@@ -677,7 +677,7 @@ export function VoiceFirstContentV2() {
                         className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                        {authLoading ? 'Loading...' : 'Start Conversation'}
+                        {authLoading ? 'Loading...' : 'Start New Conversation'}
                       </Button>
                     </div>
                   </div>
