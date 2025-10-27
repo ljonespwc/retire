@@ -40,6 +40,7 @@ export interface IncomeDataPoint {
   oasIncome: number
   pensionIncome: number
   otherIncome: number
+  milestone?: string
 }
 
 /**
@@ -110,28 +111,9 @@ export function formatBalanceData(
       balance: year.balances.total
     }
 
-    // Collect all milestones for this age (can have multiple)
-    const milestones: string[] = []
-
-    // Check for CPP start
-    const prevYear = results.year_by_year[results.year_by_year.indexOf(year) - 1]
-    if (year.income.cpp > 0 && (!prevYear || prevYear.income.cpp === 0)) {
-      milestones.push('CPP Starts')
-    }
-
-    // Check for OAS start
-    if (year.income.oas > 0 && (!prevYear || prevYear.income.oas === 0)) {
-      milestones.push('OAS Starts')
-    }
-
-    // Check for RRIF conversion
+    // Portfolio-specific milestone: RRIF conversion at age 71
     if (year.age === 71) {
-      milestones.push('RRIF Conversion')
-    }
-
-    // Join multiple milestones with comma
-    if (milestones.length > 0) {
-      dataPoint.milestone = milestones.join(', ')
+      dataPoint.milestone = 'RRIF Conversion'
     }
 
     return dataPoint
@@ -144,15 +126,35 @@ export function formatBalanceData(
 export function formatIncomeData(
   results: CalculationResults
 ): IncomeDataPoint[] {
-  return results.year_by_year.map(year => ({
-    age: year.age,
-    rrspIncome: year.withdrawals.rrsp_rrif || 0,
-    tfsaIncome: year.withdrawals.tfsa || 0,
-    cppIncome: year.income.cpp || 0,
-    oasIncome: year.income.oas || 0,
-    pensionIncome: 0, // Pension is included in "other" income
-    otherIncome: year.income.other || 0
-  }))
+  return results.year_by_year.map(year => {
+    const dataPoint: IncomeDataPoint = {
+      age: year.age,
+      rrspIncome: year.withdrawals.rrsp_rrif || 0,
+      tfsaIncome: year.withdrawals.tfsa || 0,
+      cppIncome: year.income.cpp || 0,
+      oasIncome: year.income.oas || 0,
+      pensionIncome: 0, // Pension is included in "other" income
+      otherIncome: year.income.other || 0
+    }
+
+    // Income-specific milestones: CPP and OAS start
+    const milestones: string[] = []
+    const prevYear = results.year_by_year[results.year_by_year.indexOf(year) - 1]
+
+    if (year.income.cpp > 0 && (!prevYear || prevYear.income.cpp === 0)) {
+      milestones.push('CPP Starts')
+    }
+
+    if (year.income.oas > 0 && (!prevYear || prevYear.income.oas === 0)) {
+      milestones.push('OAS Starts')
+    }
+
+    if (milestones.length > 0) {
+      dataPoint.milestone = milestones.join(', ')
+    }
+
+    return dataPoint
+  })
 }
 
 /**

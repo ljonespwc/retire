@@ -390,8 +390,20 @@ export function VoiceFirstContentV2() {
         income_sources: {
           cpp: { start_age: cppStartAge || 65, monthly_amount_at_65: 1364.60 },
           oas: { start_age: 65, monthly_amount: 718.33 },
-          pension: pensionIncome ? { annual_amount: pensionIncome } : undefined,
-          other: otherIncome ? { annual_amount: otherIncome } : undefined
+          other_income: [
+            ...(pensionIncome ? [{
+              description: 'Pension',
+              annual_amount: pensionIncome,
+              start_age: retirementAge || 65,
+              indexed_to_inflation: false
+            }] : []),
+            ...(otherIncome ? [{
+              description: 'Other Income',
+              annual_amount: otherIncome,
+              start_age: retirementAge || 65,
+              indexed_to_inflation: true
+            }] : [])
+          ]
         },
         expenses: {
           fixed_monthly: monthlySpending || 4000,

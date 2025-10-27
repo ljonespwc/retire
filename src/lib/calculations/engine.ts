@@ -98,7 +98,9 @@ export async function calculateRetirementProjection(
   }> = [];
 
   if (income_sources.other_income) {
+    console.log(`💰 Processing ${income_sources.other_income.length} other income source(s)`)
     for (const income of income_sources.other_income) {
+      console.log(`   - ${income.description}: $${income.annual_amount}/year starting at age ${income.start_age ?? retirement_age}`)
       otherIncomes.push({
         description: income.description,
         baseAmount: income.annual_amount,
@@ -106,6 +108,8 @@ export async function calculateRetirementProjection(
         indexedToInflation: income.indexed_to_inflation ?? true,
       });
     }
+  } else {
+    console.log(`💰 No other income sources configured`)
   }
 
   if (income_sources.cpp) {

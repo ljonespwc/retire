@@ -17,7 +17,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ReferenceDot
 } from 'recharts'
 
 interface IncomeCompositionChartProps {
@@ -27,6 +28,9 @@ interface IncomeCompositionChartProps {
 
 export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCompositionChartProps) {
   const data = formatIncomeData(results)
+
+  // Find milestones for markers
+  const milestones = data.filter(d => d.milestone)
 
   // Income source colors (matching brand palette)
   const colors = {
@@ -41,8 +45,10 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
   const cardBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
   const textPrimary = isDarkMode ? 'text-gray-100' : 'text-gray-900'
+  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600'
   const gridStroke = isDarkMode ? '#374151' : '#e5e7eb'
   const axisStroke = isDarkMode ? '#9ca3af' : '#6b7280'
+  const markerStroke = isDarkMode ? '#1f2937' : '#ffffff'
 
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
@@ -144,9 +150,46 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               fill="url(#otherGradient)"
               name="Pension & Other"
             />
+
+            {/* Milestone markers */}
+            {milestones.map((milestone, index) => {
+              // Calculate total income at this age for marker positioning
+              const totalIncome =
+                milestone.rrspIncome +
+                milestone.tfsaIncome +
+                milestone.cppIncome +
+                milestone.oasIncome +
+                milestone.otherIncome
+
+              return (
+                <ReferenceDot
+                  key={index}
+                  x={milestone.age}
+                  y={totalIncome}
+                  r={6}
+                  fill="#10b981"
+                  stroke={markerStroke}
+                  strokeWidth={2}
+                />
+              )
+            })}
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Milestone Legend */}
+      {milestones.length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-4 text-sm">
+          {milestones.map((milestone, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full bg-green-500 border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'}`} />
+              <span className={textSecondary}>
+                {milestone.milestone} (Age {milestone.age})
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -210,6 +253,11 @@ function CustomTooltip({ active, payload, isDarkMode }: any) {
           </div>
         )}
       </div>
+      {data.milestone && (
+        <div className="text-sm text-green-600 mt-1 font-medium">
+          {data.milestone}
+        </div>
+      )}
     </div>
   )
 }
