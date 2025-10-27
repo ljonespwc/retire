@@ -9,6 +9,7 @@
 
 import { CalculationResults } from '@/types/calculator'
 import { formatTaxSummary, formatCurrency, formatPercentage, formatCompactCurrency } from '@/lib/calculations/results-formatter'
+import { HelpCircle } from 'lucide-react'
 
 interface TaxSummaryCardProps {
   results: CalculationResults
@@ -48,8 +49,18 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
         <div className="grid grid-cols-2 gap-4">
           {/* Effective Tax Rate */}
           <div className={`${orangeBox} rounded-lg p-4 border`}>
-            <div className={`text-sm ${textSecondary} mb-1`}>
-              Effective Tax Rate
+            <div className={`text-sm ${textSecondary} mb-1 flex items-center gap-1.5`}>
+              <span>Effective Tax Rate</span>
+              <div
+                className="group relative inline-flex items-center cursor-help"
+                title="This rate applies only to taxable income. TFSA withdrawals are tax-free and excluded from this calculation."
+              >
+                <HelpCircle className="w-3.5 h-3.5 opacity-60 hover:opacity-100 transition-opacity" />
+                <div className={`absolute left-0 bottom-full mb-2 w-64 p-3 rounded-lg shadow-lg text-xs leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                  <div className="font-medium mb-1">On Taxable Income Only</div>
+                  This rate applies only to taxable income. TFSA withdrawals are tax-free and excluded from this calculation, which is why the rate may seem low compared to total income.
+                </div>
+              </div>
             </div>
             <div className={`text-3xl font-bold ${orangeText}`}>
               {formatPercentage(taxSummary.effectiveRate)}
