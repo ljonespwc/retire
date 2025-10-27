@@ -1,8 +1,8 @@
 /**
  * Layercode Batch Voice Webhook Handler
  *
- * This endpoint handles batch-based conversation flow for test-voice-first page.
- * Questions are grouped into 3 batches (3+3+2 questions).
+ * This endpoint handles batch-based conversation flow for /calculator/home page.
+ * Questions are grouped into 5 batches (personal_info, savings, savings_contributions, retirement_income, investment_assumptions).
  *
  * Different from /api/agent which does sequential 1-by-1 questions.
  */

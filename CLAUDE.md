@@ -431,14 +431,14 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - `/src/app/api/layercode/webhook/route.ts` - Sequential webhook
 - `/src/app/api/layercode/batch-webhook/route.ts` - Batch webhook
 - `/src/app/test-voice/TestVoiceContent.tsx` - Sequential UI
-- `/src/app/calculator/test-voice-first/VoiceFirstContent.tsx` - Batch UI
+- `/src/app/calculator/home/VoiceFirstContent.tsx` - Batch UI (production)
 
 ---
 
 ## Recent Updates
 
 **2025-10-24**: Voice-First UI Polish
-- V2 (Warm & Approachable) is production UI at `/calculator/test-voice-first`
+- V2 (Warm & Approachable) is production UI at `/calculator/home`
 - Responsive design (mobile/tablet/desktop), 1-second glow animation on field updates
 - Form labels: "Expected Monthly Spending", "Life Expectancy Age", "(Annual)" suffixes
 
@@ -506,3 +506,15 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
   - Baseline pulled from saved scenario, variants are pure functions: `(baseline: Scenario) => Scenario`
 - **Status**: 🟡 Planning approved, implementation deferred for later
 - **Rationale**: Addresses top user pain points - "Can I retire early?", "Will I run out?", "Should I delay CPP?", "Is saving more worth it?"
+
+**2025-10-27**: Route Rename - test-voice-first → home
+- **Change**: Renamed `/calculator/test-voice-first` to `/calculator/home`
+- **Files Updated**:
+  - Directory: `src/app/calculator/test-voice-first/` → `src/app/calculator/home/`
+  - Landing page route: `src/app/page.tsx`
+  - Webhook comments: `src/app/api/layercode/batch-webhook/route.ts`
+  - Flow manager: `src/lib/conversation/batch-flow-manager.ts`
+  - Parser: `src/lib/conversation/batch-parser.ts`
+  - Documentation: `CLAUDE.md`
+- **Rationale**: "home" is clearer and more production-ready than "test-voice-first"
+- **New URL**: https://retire-[deployment].vercel.app/calculator/home

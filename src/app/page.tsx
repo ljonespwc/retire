@@ -21,7 +21,7 @@ export default function Home() {
           </p>
 
           <Link
-            href="/calculator/test-voice-first"
+            href="/calculator/home"
             className="block p-6 border-2 border-blue-500 bg-blue-50 rounded-lg hover:border-blue-600 hover:bg-blue-100 transition-colors group"
           >
             <h3 className="text-lg font-semibold text-blue-900 group-hover:text-blue-700 mb-2">

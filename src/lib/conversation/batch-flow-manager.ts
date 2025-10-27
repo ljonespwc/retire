@@ -2,7 +2,7 @@
  * Batch Question Flow Manager for Retirement Planning
  *
  * Groups questions into contextual batches for more natural conversation.
- * Used by test-voice-first page for batch-based data collection.
+ * Used by /calculator/home page for batch-based data collection.
  *
  * State is persisted to Supabase database for resilience.
  */

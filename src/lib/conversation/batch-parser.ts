@@ -2,7 +2,7 @@
  * Batch Response Parser for Retirement Planning
  *
  * Parses multiple question answers from a single natural language response.
- * Used for batch-based conversation flow in test-voice-first.
+ * Used for batch-based conversation flow in /calculator/home.
  */
 
 import { getAIProvider } from '@/lib/ai-provider'
