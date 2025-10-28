@@ -7,6 +7,7 @@
  * stacked to show total income composition.
  */
 
+import { useState } from 'react'
 import { CalculationResults } from '@/types/calculator'
 import { formatIncomeData, formatCompactCurrency } from '@/lib/calculations/results-formatter'
 import {
@@ -16,7 +17,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceDot
 } from 'recharts'
@@ -28,6 +28,15 @@ interface IncomeCompositionChartProps {
 
 export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCompositionChartProps) {
   const data = formatIncomeData(results)
+
+  // State for toggling income source visibility
+  const [visibleSources, setVisibleSources] = useState({
+    rrsp: true,
+    tfsa: true,
+    cpp: true,
+    oas: true,
+    other: true
+  })
 
   // Find milestones for markers
   const milestones = data.filter(d => d.milestone)
@@ -99,56 +108,59 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               tickFormatter={(value) => formatCompactCurrency(value)}
             />
 
-            <Tooltip content={<CustomTooltip isDarkMode={isDarkMode} />} />
+            <Tooltip content={<CustomTooltip isDarkMode={isDarkMode} visibleSources={visibleSources} />} />
 
-            <Legend
-              wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }}
-              iconType="square"
-              verticalAlign="bottom"
-              align="left"
-            />
-
-            {/* Stack areas from bottom to top */}
-            <Area
-              type="monotone"
-              dataKey="rrspIncome"
-              stackId="1"
-              stroke={colors.rrsp}
-              fill="url(#rrspGradient)"
-              name="RRSP/RRIF"
-            />
-            <Area
-              type="monotone"
-              dataKey="tfsaIncome"
-              stackId="1"
-              stroke={colors.tfsa}
-              fill="url(#tfsaGradient)"
-              name="TFSA"
-            />
-            <Area
-              type="monotone"
-              dataKey="cppIncome"
-              stackId="1"
-              stroke={colors.cpp}
-              fill="url(#cppGradient)"
-              name="CPP"
-            />
-            <Area
-              type="monotone"
-              dataKey="oasIncome"
-              stackId="1"
-              stroke={colors.oas}
-              fill="url(#oasGradient)"
-              name="OAS"
-            />
-            <Area
-              type="monotone"
-              dataKey="otherIncome"
-              stackId="1"
-              stroke={colors.other}
-              fill="url(#otherGradient)"
-              name="Pension & Other"
-            />
+            {/* Stack areas from bottom to top - conditionally rendered based on visibility */}
+            {visibleSources.rrsp && (
+              <Area
+                type="monotone"
+                dataKey="rrspIncome"
+                stackId="1"
+                stroke={colors.rrsp}
+                fill="url(#rrspGradient)"
+                name="RRSP/RRIF"
+              />
+            )}
+            {visibleSources.tfsa && (
+              <Area
+                type="monotone"
+                dataKey="tfsaIncome"
+                stackId="1"
+                stroke={colors.tfsa}
+                fill="url(#tfsaGradient)"
+                name="TFSA"
+              />
+            )}
+            {visibleSources.cpp && (
+              <Area
+                type="monotone"
+                dataKey="cppIncome"
+                stackId="1"
+                stroke={colors.cpp}
+                fill="url(#cppGradient)"
+                name="CPP"
+              />
+            )}
+            {visibleSources.oas && (
+              <Area
+                type="monotone"
+                dataKey="oasIncome"
+                stackId="1"
+                stroke={colors.oas}
+                fill="url(#oasGradient)"
+                name="OAS"
+              />
+            )}
+            {visibleSources.other && (
+              <Area
+                type="monotone"
+                dataKey="otherIncome"
+                stackId="1"
+                stroke={colors.other}
+                fill="url(#otherGradient)"
+                name="Pension & Other"
+              />
+            )}
 
             {/* Milestone markers */}
             {milestones.map((milestone, index) => {
@@ -175,9 +187,40 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
           </AreaChart>
         </ResponsiveContainer>
 
+      {/* Interactive Income Source Legend */}
+      <div className="mt-6">
+        <div className="flex flex-wrap gap-3">
+          {[
+            { key: 'rrsp', name: 'RRSP/RRIF', color: colors.rrsp },
+            { key: 'tfsa', name: 'TFSA', color: colors.tfsa },
+            { key: 'cpp', name: 'CPP', color: colors.cpp },
+            { key: 'oas', name: 'OAS', color: colors.oas },
+            { key: 'other', name: 'Pension & Other', color: colors.other }
+          ].map(source => (
+            <button
+              key={source.key}
+              onClick={() => setVisibleSources(prev => ({ ...prev, [source.key]: !prev[source.key as keyof typeof prev] }))}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all text-sm ${
+                visibleSources[source.key as keyof typeof visibleSources]
+                  ? `${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} opacity-100`
+                  : `${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} opacity-40 hover:opacity-60`
+              }`}
+            >
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: source.color }}
+              />
+              <span className={`${textSecondary} ${!visibleSources[source.key as keyof typeof visibleSources] ? 'line-through' : ''}`}>
+                {source.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Milestone Legend */}
       {milestones.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-4 text-sm">
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
           {milestones.map((milestone, index) => (
             <div key={index} className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full bg-green-500 border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'}`} />
@@ -195,18 +238,20 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
 /**
  * Custom tooltip for income composition chart
  */
-function CustomTooltip({ active, payload, isDarkMode }: any) {
+function CustomTooltip({ active, payload, isDarkMode, visibleSources }: any) {
   if (!active || !payload || !payload.length) {
     return null
   }
 
   const data = payload[0].payload
-  const totalIncome =
-    data.rrspIncome +
-    data.tfsaIncome +
-    data.cppIncome +
-    data.oasIncome +
-    data.otherIncome
+
+  // Calculate total income from only visible sources
+  let totalIncome = 0
+  if (visibleSources.rrsp) totalIncome += data.rrspIncome
+  if (visibleSources.tfsa) totalIncome += data.tfsaIncome
+  if (visibleSources.cpp) totalIncome += data.cppIncome
+  if (visibleSources.oas) totalIncome += data.oasIncome
+  if (visibleSources.other) totalIncome += data.otherIncome
 
   const tooltipBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
   const tooltipBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
@@ -220,31 +265,31 @@ function CustomTooltip({ active, payload, isDarkMode }: any) {
         <div className={`font-semibold ${textPrimary} border-b ${tooltipBorder} pb-1`}>
           Total: {formatCompactCurrency(totalIncome)}
         </div>
-        {data.rrspIncome > 0 && (
+        {visibleSources.rrsp && data.rrspIncome > 0 && (
           <div className="flex justify-between gap-4">
             <span className={textSecondary}>RRSP/RRIF:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.rrspIncome)}</span>
           </div>
         )}
-        {data.tfsaIncome > 0 && (
+        {visibleSources.tfsa && data.tfsaIncome > 0 && (
           <div className="flex justify-between gap-4">
             <span className={textSecondary}>TFSA:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.tfsaIncome)}</span>
           </div>
         )}
-        {data.cppIncome > 0 && (
+        {visibleSources.cpp && data.cppIncome > 0 && (
           <div className="flex justify-between gap-4">
             <span className={textSecondary}>CPP:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.cppIncome)}</span>
           </div>
         )}
-        {data.oasIncome > 0 && (
+        {visibleSources.oas && data.oasIncome > 0 && (
           <div className="flex justify-between gap-4">
             <span className={textSecondary}>OAS:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.oasIncome)}</span>
           </div>
         )}
-        {data.otherIncome > 0 && (
+        {visibleSources.other && data.otherIncome > 0 && (
           <div className="flex justify-between gap-4">
             <span className={textSecondary}>Pension & Other:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.otherIncome)}</span>
