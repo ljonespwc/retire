@@ -60,10 +60,37 @@ A voice-driven Canadian retirement income calculator that combines conversationa
 - Secondary: Financial advisors and wealth managers
 - Tertiary: Financial institutions (API integration)
 
-## Supabase Configuration
+## MCP Tool Configuration
+
+### Supabase MCP
 
 **Project ID**: `xrtlrsovgqgivpbumany`
 Always use this project_id when interacting with Supabase MCP tools.
+
+### Playwright MCP
+
+**Browser Testing**: For all browser-related testing tasks (UI testing, visual regression, E2E testing, screenshot capture, etc.), use the Playwright MCP tools instead of manually running browser commands.
+
+Available Playwright MCP tools:
+- `browser_navigate` - Navigate to URLs
+- `browser_snapshot` - Capture accessibility snapshots (better than screenshots for actions)
+- `browser_take_screenshot` - Take visual screenshots
+- `browser_click` - Perform clicks
+- `browser_fill_form` - Fill multiple form fields
+- `browser_type` - Type text into elements
+- `browser_evaluate` - Execute JavaScript
+- `browser_wait_for` - Wait for conditions
+- `browser_console_messages` - Get console output
+- `browser_network_requests` - Inspect network activity
+
+**Example use cases**:
+- Testing the voice UI at `/calculator/home`
+- Verifying form field updates after voice input
+- Capturing screenshots of calculation results
+- Testing responsive design across viewports
+- Debugging browser console errors
+
+**Workflow**: Always use `browser_snapshot` first to understand page structure, then use action tools (click, type, etc.) as needed.
 
 ### Tax Data Storage (Database-Backed)
 
