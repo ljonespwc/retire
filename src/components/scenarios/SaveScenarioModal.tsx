@@ -6,7 +6,7 @@
  * Modal for saving current retirement plan with a custom name.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { saveScenario } from '@/lib/supabase/queries'
@@ -19,6 +19,7 @@ interface SaveScenarioModalProps {
   formData: FormData
   calculationResults: CalculationResults | null
   isDarkMode?: boolean
+  defaultName?: string
 }
 
 export function SaveScenarioModal({
@@ -27,11 +28,19 @@ export function SaveScenarioModal({
   formData,
   calculationResults,
   isDarkMode = false,
+  defaultName,
 }: SaveScenarioModalProps) {
-  const [scenarioName, setScenarioName] = useState(getDefaultScenarioName())
+  const [scenarioName, setScenarioName] = useState(defaultName || getDefaultScenarioName())
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Update scenario name when defaultName changes and modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setScenarioName(defaultName || getDefaultScenarioName())
+    }
+  }, [isOpen, defaultName])
 
   if (!isOpen) return null
 

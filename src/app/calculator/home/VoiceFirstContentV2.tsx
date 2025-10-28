@@ -23,8 +23,13 @@ import { CalculationDisclosure } from '@/components/results/CalculationDisclosur
 import { RetirementNarrative } from '@/components/results/RetirementNarrative'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
-import { ScenarioGeneratorButtons } from '@/components/scenarios/ScenarioGeneratorButtons'
+import { ScenarioModal } from '@/components/results/ScenarioModal'
+import { ScenarioComparison } from '@/components/results/ScenarioComparison'
+import { createFrontLoadVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
+import { createClient } from '@/lib/supabase/client'
+import { calculateRetirementProjection } from '@/lib/calculations/engine'
+import { Scenario } from '@/types/calculator'
 import confetti from 'canvas-confetti'
 
 interface Message {
@@ -161,6 +166,14 @@ export function VoiceFirstContentV2() {
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
   const [loadedScenarioName, setLoadedScenarioName] = useState<string | null>(null)
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
+
+  // What-if scenario state
+  const [showScenarioModal, setShowScenarioModal] = useState(false)
+  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early'>('front_load')
+  const [variantScenario, setVariantScenario] = useState<Scenario | null>(null)
+  const [variantResults, setVariantResults] = useState<CalculationResults | null>(null)
+  const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
+  const [savingVariant, setSavingVariant] = useState(false) // Track if we're saving variant vs baseline
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
@@ -586,6 +599,174 @@ export function VoiceFirstContentV2() {
     console.log(`✅ Loaded scenario: ${scenarioName}`)
   }
 
+  // Create scenario from current form data
+  const createScenarioFromFormData = (): Scenario => {
+    const defaultPreRetirementReturn = (investmentReturn || 6) / 100
+
+    // Build assets with contributions
+    const assets: any = {}
+
+    if (rrsp) {
+      assets.rrsp = {
+        balance: rrsp,
+        annual_contribution: (rrspContribution || 0) * 12,
+        rate_of_return: defaultPreRetirementReturn
+      }
+    }
+
+    if (tfsa) {
+      assets.tfsa = {
+        balance: tfsa,
+        annual_contribution: (tfsaContribution || 0) * 12,
+        rate_of_return: defaultPreRetirementReturn
+      }
+    }
+
+    if (nonRegistered) {
+      assets.non_registered = {
+        balance: nonRegistered,
+        annual_contribution: (nonRegisteredContribution || 0) * 12,
+        rate_of_return: defaultPreRetirementReturn,
+        cost_base: nonRegistered * 0.7
+      }
+    }
+
+    // Build income sources
+    const income_sources: any = {}
+
+    if (currentIncome && currentIncome > 0) {
+      income_sources.employment = {
+        annual_amount: currentIncome,
+        until_age: retirementAge || 65
+      }
+    }
+
+    if (cppStartAge) {
+      income_sources.cpp = {
+        start_age: cppStartAge,
+        monthly_amount_at_65: 1364.60
+      }
+    }
+
+    income_sources.oas = {
+      start_age: 65,
+      monthly_amount: 713.34
+    }
+
+    const otherIncomeItems = []
+    if (pensionIncome && pensionIncome > 0) {
+      otherIncomeItems.push({
+        description: 'Pension Income',
+        annual_amount: pensionIncome * 12,
+        start_age: retirementAge || 65,
+        indexed_to_inflation: true
+      })
+    }
+
+    if (otherIncome && otherIncome > 0) {
+      otherIncomeItems.push({
+        description: 'Other Income',
+        annual_amount: otherIncome * 12,
+        start_age: retirementAge || 65,
+        indexed_to_inflation: true
+      })
+    }
+
+    if (otherIncomeItems.length > 0) {
+      income_sources.other_income = otherIncomeItems
+    }
+
+    return {
+      name: loadedScenarioName || 'Current Plan',
+      basic_inputs: {
+        current_age: currentAge || 0,
+        retirement_age: retirementAge || 65,
+        longevity_age: longevityAge || 95,
+        province: province || Province.ON
+      },
+      assets,
+      income_sources,
+      expenses: {
+        fixed_monthly: monthlySpending || 0,
+        indexed_to_inflation: true
+      },
+      assumptions: {
+        pre_retirement_return: defaultPreRetirementReturn,
+        post_retirement_return: (postRetirementReturn || 4) / 100,
+        inflation_rate: (inflationRate || 2) / 100
+      }
+    }
+  }
+
+  // Handle scenario button click
+  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early') => {
+    setSelectedScenarioType(scenarioType)
+    setShowScenarioModal(true)
+  }
+
+  // Handle running scenario calculation
+  const handleRunScenario = async () => {
+    if (!monthlySpending || !retirementAge) return
+
+    setIsCalculatingVariant(true)
+    try {
+      // Create variant scenario from current form data
+      const baseScenario = createScenarioFromFormData()
+      const variant = createFrontLoadVariant(baseScenario)
+      setVariantScenario(variant)
+
+      // Run calculation
+      const supabase = createClient()
+      const results = await calculateRetirementProjection(supabase, variant)
+      setVariantResults(results)
+    } catch (error) {
+      console.error('Variant calculation failed:', error)
+    } finally {
+      setIsCalculatingVariant(false)
+    }
+  }
+
+  // Handle resetting to baseline
+  const handleResetVariant = () => {
+    setVariantScenario(null)
+    setVariantResults(null)
+  }
+
+  // Convert Scenario to FormData format
+  const scenarioToFormData = (scenario: Scenario): FormData => {
+    // Extract other income sources once to avoid repeated lookups
+    const pension = scenario.income_sources.other_income?.find(i => i.description === 'Pension Income')
+    const other = scenario.income_sources.other_income?.find(i => i.description === 'Other Income')
+
+    return {
+      currentAge: scenario.basic_inputs.current_age,
+      retirementAge: scenario.basic_inputs.retirement_age,
+      longevityAge: scenario.basic_inputs.longevity_age,
+      province: scenario.basic_inputs.province,
+      currentIncome: scenario.income_sources.employment?.annual_amount || 0,
+      rrspAmount: scenario.assets.rrsp?.balance || 0,
+      rrspContribution: scenario.assets.rrsp?.annual_contribution ? scenario.assets.rrsp.annual_contribution / 12 : 0,
+      tfsaAmount: scenario.assets.tfsa?.balance || 0,
+      tfsaContribution: scenario.assets.tfsa?.annual_contribution ? scenario.assets.tfsa.annual_contribution / 12 : 0,
+      nonRegisteredAmount: scenario.assets.non_registered?.balance || 0,
+      nonRegisteredContribution: scenario.assets.non_registered?.annual_contribution ? scenario.assets.non_registered.annual_contribution / 12 : 0,
+      monthlySpending: scenario.expenses.fixed_monthly,
+      pensionIncome: pension?.annual_amount ? pension.annual_amount / 12 : 0,
+      otherIncome: other?.annual_amount ? other.annual_amount / 12 : 0,
+      cppStartAge: scenario.income_sources.cpp?.start_age || 65,
+      investmentReturn: scenario.assumptions.pre_retirement_return * 100,
+      postRetirementReturn: scenario.assumptions.post_retirement_return * 100,
+      inflationRate: scenario.assumptions.inflation_rate * 100,
+    }
+  }
+
+  // Handle saving variant scenario
+  const handleSaveVariant = () => {
+    if (!variantScenario || !variantResults) return
+    setSavingVariant(true)
+    setShowScenarioSaveModal(true)
+  }
+
   return (
     <div className={`min-h-screen ${theme.background}`}>
       {/* Header with Theme Toggle */}
@@ -934,45 +1115,86 @@ export function VoiceFirstContentV2() {
           <div ref={resultsRef} className="w-full" style={{ marginTop: '128px' }}>
             <div className="text-center mb-8">
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
-              <Button
-                onClick={() => {
-                  console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
-                  // Show appropriate modal based on user type
-                  if (isAnonymous) {
-                    console.log('💾 Opening SaveWithAccountModal (anonymous user)')
-                    setShowSaveWithAccountModal(true)
-                  } else {
-                    console.log('💾 Opening SaveScenarioModal (authenticated user)')
-                    setShowScenarioSaveModal(true)
-                  }
-                }}
-                className={`${theme.button.primary} text-white px-6 py-3 rounded-xl font-medium shadow-lg`}
-              >
-                <Save className="w-5 h-5 mr-2" />
-                Save Scenario
-              </Button>
+
+              {/* What-If Scenarios Buttons */}
+              <div className={`${theme.card} rounded-lg border p-6 max-w-3xl mx-auto`}>
+                <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4`}>
+                  Try What-If Scenarios
+                </h3>
+                <button
+                  onClick={() => handleScenarioClick('front_load')}
+                  disabled={variantScenario?.name === 'Front-Load the Fun'}
+                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                    variantScenario?.name === 'Front-Load the Fun'
+                      ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+                      : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">🎯</span>
+                    <div className="flex-1">
+                      <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                        Front-Load the Fun
+                      </div>
+                      <p className={`text-sm ${theme.text.secondary}`}>
+                        Spend more early, scale back later
+                      </p>
+                    </div>
+                    {variantScenario?.name === 'Front-Load the Fun' && (
+                      <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
+                    )}
+                  </div>
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
-              <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
-              <div className="lg:col-span-2">
+
+            {/* Baseline Results (shown only when NO variant active) */}
+            {!variantScenario && (
+              <div className="space-y-6 lg:space-y-8">
+                <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
                 <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
-              </div>
-
-              {/* AI-Generated Narrative */}
-              <div className="lg:col-span-2">
-                <RetirementNarrative results={calculationResults} isDarkMode={isDarkMode} />
-              </div>
-
-              <div className="lg:col-span-2">
                 <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
-              </div>
+                <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
+                <RetirementNarrative results={calculationResults} isDarkMode={isDarkMode} />
 
-              {/* Scenario Generator Buttons */}
-              <div className="lg:col-span-2">
-                <ScenarioGeneratorButtons isDarkMode={isDarkMode} />
+                {/* Save Button */}
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={() => {
+                      console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
+                      // Show appropriate modal based on user type
+                      if (isAnonymous) {
+                        console.log('💾 Opening SaveWithAccountModal (anonymous user)')
+                        setShowSaveWithAccountModal(true)
+                      } else {
+                        console.log('💾 Opening SaveScenarioModal (authenticated user)')
+                        setShowScenarioSaveModal(true)
+                      }
+                    }}
+                    className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+                      isDarkMode
+                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                        : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+                    }`}
+                  >
+                    Save This Scenario
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Scenario Comparison Tabs (shown when variant exists) */}
+            {variantScenario && variantResults && (
+              <ScenarioComparison
+                baselineScenario={createScenarioFromFormData()}
+                baselineResults={calculationResults}
+                variantScenario={variantScenario}
+                variantResults={variantResults}
+                isDarkMode={isDarkMode}
+                onSave={handleSaveVariant}
+                onReset={handleResetVariant}
+              />
+            )}
 
             {/* Calculation Disclosure */}
             <CalculationDisclosure isDark={isDarkMode} />
@@ -991,10 +1213,14 @@ export function VoiceFirstContentV2() {
       {/* Save Scenario Modal (for authenticated users) */}
       <SaveScenarioModal
         isOpen={showScenarioSaveModal}
-        onClose={() => setShowScenarioSaveModal(false)}
-        formData={getCurrentFormData()}
-        calculationResults={calculationResults}
+        onClose={() => {
+          setShowScenarioSaveModal(false)
+          setSavingVariant(false)
+        }}
+        formData={savingVariant && variantScenario ? scenarioToFormData(variantScenario) : getCurrentFormData()}
+        calculationResults={savingVariant && variantResults ? variantResults : calculationResults}
         isDarkMode={isDarkMode}
+        defaultName={savingVariant && variantScenario ? variantScenario.name : undefined}
       />
 
       {/* Login Modal */}
@@ -1017,6 +1243,17 @@ export function VoiceFirstContentV2() {
           isDarkMode={isDarkMode}
         />
       )}
+
+      {/* Scenario Modal */}
+      <ScenarioModal
+        isOpen={showScenarioModal}
+        onClose={() => setShowScenarioModal(false)}
+        scenarioType={selectedScenarioType}
+        baselineMonthly={monthlySpending || 0}
+        retirementAge={retirementAge || 65}
+        isDarkMode={isDarkMode}
+        onRun={handleRunScenario}
+      />
     </div>
   )
 }

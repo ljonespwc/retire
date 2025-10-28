@@ -353,6 +353,127 @@ interface Expenses {
 
 ## UI/UX Design
 
+### Modal UI Design
+
+**Purpose**: Interactive dialog that explains the scenario, shows quick preview, and allows user to run the calculation.
+
+**Structure**:
+```
+┌─────────────────────────────────────────────┐
+│ 🎯 Front-Load the Fun              [X]     │
+│─────────────────────────────────────────────│
+│                                              │
+│ What This Does:                             │
+│ Model the "go-go, slow-go, no-go" phases   │
+│ of retirement by adjusting your spending   │
+│ based on age and activity level.           │
+│                                              │
+│ Spending Adjustments:                       │
+│ • Ages 65-75 (Go-Go): +30%                 │
+│   Travel, hobbies, active lifestyle        │
+│                                              │
+│ • Ages 75-85 (Slow-Go): -15%               │
+│   Reduced activity, more home-based        │
+│                                              │
+│ • Ages 85+ (No-Go): -25%                   │
+│   Minimal travel, healthcare focus         │
+│                                              │
+│─────────────────────────────────────────────│
+│ Quick Estimate:                             │
+│ Extra spending in go-go years: ~$156,000   │
+│ Portfolio impact: Depletes ~2 years earlier│
+│─────────────────────────────────────────────│
+│                                              │
+│        [ Cancel ]    [ Run Scenario ]       │
+└─────────────────────────────────────────────┘
+```
+
+**Key Features**:
+- **Preset Parameters**: No sliders/customization for MVP (simple UX)
+- **Quick Estimate**: Client-side calculation, no server call needed
+  ```typescript
+  const goGoYears = 10; // Ages 65-75
+  const baselineAnnual = baselineMonthly * 12;
+  const extraPerYear = (baselineAnnual * 0.30);
+  const totalExtra = extraPerYear * goGoYears;
+  // Display: "Extra spending in go-go years: ~$156,000"
+  ```
+- **Theme-Aware**: Matches light/dark mode of results page
+- **Keyboard Accessible**: ESC to close, TAB navigation, focus trap
+- **Mobile Responsive**: Full-screen on mobile, dialog on desktop
+
+**Future Enhancement** (Phase 2+):
+- Add sliders for custom percentages
+- Allow age range customization
+- Show interactive preview chart
+
+---
+
+### Results Display Approach
+
+**Location**: New section appears **below** existing baseline results
+
+**Layout Strategy**:
+```
+┌─────────────────────────────────────────┐
+│  Portfolio Balance Over Time (Baseline) │
+│  [Chart showing baseline projection]    │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│  Income Sources Over Time (Baseline)    │
+│  [Chart showing baseline income]        │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│  Tax Summary (Baseline)                 │
+│  [Tax metrics for baseline]             │
+└─────────────────────────────────────────┘
+
+────────────────────────────────────────────
+🎯 NEW: Scenario Comparison Section
+────────────────────────────────────────────
+
+┌─────────────────────────────────────────┐
+│ Scenario: Front-Load the Fun            │
+│                                          │
+│ Key Differences vs Baseline:            │
+│ ┌──────────────────┬─────────────────┐ │
+│ │ Baseline         │ Front-Load Fun  │ │
+│ ├──────────────────┼─────────────────┤ │
+│ │ $5,000/mo        │ $6,500 (65-75)  │ │
+│ │ (all years)      │ $4,250 (75-85)  │ │
+│ │                  │ $3,750 (85+)    │ │
+│ ├──────────────────┼─────────────────┤ │
+│ │ Depletion: None  │ Depletion: 93   │ │
+│ ├──────────────────┼─────────────────┤ │
+│ │ End: $1.25M      │ End: $45K       │ │
+│ └──────────────────┴─────────────────┘ │
+│                                          │
+│ Portfolio Balance (Variant)              │
+│ [Mini chart showing variant projection]  │
+│                                          │
+│ 💡 Insight: +$156K extra in go-go years│
+│                                          │
+│ [ Save This Scenario ]  [ Try Another ] │
+│ [ Reset to Baseline ]                    │
+└─────────────────────────────────────────┘
+```
+
+**Why Below (Not Replace)**:
+- Preserves baseline context for easy comparison
+- User can scroll up to see baseline, down to see variant
+- Less jarring than replacing content
+- Mobile-friendly (vertical scroll natural)
+
+**Comparison Highlights**:
+- Bold/colored text for differences
+- Green for benefits (more spending), yellow for trade-offs (earlier depletion)
+- Compact metrics table (not full duplicate charts)
+- Single mini chart (balance only, not all 3 charts)
+
+---
+
 ### Button Layout (Below Charts)
 
 ```
