@@ -122,13 +122,15 @@ function WarmDataField({
 }
 
 // Help Sidebar - contextual tips based on focused field
-function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadScenario, planningStarted }: {
+function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadScenario, planningStarted, calculationResults, isMandatoryFieldsComplete }: {
   focusedField: string | null
   isDarkMode: boolean
   theme: any
   onStartPlanning: () => void
   onLoadScenario: (formData: FormData, scenarioName: string) => void
   planningStarted: boolean
+  calculationResults: CalculationResults | null
+  isMandatoryFieldsComplete: () => boolean
 }) {
   const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : null
 
@@ -185,6 +187,32 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
                 </p>
               ))}
             </div>
+          </div>
+        ) : calculationResults ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">📊</span>
+              <h3 className={`text-xl font-bold ${theme.text.primary}`}>Your Results</h3>
+            </div>
+            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+              Your retirement projection is ready! Scroll down to see your year-by-year breakdown, portfolio balance, income sources, and tax impact.
+            </p>
+            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+              Want to explore what-if scenarios? Try different spending patterns or retirement ages to see how they affect your plan.
+            </p>
+          </div>
+        ) : isMandatoryFieldsComplete() ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">✅</span>
+              <h3 className={`text-xl font-bold ${theme.text.primary}`}>Ready to Calculate</h3>
+            </div>
+            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+              All required fields are complete! Click the <strong>Calculate</strong> button to see your personalized retirement projection.
+            </p>
+            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+              You can add more details (like RRSP contributions or pension income) to get a more accurate projection, or calculate now and refine later.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -598,21 +626,21 @@ export function VoiceFirstContentV2() {
     if (rrsp) {
       assets.rrsp = {
         balance: rrsp,
-        annual_contribution: (rrspContribution || 0) * 12,
+        annual_contribution: rrspContribution || 0,
         rate_of_return: defaultPreRetirementReturn
       }
     }
     if (tfsa) {
       assets.tfsa = {
         balance: tfsa,
-        annual_contribution: (tfsaContribution || 0) * 12,
+        annual_contribution: tfsaContribution || 0,
         rate_of_return: defaultPreRetirementReturn
       }
     }
     if (nonRegistered) {
       assets.non_registered = {
         balance: nonRegistered,
-        annual_contribution: (nonRegisteredContribution || 0) * 12,
+        annual_contribution: nonRegisteredContribution || 0,
         rate_of_return: defaultPreRetirementReturn,
         cost_base: nonRegistered * 0.7
       }
@@ -640,7 +668,7 @@ export function VoiceFirstContentV2() {
     if (pensionIncome && pensionIncome > 0) {
       otherIncomeItems.push({
         description: 'Pension Income',
-        annual_amount: pensionIncome * 12,
+        annual_amount: pensionIncome,
         start_age: retirementAge || 65,
         indexed_to_inflation: true
       })
@@ -648,7 +676,7 @@ export function VoiceFirstContentV2() {
     if (otherIncome && otherIncome > 0) {
       otherIncomeItems.push({
         description: 'Other Income',
-        annual_amount: otherIncome * 12,
+        annual_amount: otherIncome,
         start_age: retirementAge || 65,
         indexed_to_inflation: true
       })
@@ -722,18 +750,18 @@ export function VoiceFirstContentV2() {
       province: scenario.basic_inputs.province,
       currentIncome: scenario.income_sources.employment?.annual_amount || 0,
       rrspAmount: scenario.assets.rrsp?.balance || 0,
-      rrspContribution: scenario.assets.rrsp?.annual_contribution ? scenario.assets.rrsp.annual_contribution / 12 : 0,
+      rrspContribution: scenario.assets.rrsp?.annual_contribution || 0,
       tfsaAmount: scenario.assets.tfsa?.balance || 0,
-      tfsaContribution: scenario.assets.tfsa?.annual_contribution ? scenario.assets.tfsa.annual_contribution / 12 : 0,
+      tfsaContribution: scenario.assets.tfsa?.annual_contribution || 0,
       nonRegisteredAmount: scenario.assets.non_registered?.balance || 0,
-      nonRegisteredContribution: scenario.assets.non_registered?.annual_contribution ? scenario.assets.non_registered.annual_contribution / 12 : 0,
+      nonRegisteredContribution: scenario.assets.non_registered?.annual_contribution || 0,
       monthlySpending: scenario.expenses.fixed_monthly,
-      pensionIncome: pension?.annual_amount ? pension.annual_amount / 12 : 0,
-      otherIncome: other?.annual_amount ? other.annual_amount / 12 : 0,
+      pensionIncome: pension?.annual_amount || 0,
+      otherIncome: other?.annual_amount || 0,
       cppStartAge: scenario.income_sources.cpp?.start_age || 65,
-      investmentReturn: scenario.assumptions.pre_retirement_return * 100,
-      postRetirementReturn: scenario.assumptions.post_retirement_return * 100,
-      inflationRate: scenario.assumptions.inflation_rate * 100,
+      investmentReturn: Math.round((scenario.assumptions.pre_retirement_return * 100) * 100) / 100,
+      postRetirementReturn: Math.round((scenario.assumptions.post_retirement_return * 100) * 100) / 100,
+      inflationRate: Math.round((scenario.assumptions.inflation_rate * 100) * 100) / 100,
     }
   }
 
@@ -868,6 +896,8 @@ export function VoiceFirstContentV2() {
               onStartPlanning={handleStartPlanning}
               onLoadScenario={handleLoadScenario}
               planningStarted={planningStarted}
+              calculationResults={calculationResults}
+              isMandatoryFieldsComplete={isMandatoryFieldsComplete}
             />
           </div>
 
@@ -887,6 +917,9 @@ export function VoiceFirstContentV2() {
                         if (!editMode) {
                           // Entering edit mode - hide results display to avoid stale data errors
                           setShowResults(false)
+                        } else {
+                          // Exiting edit mode - clear focused field to show contextual help
+                          setFocusedField(null)
                         }
                         setEditMode(!editMode)
                         setJustCalculated(false)
@@ -983,7 +1016,7 @@ export function VoiceFirstContentV2() {
                       🏖️ In Retirement
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="Monthly Spending (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('monthlySpending')} />
+                      <WarmDataField label="Desired Monthly Income (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('monthlySpending')} />
                       <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('pensionIncome')} />
                       <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('otherIncome')} />
                       <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('cppStartAge')} />
