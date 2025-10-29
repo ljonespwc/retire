@@ -11,10 +11,11 @@ import { FileText, Loader2, ChevronDown, X, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getScenarios, deleteScenario } from '@/lib/supabase/queries'
 import { scenarioToFormData, type FormData } from '@/lib/scenarios/scenario-mapper'
+import { getVariantMetadata, type VariantMetadata } from '@/lib/scenarios/variant-metadata'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface LoadScenarioDropdownProps {
-  onLoad: (formData: FormData, scenarioName: string) => void
+  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => void
   isDarkMode?: boolean
 }
 
@@ -109,7 +110,10 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         assumptions: scenario.inputs.assumptions,
       })
 
-      onLoad(formData, scenario.name)
+      // Extract variant metadata if present
+      const variantMetadata = getVariantMetadata(scenario.inputs)
+
+      onLoad(formData, scenario.name, variantMetadata || undefined)
       setIsOpen(false)
     } catch (err) {
       console.error('Error loading scenario:', err)

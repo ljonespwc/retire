@@ -333,6 +333,36 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
+**2025-10-29**: Variant Regeneration Bug Fix - CRITICAL
+- **Problem**: Saved variants (e.g., "Front-Load the Fun") showed different results when reloaded and recalculated
+  - Original variant: $18.1M ending balance, TWO distinct spending dips at ages 71 and 81
+  - Regenerated variant: $22.5M ending balance, ONE large dip at 71, hump UP at 81
+- **Root Cause**: `handleCalculate()` in VoiceFirstContentV2.tsx was missing `indexed_to_inflation: true` in expenses object
+  - Original variant (via `createScenarioFromFormData`): Had `indexed_to_inflation: true` ✓
+  - Regenerated variant (via `handleCalculate`): Missing this field, defaulted to false ✗
+  - Impact: Without inflation indexing, spending stayed flat in nominal terms instead of growing with 2% inflation
+  - This caused artificially lower real spending over time → higher ending balance + incorrect chart shape
+- **Fix**: Added `indexed_to_inflation: true` to expenses in `handleCalculate()` (line 509)
+- **Files Modified**:
+  - `/src/app/calculator/home/VoiceFirstContentV2.tsx` - Added missing inflation flag
+- **Testing**: Created debug test suite (`variant-debug.test.ts`) to verify identical baselines produce identical results
+- **Key Insight**: When creating scenarios programmatically (like in `handleCalculate`), must match ALL fields from `createScenarioFromFormData`, not just the obvious ones. Small differences in baseline scenario lead to massive differences in 30-year projections.
+- **Variant Metadata System**:
+  - Variants saved with `__metadata.variant_type` field in Supabase JSONB
+  - On load, metadata detected and variant regenerated from current baseline
+  - This makes variants "live" - they update if you change baseline values
+  - Located in `/src/lib/scenarios/variant-metadata.ts`
+- **What-If Button Logic for Saved Variants**:
+  - When variant metadata exists (purple badge displayed), ALL what-if buttons are disabled
+  - Rationale: Prevents variant stacking (applying what-ifs to former what-ifs) which creates complex conflicts
+  - Examples of conflicts: Front-Load has age-based changes at 61/71/81, but Retire Earlier changes retirement to 58
+  - UI feedback: Badge shows "What-if scenarios not available for saved variants"
+  - Implementation: `disabled={!!loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'}`
+  - When tabbed interface is active, buttons are disabled only if matching variant tab already exists
+  - This allows multiple different variants open simultaneously (e.g., Front-Load + Delay CPP tabs)
+- **Status**: ✅ Fixed and verified
+- **Build Status**: ✅ Production build passes
+
 **2025-10-28**: Voice Infrastructure Removal
 - **Removed**: All voice/LLM/Layercode infrastructure (15+ files, 7 npm packages)
 - **Refactored**: VoiceFirstContentV2.tsx to form-first UI with contextual help sidebar

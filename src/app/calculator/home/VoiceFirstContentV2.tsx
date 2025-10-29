@@ -29,6 +29,7 @@ import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
 import { createFrontLoadVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
+import { regenerateVariant, getVariantDisplayName, type VariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
@@ -157,7 +158,7 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
   isDarkMode: boolean
   theme: any
   onStartPlanning: () => void
-  onLoadScenario: (formData: FormData, scenarioName: string) => void
+  onLoadScenario: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => void
   planningStarted: boolean
   calculationResults: CalculationResults | null
   isMandatoryFieldsComplete: () => boolean
@@ -303,6 +304,7 @@ export function VoiceFirstContentV2() {
   const [savingVariant, setSavingVariant] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
+  const [loadedVariantMetadata, setLoadedVariantMetadata] = useState<VariantMetadata | null>(null)
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -458,7 +460,7 @@ export function VoiceFirstContentV2() {
     fireConfetti()
 
     try {
-      const scenario = {
+      let scenario: any = {
         id: scenarioId || 'temp-id',
         user_id: user?.id || '00000000-0000-0000-0000-000000000000',
         name: `Retirement Plan ${new Date().toLocaleDateString()}`,
@@ -479,8 +481,14 @@ export function VoiceFirstContentV2() {
           } : undefined
         },
         income_sources: {
+          ...(currentIncome && currentIncome > 0 ? {
+            employment: {
+              annual_amount: currentIncome,
+              until_age: retirementAge || 65
+            }
+          } : {}),
           cpp: { start_age: cppStartAge || 65, monthly_amount_at_65: 1364.60 },
-          oas: { start_age: 65, monthly_amount: 718.33 },
+          oas: { start_age: 65, monthly_amount: 713.34 },
           other_income: [
             ...(pensionIncome ? [{
               description: 'Pension',
@@ -498,6 +506,7 @@ export function VoiceFirstContentV2() {
         },
         expenses: {
           fixed_monthly: monthlySpending || 4000,
+          indexed_to_inflation: true,
           age_based_changes: []
         },
         assumptions: {
@@ -508,6 +517,15 @@ export function VoiceFirstContentV2() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
+
+      // If loaded variant metadata exists, regenerate the variant
+      if (loadedVariantMetadata) {
+        console.log(`🔄 Regenerating variant: ${loadedVariantMetadata.variant_type}`)
+        scenario = regenerateVariant(scenario, loadedVariantMetadata.variant_type, loadedVariantMetadata.variant_config)
+        console.log('✅ Variant regenerated:', scenario.name)
+      }
+
+      console.log('📤 Sending calculation request for:', scenario.name)
 
       const response = await fetch('/api/calculate', {
         method: 'POST',
@@ -559,7 +577,7 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle loading a saved scenario
-  const handleLoadScenario = (formData: FormData, scenarioName: string) => {
+  const handleLoadScenario = (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => {
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
     setLongevityAge(formData.longevityAge)
@@ -584,7 +602,14 @@ export function VoiceFirstContentV2() {
     setPlanningStarted(true)
     setEditMode(false)
 
-    console.log(`✅ Loaded scenario: ${scenarioName}`)
+    // Store variant metadata if present
+    if (variantMetadata) {
+      setLoadedVariantMetadata(variantMetadata)
+      console.log(`✅ Loaded variant scenario: ${scenarioName} (type: ${variantMetadata.variant_type})`)
+    } else {
+      setLoadedVariantMetadata(null)
+      console.log(`✅ Loaded scenario: ${scenarioName}`)
+    }
   }
 
   // Handle login success
@@ -613,9 +638,10 @@ export function VoiceFirstContentV2() {
     // Close modal
     setShowRecalculateConfirmModal(false)
 
-    // Clear variant state
+    // Clear variant state and loaded variant metadata
     setVariantScenario(null)
     setVariantResults(null)
+    setLoadedVariantMetadata(null)
 
     // Proceed with calculation (handleCalculate will be called again without variant active)
     setTimeout(() => {
@@ -728,6 +754,8 @@ export function VoiceFirstContentV2() {
       const baseScenario = createScenarioFromFormData()
       const variant = createFrontLoadVariant(baseScenario)
       setVariantScenario(variant)
+      // Clear loaded variant metadata (user is creating a NEW variant via what-if button)
+      setLoadedVariantMetadata(null)
 
       const supabase = createClient()
       const results = await calculateRetirementProjection(supabase, variant)
@@ -923,6 +951,8 @@ export function VoiceFirstContentV2() {
                         if (!editMode) {
                           // Entering edit mode - hide results display to avoid stale data errors
                           setShowResults(false)
+                          // Clear loaded variant metadata when editing (user is now modifying baseline)
+                          setLoadedVariantMetadata(null)
                         } else {
                           // Exiting edit mode - clear focused field to show contextual help
                           setFocusedField(null)
@@ -1085,9 +1115,9 @@ export function VoiceFirstContentV2() {
                 </h3>
                 <button
                   onClick={() => handleScenarioClick('front_load')}
-                  disabled={variantScenario?.name === 'Front-Load the Fun'}
+                  disabled={!!loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'}
                   className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                    variantScenario?.name === 'Front-Load the Fun'
+                    loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'
                       ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
                       : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
                   }`}
@@ -1113,7 +1143,12 @@ export function VoiceFirstContentV2() {
             {/* Baseline Results (shown only when NO variant active) */}
             {!variantScenario && (
               <div className="space-y-6 lg:space-y-8">
-                <ResultsSummary results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
+                <ResultsSummary
+                  results={calculationResults}
+                  retirementAge={retirementAge || 65}
+                  isDarkMode={isDarkMode}
+                  variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
+                />
                 <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
                 <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
                 <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
@@ -1181,6 +1216,8 @@ export function VoiceFirstContentV2() {
         calculationResults={savingVariant && variantResults ? variantResults : calculationResults}
         isDarkMode={isDarkMode}
         defaultName={savingVariant && variantScenario ? variantScenario.name : undefined}
+        variantType={savingVariant && variantScenario ? 'front-load' : loadedVariantMetadata?.variant_type}
+        variantConfig={loadedVariantMetadata?.variant_config}
       />
 
       <LoginModal

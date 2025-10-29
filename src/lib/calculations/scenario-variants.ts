@@ -23,15 +23,15 @@ export function createFrontLoadVariant(baseScenario: Scenario): Scenario {
       age_based_changes: [
         {
           age: retirementAge, // Go-go years start
-          monthly_amount: baseline * 1.30 // +30%
+          monthly_amount: baseline * 1.30 // +30% of current baseline
         },
         {
           age: retirementAge + 10, // Slow-go years start
-          monthly_amount: baseline * 0.85 // -15%
+          monthly_amount: baseline * 0.85 // -15% of baseline
         },
         {
           age: retirementAge + 20, // No-go years start
-          monthly_amount: baseline * 0.75 // -25%
+          monthly_amount: baseline * 0.75 // -25% of baseline
         }
       ]
     }

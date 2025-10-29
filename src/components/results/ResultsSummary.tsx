@@ -17,9 +17,10 @@ interface ResultsSummaryProps {
 
 interface ExtendedResultsSummaryProps extends ResultsSummaryProps {
   isDarkMode?: boolean
+  variantName?: string // Optional variant name to display indicator
 }
 
-export function ResultsSummary({ results, retirementAge, isDarkMode = false }: ExtendedResultsSummaryProps) {
+export function ResultsSummary({ results, retirementAge, isDarkMode = false, variantName }: ExtendedResultsSummaryProps) {
   const summary = formatSummary(results, retirementAge)
 
   // Calculate additional helpful metrics
@@ -78,9 +79,22 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false }: E
 
       {/* Success Indicator */}
       <div className={`${config.bg} ${config.border} border rounded-lg p-4`}>
-        <div className={`flex items-center gap-3 ${config.text}`}>
-          <div className="text-2xl">{config.icon}</div>
-          <div className="font-medium">{config.label}</div>
+        <div className={`flex items-center justify-between ${config.text}`}>
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">{config.icon}</div>
+            <div className="font-medium">{config.label}</div>
+          </div>
+          {/* Variant Indicator Badge */}
+          {variantName && (
+            <div className="flex flex-col items-end gap-1">
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-purple-900/50 border border-purple-700 text-purple-300' : 'bg-purple-100 border border-purple-300 text-purple-700'}`}>
+                Variant: {variantName}
+              </div>
+              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} italic`}>
+                What-if scenarios not available for saved variants
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

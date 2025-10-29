@@ -11,6 +11,7 @@ import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { saveScenario } from '@/lib/supabase/queries'
 import { formDataToScenario, getDefaultScenarioName, type FormData } from '@/lib/scenarios/scenario-mapper'
+import { addVariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
 import { CalculationResults } from '@/types/calculator'
 
 interface SaveScenarioModalProps {
@@ -20,6 +21,9 @@ interface SaveScenarioModalProps {
   calculationResults: CalculationResults | null
   isDarkMode?: boolean
   defaultName?: string
+  variantType?: VariantType // Optional variant metadata
+  variantConfig?: Record<string, any> // Optional variant config
+  baselineId?: string // Optional baseline scenario ID
 }
 
 export function SaveScenarioModal({
@@ -29,6 +33,9 @@ export function SaveScenarioModal({
   calculationResults,
   isDarkMode = false,
   defaultName,
+  variantType,
+  variantConfig,
+  baselineId,
 }: SaveScenarioModalProps) {
   const [scenarioName, setScenarioName] = useState(defaultName || getDefaultScenarioName())
   const [isSaving, setIsSaving] = useState(false)
@@ -71,16 +78,24 @@ export function SaveScenarioModal({
       // Convert form data to scenario structure
       const scenario = formDataToScenario(formData, scenarioName)
 
+      // Prepare inputs object
+      let inputs: any = {
+        basic_inputs: scenario.basic_inputs,
+        assets: scenario.assets,
+        income_sources: scenario.income_sources,
+        expenses: scenario.expenses,
+        assumptions: scenario.assumptions,
+      }
+
+      // Add variant metadata if this is a variant scenario
+      if (variantType) {
+        inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId)
+      }
+
       // Save to database
       const { data, error: saveError } = await saveScenario(client, {
         name: scenario.name,
-        inputs: {
-          basic_inputs: scenario.basic_inputs,
-          assets: scenario.assets,
-          income_sources: scenario.income_sources,
-          expenses: scenario.expenses,
-          assumptions: scenario.assumptions,
-        } as any,
+        inputs,
         results: calculationResults as any,
         source: 'manual',  // Manually saved by user
       })

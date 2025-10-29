@@ -32,20 +32,7 @@ export async function POST(request: NextRequest) {
     // Run calculation
     const results = await calculateRetirementProjection(supabase, scenario)
 
-    const firstRetirementYear = results.year_by_year.find(
-      y => y.age >= scenario.basic_inputs.retirement_age
-    )
-    const monthlyAfterTax = firstRetirementYear
-      ? (firstRetirementYear.income.total - firstRetirementYear.tax.total) / 12
-      : 0
-
-    console.log(`✅ Calculation complete. Monthly after-tax income: $${monthlyAfterTax.toFixed(2)}`)
-    console.log(`📊 Results structure:`, {
-      totalYears: results.year_by_year.length,
-      firstYear: results.year_by_year[0],
-      retirementYear: firstRetirementYear,
-      lastYear: results.year_by_year[results.year_by_year.length - 1]
-    })
+    console.log(`✅ Calculation complete for ${scenario.name}`)
 
     return NextResponse.json({
       success: true,
