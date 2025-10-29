@@ -26,6 +26,7 @@ import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
+import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
 import { createFrontLoadVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { createClient } from '@/lib/supabase/client'
@@ -306,6 +307,7 @@ export function VoiceFirstContentV2() {
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showMergeModal, setShowMergeModal] = useState(false)
+  const [showRecalculateConfirmModal, setShowRecalculateConfirmModal] = useState(false)
   const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
   const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
 
@@ -443,6 +445,12 @@ export function VoiceFirstContentV2() {
 
     if (currentAge > 120 || retirementAge > 120 || longevityAge > 120) {
       alert('Ages must be 120 or less')
+      return
+    }
+
+    // Check if variant is active - show confirmation modal instead of calculating
+    if (variantScenario) {
+      setShowRecalculateConfirmModal(true)
       return
     }
 
@@ -599,6 +607,21 @@ export function VoiceFirstContentV2() {
 
   const handleMergeComplete = () => {
     console.log('✅ Merge complete, scenarios should now be visible')
+  }
+
+  const handleConfirmRecalculate = () => {
+    // Close modal
+    setShowRecalculateConfirmModal(false)
+
+    // Clear variant state
+    setVariantScenario(null)
+    setVariantResults(null)
+
+    // Proceed with calculation (handleCalculate will be called again without variant active)
+    setTimeout(() => {
+      const button = document.querySelector('button[data-calculate-button]') as HTMLButtonElement
+      if (button) button.click()
+    }, 100)
   }
 
   // Create scenario from current form data
@@ -1022,6 +1045,7 @@ export function VoiceFirstContentV2() {
                   <Button
                     size="lg"
                     onClick={handleCalculate}
+                    data-calculate-button
                     disabled={isCalculating || !isMandatoryFieldsComplete() || (editMode && !!calculationResults) || justCalculated}
                     className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
@@ -1186,6 +1210,14 @@ export function VoiceFirstContentV2() {
         retirementAge={retirementAge || 65}
         isDarkMode={isDarkMode}
         onRun={handleRunScenario}
+      />
+
+      <RecalculateConfirmModal
+        isOpen={showRecalculateConfirmModal}
+        onClose={() => setShowRecalculateConfirmModal(false)}
+        onConfirm={handleConfirmRecalculate}
+        variantName={variantScenario?.name || 'variant'}
+        isDarkMode={isDarkMode}
       />
 
       {/* Mobile Help Banner (Auto-showing) */}
