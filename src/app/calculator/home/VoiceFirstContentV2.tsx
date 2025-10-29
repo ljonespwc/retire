@@ -5,7 +5,10 @@ import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb } from 'lucide-react'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb, HelpCircle } from 'lucide-react'
+import { HELP_TIPS, DEFAULT_TIP } from '@/lib/calculator/help-tips'
+import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
 import { useAuth } from '@/contexts/AuthContext'
 import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
 import { LoginModal } from '@/components/auth/LoginModal'
@@ -77,6 +80,7 @@ function WarmDataField({
             value={editValue !== undefined ? editValue : value || ''}
             onChange={(e) => onEdit(e.target.value || null)}
             onFocus={onFocus}
+            autoComplete="off"
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
               showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
             } ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
@@ -99,6 +103,7 @@ function WarmDataField({
               }
             }}
             onFocus={onFocus}
+            autoComplete="off"
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
               showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
             } ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
@@ -125,100 +130,7 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
   onLoadScenario: (formData: FormData, scenarioName: string) => void
   planningStarted: boolean
 }) {
-  const tips: Record<string, { title: string; content: string; icon: string }> = {
-    currentAge: {
-      title: "Current Age",
-      icon: "🎂",
-      content: "Your age today. We calculate how many working years remain until retirement.\n\nMost Canadians start serious retirement planning in their 40s-50s, but starting earlier gives your investments more time to compound."
-    },
-    retirementAge: {
-      title: "Retirement Age",
-      icon: "🏖️",
-      content: "When you plan to stop working full-time. The average Canadian retires at 64.\n\nEarlier retirement (55-60) requires more savings. Later retirement (67-70) means more time to save and higher CPP/OAS benefits."
-    },
-    longevityAge: {
-      title: "Life Expectancy",
-      icon: "📅",
-      content: "How long you expect to live. Canadian life expectancy: men 81, women 85.\n\nMost planners use 90-95 to be safe. Planning longer ensures your money lasts—better to have leftovers than run out!"
-    },
-    province: {
-      title: "Province",
-      icon: "📍",
-      content: "Your province determines your tax rates. Each province has different brackets and credits.\n\nLowest taxes: Alberta, SK. Highest: QC, NS, NL. Moving provinces in retirement can affect your after-tax income."
-    },
-    currentIncome: {
-      title: "Current Income",
-      icon: "💵",
-      content: "Your annual employment income before taxes. Median Canadian income: ~$62,000.\n\nUsed to estimate your CPP contributions and future benefit. Higher income = higher CPP (up to max $17,200 at age 65)."
-    },
-    rrsp: {
-      title: "RRSP Balance",
-      icon: "🏦",
-      content: "Registered Retirement Savings Plan. Tax-deferred growth—you pay income tax when you withdraw.\n\n2025 contribution limit: 18% of income (max $31,560). Converts to RRIF at age 71. Typical balance at 65: $200K-500K."
-    },
-    rrspContribution: {
-      title: "RRSP Contributions",
-      icon: "📈",
-      content: "Annual RRSP contributions. Tax-deductible and grow tax-free until withdrawal.\n\nTypical: 5-10% of income. With employer matching, aim for 10-15%. Max $31,560/year (2025). Unused room carries forward."
-    },
-    tfsa: {
-      title: "TFSA Balance",
-      icon: "🌟",
-      content: "Tax-Free Savings Account. Grows tax-free forever. Withdrawals are 100% tax-free—the best account for retirement income!\n\nCumulative limit since 2009: ~$95,000 if you never contributed. No age restrictions."
-    },
-    tfsaContribution: {
-      title: "TFSA Contributions",
-      icon: "💎",
-      content: "Annual TFSA contributions. 2025 limit: $7,000. No tax deduction, but all growth and withdrawals are tax-free.\n\nIdeal for retirement: withdraw TFSA first to minimize taxable income and preserve OAS."
-    },
-    nonRegistered: {
-      title: "Non-Registered",
-      icon: "💼",
-      content: "Taxable investment accounts. You pay capital gains tax (50% inclusion rate) on profits when you sell.\n\nUse these after maxing RRSP/TFSA. More tax-efficient for investments held long-term."
-    },
-    nonRegisteredContribution: {
-      title: "Non-Registered Contributions",
-      icon: "➕",
-      content: "Annual contributions to taxable accounts. No limits, but no tax advantages either.\n\nMax out RRSP ($31,560) and TFSA ($7,000) first for better tax efficiency—that's $38,560/year in tax-sheltered savings."
-    },
-    monthlySpending: {
-      title: "Monthly Spending",
-      icon: "🛒",
-      content: "Your desired monthly spending in retirement (pre-tax). Rule of thumb: 70-80% of pre-retirement income.\n\nMedian Canadian retiree: ~$4,000-5,000/month. We'll calculate taxes and adjust for inflation automatically."
-    },
-    pensionIncome: {
-      title: "Pension Income",
-      icon: "🏢",
-      content: "Annual employer pension. Common for government, education, and union workers.\n\nTypical defined benefit pension: $30K-60K/year. Federal public service avg: ~$45K. Check if yours is indexed to inflation."
-    },
-    otherIncome: {
-      title: "Other Income",
-      icon: "💰",
-      content: "Any other income in retirement: rental properties, part-time work, consulting, dividends from a business.\n\nReduces portfolio withdrawals and can delay CPP/OAS for higher benefits. Include annual amount."
-    },
-    cppStartAge: {
-      title: "CPP Start Age",
-      icon: "🇨🇦",
-      content: "When you'll start Canada Pension Plan. 2025 max at 65: $17,200/year.\n\nStart at 60: 36% reduction ($11,000). Start at 70: 42% increase ($24,400). Break-even around age 74. Most Canadians start at 65."
-    },
-    investmentReturn: {
-      title: "Pre-Retirement Return",
-      icon: "📊",
-      content: "Expected annual return while working (ages 30-65). Historical Canadian stock market: ~6-7%.\n\nConservative (bonds/GICs): 3-4%. Balanced (60/40): 5-6%. Aggressive (stocks): 7-8%. Default: 6%."
-    },
-    postRetirementReturn: {
-      title: "Post-Retirement Return",
-      icon: "🎯",
-      content: "Expected return in retirement. Usually lower (4-5%) as you shift to bonds/GICs for stability and income.\n\nConservative: 3%. Balanced: 4-5%. Still some growth: 5-6%. Default: 4%."
-    },
-    inflationRate: {
-      title: "Inflation Rate",
-      icon: "📉",
-      content: "Expected annual inflation. Canadian long-term average: 2-2.5%. Bank of Canada target: 2%.\n\nYour spending, CPP, and OAS will adjust for inflation. Using 2% is standard for retirement planning. Default: 2%."
-    }
-  }
-
-  const tip = focusedField && tips[focusedField] ? tips[focusedField] : null
+  const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : null
 
   return (
     <Card className={`border-0 shadow-lg rounded-3xl ${theme.card} h-full`}>
@@ -290,6 +202,54 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
   )
 }
 
+// Mobile Help Drawer - floating button with help content
+function HelpDrawerButton({ focusedField, isDarkMode, theme, planningStarted }: {
+  focusedField: string | null
+  isDarkMode: boolean
+  theme: any
+  planningStarted: boolean
+}) {
+  const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : null
+  const displayContent = tip || DEFAULT_TIP
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          className={`fixed bottom-6 right-6 z-50 lg:hidden w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${
+            isDarkMode
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600'
+          }`}
+          aria-label="Open help"
+        >
+          <HelpCircle className="w-7 h-7 text-white" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className={`${theme.card} max-h-[80vh] overflow-y-auto`}>
+        <SheetHeader>
+          <SheetTitle className={theme.text.primary}>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{displayContent.icon}</span>
+              <span>{displayContent.title}</span>
+            </div>
+          </SheetTitle>
+          <SheetDescription className="sr-only">
+            Helpful information about the selected field
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-6 space-y-3">
+          {displayContent.content.split('\n\n').map((paragraph, idx) => (
+            <p key={idx} className={`${theme.text.secondary} text-base leading-relaxed`}>
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 export function VoiceFirstContentV2() {
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
 
@@ -309,9 +269,9 @@ export function VoiceFirstContentV2() {
   const [pensionIncome, setPensionIncome] = useState<number | null>(null)
   const [otherIncome, setOtherIncome] = useState<number | null>(null)
   const [cppStartAge, setCppStartAge] = useState<number | null>(null)
-  const [investmentReturn, setInvestmentReturn] = useState<number | null>(6)
-  const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(4)
-  const [inflationRate, setInflationRate] = useState<number | null>(2)
+  const [investmentReturn, setInvestmentReturn] = useState<number | null>(null)
+  const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(null)
+  const [inflationRate, setInflationRate] = useState<number | null>(null)
 
   // UI state
   const [editMode, setEditMode] = useState(false)
@@ -373,38 +333,6 @@ export function VoiceFirstContentV2() {
       : 'bg-white border-gray-200',
   }
 
-  const provinceNames: Record<Province, string> = {
-    AB: 'Alberta',
-    BC: 'British Columbia',
-    MB: 'Manitoba',
-    NB: 'New Brunswick',
-    NL: 'Newfoundland and Labrador',
-    NT: 'Northwest Territories',
-    NS: 'Nova Scotia',
-    NU: 'Nunavut',
-    ON: 'Ontario',
-    PE: 'Prince Edward Island',
-    QC: 'Quebec',
-    SK: 'Saskatchewan',
-    YT: 'Yukon'
-  }
-
-  const provinceOptions = [
-    { value: 'AB', label: 'Alberta' },
-    { value: 'BC', label: 'British Columbia' },
-    { value: 'MB', label: 'Manitoba' },
-    { value: 'NB', label: 'New Brunswick' },
-    { value: 'NL', label: 'Newfoundland and Labrador' },
-    { value: 'NT', label: 'Northwest Territories' },
-    { value: 'NS', label: 'Nova Scotia' },
-    { value: 'NU', label: 'Nunavut' },
-    { value: 'ON', label: 'Ontario' },
-    { value: 'PE', label: 'Prince Edward Island' },
-    { value: 'QC', label: 'Quebec' },
-    { value: 'SK', label: 'Saskatchewan' },
-    { value: 'YT', label: 'Yukon' }
-  ]
-
   // Confetti celebration effect
   const fireConfetti = () => {
     const duration = 3000
@@ -441,20 +369,70 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle Start Planning button
-  // Check if mandatory fields are complete
+  // Check if mandatory fields are complete and valid
   const isMandatoryFieldsComplete = () => {
-    return currentAge !== null && retirementAge !== null && longevityAge !== null && province !== ''
+    // Check if required fields exist
+    if (currentAge === null || retirementAge === null || longevityAge === null || province === '') {
+      return false
+    }
+
+    // Check if ages are valid positive numbers
+    if (currentAge <= 0 || retirementAge <= 0 || longevityAge <= 0) {
+      return false
+    }
+
+    // Check logical age relationships
+    if (retirementAge < currentAge) {
+      return false
+    }
+
+    if (longevityAge <= retirementAge) {
+      return false
+    }
+
+    // Check reasonable age ranges (1-120)
+    if (currentAge > 120 || retirementAge > 120 || longevityAge > 120) {
+      return false
+    }
+
+    return true
   }
 
   const handleStartPlanning = () => {
     setPlanningStarted(true)
     setEditMode(true)
+
+    // Pre-fill rate assumptions with sensible defaults if not already set
+    if (investmentReturn === null) setInvestmentReturn(6)
+    if (postRetirementReturn === null) setPostRetirementReturn(4)
+    if (inflationRate === null) setInflationRate(2)
   }
 
   // Handle Calculate button click
   const handleCalculate = async () => {
-    if (!isMandatoryFieldsComplete()) {
-      alert('Please complete at least the basic information before calculating')
+    // Validate required fields with helpful error messages
+    if (currentAge === null || retirementAge === null || longevityAge === null || province === '') {
+      alert('Please complete all required fields:\n• Current Age\n• Retirement Age\n• Life Expectancy Age\n• Province')
+      return
+    }
+
+    if (currentAge <= 0 || retirementAge <= 0 || longevityAge <= 0) {
+      alert('Ages must be greater than 0')
+      return
+    }
+
+    if (retirementAge < currentAge) {
+      alert('Retirement age must be greater than or equal to current age')
+      return
+    }
+
+    if (longevityAge <= retirementAge) {
+      alert('Life expectancy age must be greater than retirement age')
+      return
+    }
+
+    if (currentAge > 120 || retirementAge > 120 || longevityAge > 120) {
+      alert('Ages must be 120 or less')
       return
     }
 
@@ -834,9 +812,55 @@ export function VoiceFirstContentV2() {
 
       {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 space-y-6 lg:space-y-8">
+        {/* Mobile Intro - Only shown before planning starts, only on mobile */}
+        {!planningStarted && (
+          <div className="lg:hidden">
+            <Card className={`border-0 shadow-lg rounded-3xl ${theme.card}`}>
+              <CardContent className="pt-6 sm:pt-8">
+                <div className="py-6 sm:py-8 px-4 space-y-6">
+                  <div className="text-center space-y-4">
+                    <div className="text-6xl">🇨🇦</div>
+                    <h2 className={`text-2xl font-bold ${theme.text.primary}`}>Let's Plan Your Retirement</h2>
+                    <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+                      Fill out the form to see your personalized retirement projection. We'll calculate your income, taxes, and portfolio balance year by year.
+                    </p>
+                  </div>
+
+                  {/* Load Saved Scenario */}
+                  <div className="max-w-xs mx-auto">
+                    <LoadScenarioDropdown
+                      onLoad={handleLoadScenario}
+                      isDarkMode={isDarkMode}
+                    />
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-4 my-4">
+                    <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                    <span className={`text-sm ${theme.text.muted}`}>or</span>
+                    <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                  </div>
+
+                  {/* Start Planning Button */}
+                  <div className="text-center">
+                    <Button
+                      onClick={handleStartPlanning}
+                      size="lg"
+                      className={`${theme.button.secondary} text-white px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
+                    >
+                      <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
+                      Start Planning
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* Left Sidebar - Help/Tips (40%) */}
-          <div className="lg:col-span-5">
+          {/* Left Sidebar - Help/Tips (40%) - Desktop only */}
+          <div className="hidden lg:block lg:col-span-5">
             <HelpSidebar
               focusedField={focusedField}
               isDarkMode={isDarkMode}
@@ -926,12 +950,12 @@ export function VoiceFirstContentV2() {
 
                   <WarmDataField
                     label="Province/Territory"
-                    value={province ? provinceNames[province as Province] : null}
+                    value={province ? PROVINCE_NAMES[province as Province] : null}
                     editValue={province}
                     editMode={editMode}
                     onEdit={setProvince}
                     type="select"
-                    options={provinceOptions}
+                    options={PROVINCE_OPTIONS}
                     isDarkMode={isDarkMode}
                     theme={theme}
                     onFocus={() => setFocusedField('province')}
@@ -1147,6 +1171,16 @@ export function VoiceFirstContentV2() {
         isDarkMode={isDarkMode}
         onRun={handleRunScenario}
       />
+
+      {/* Mobile Help Drawer Button */}
+      {planningStarted && (
+        <HelpDrawerButton
+          focusedField={focusedField}
+          isDarkMode={isDarkMode}
+          theme={theme}
+          planningStarted={planningStarted}
+        />
+      )}
     </div>
   )
 }
