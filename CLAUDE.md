@@ -464,84 +464,48 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
-**2025-10-24**: Voice-First UI Polish
-- V2 (Warm & Approachable) is production UI at `/calculator/home`
-- Responsive design (mobile/tablet/desktop), 1-second glow animation on field updates
-- Form labels: "Expected Monthly Spending", "Life Expectancy Age", "(Annual)" suffixes
+**2025-10-24-25**: Voice UI & Calculation Integration (Consolidated)
+- **Voice-First UI**: Production UI at `/calculator/home` with responsive design, glow animations on field updates
+- **Batch Optimization**: 30-40% latency reduction (avg 1.35s per turn), 50% token reduction
+- **Anonymous Auth**: Auto-creates anonymous sessions with seamless upgrade flow via SavePromptModal
+- **Results Visualization**: 4 chart components (ResultsSummary, BalanceOverTimeChart, IncomeCompositionChart, TaxSummaryCard)
+- **End-to-End Flow**: Voice → Data Collection → Automatic Calculation → Results Display
+- **Files**: `src/components/results/*.tsx`, `src/lib/calculations/results-formatter.ts`, `src/contexts/AuthContext.tsx`
 
-**2025-10-25**: Batch Conversation Optimization
-- 30-40% latency reduction (avg 1.35s per turn), 50% token reduction (800-1,000 tokens)
-- Fixed: transition message mentions, retry counter off-by-one, province parsing
-- 12 comprehensive tests for batch parsing (all passing)
+**2025-10-27**: What-If Scenario Planning
+- **Proposed**: 8 scenario variant buttons (retire early, spend more, front-load, max RRSP, windfall, increase contributions, optimize CPP/OAS, target reserve)
+- **Status**: 🟡 Planning approved, implementation deferred
+- **Rationale**: Addresses key user questions about retirement flexibility
 
-**2025-10-25**: Anonymous-First Authentication
-- Supabase anonymous auth with seamless upgrade flow
-- Auto-creates anonymous sessions on page load (`getOrCreateAnonUser()`)
-- SavePromptModal appears after calculation completion (anonymous users only)
-- User ID flows through Layercode metadata → webhook → database
-- RLS policies: `scenarios` and `users` tables use `auth.uid()`, `conversation_states` permissive (server-side access)
-- Files: `src/lib/supabase/auth.ts`, `src/contexts/AuthContext.tsx`, `src/components/auth/SavePromptModal.tsx`
-- **User action required**: Enable anonymous auth in Supabase dashboard before testing
-
-**2025-10-25**: Calculation Engine Integration (Sprint 3 → Sprint 4 Bridge)
-- **Goal**: End-to-end flow from voice conversation → automatic calculation → results visualization
-- **Architecture**: Webhook triggers calculation on completion, streams results to UI via SSE
-- **Components Created** (4 files):
-  - `/src/components/results/ResultsSummary.tsx` (~150 lines) - Monthly income, success indicator, key metrics grid
-  - `/src/components/results/BalanceOverTimeChart.tsx` (~200 lines) - Area chart with milestone markers (CPP/OAS/RRIF)
-  - `/src/components/results/IncomeCompositionChart.tsx` (~180 lines) - Stacked area chart (RRSP/TFSA/CPP/OAS/Other)
-  - `/src/components/results/TaxSummaryCard.tsx` (~120 lines) - Effective rate, total tax, gross vs net breakdown
-- **Utilities Created**:
-  - `/src/lib/calculations/results-formatter.ts` (~195 lines) - Transforms engine output to display format
-  - Functions: `formatSummary()`, `formatBalanceData()`, `formatIncomeData()`, `formatTaxSummary()`
-  - Handles type conversion (snake_case → camelCase), currency/percentage formatting
-- **Integration Points**:
-  - `batch-webhook/route.ts`: Added calculation trigger in `completeAndSaveConversation()`
-  - Calls `calculateRetirementProjection()` with mapped scenario data
-  - Returns `calculationResults` via `stream.data({ type: 'complete', calculationResults })`
-  - Both VoiceFirstContentV2 and VoiceFirstContentV2Dark updated with results view
-- **UI Flow**:
-  1. Voice conversation completes → webhook saves scenario + runs calculation
-  2. Results streamed to UI → "View Results" button appears
-  3. Click button → form replaced with charts/summaries
-  4. "Back to Form" button toggles back to collected data view
-- **Dependencies**: Installed `recharts` for chart visualizations
-- **Type Alignment**: Fixed results-formatter to match actual `CalculationResults` type structure
-  - Used `year_by_year`, `portfolio_depleted_age`, `final_portfolio_value` (snake_case)
-  - Nested properties: `balances.total`, `income.total`, `tax.total`, `withdrawals.rrsp_rrif`
-- **Build Status**: ✅ All type errors resolved, production build passes
-- **Testing Status**: Awaiting user to enable anonymous auth in Supabase dashboard for end-to-end testing
-
-**2025-10-27**: Scenario Generator Buttons - Planning Phase
-- **Goal**: "What-If" quick explorer buttons for instant scenario comparison
-- **User Requirements**:
-  - Temporary comparison (no auto-save, just recalculate)
-  - Require saved baseline (user must save a scenario first)
-  - UI location: In results section (after initial calculation)
-- **Proposed 8 Buttons**:
-  1. 🎯 **Retire 3 Years Earlier** - Reduce retirement_age by 3, show portfolio longevity impact
-  2. 💎 **Spend 20% More in Retirement** - Increase fixed_monthly by 20%, show sustainability
-  3. 🏔️ **Spend More Early, Less Later** - Model "go-go, slow-go, no-go" years (+30% ages 65-75, -15% ages 75-85, -25% ages 85+)
-  4. 💰 **Max Out Your RRSP** - Set RRSP contribution to 18% of income (up to $31,560), show compounding
-  5. 🎁 **Add $100K Windfall at 60** - One-time TFSA boost, show trajectory change
-  6. 📈 **Contribute 10% More Everywhere** - Increase all contributions by 10%, emphasize compound growth
-  7. ⏰ **Optimize CPP/OAS Start Dates** - Test 6 combinations (CPP 60/65/70 + OAS 65/70), show highest lifetime value
-  8. 🎯 **Target Portfolio Reserve** - Preserve $500K (or 25% of starting portfolio), show spending vs estate trade-off
-- **Implementation Plan**:
-  - Components: ScenarioGeneratorButtons.tsx, ScenarioVariantCalculator.ts, ResultsComparison.tsx
-  - Workflow: User sees baseline results → clicks button → instant recalc using existing engine → overlay/side-by-side comparison → optional save
-  - Baseline pulled from saved scenario, variants are pure functions: `(baseline: Scenario) => Scenario`
-- **Status**: 🟡 Planning approved, implementation deferred for later
-- **Rationale**: Addresses top user pain points - "Can I retire early?", "Will I run out?", "Should I delay CPP?", "Is saving more worth it?"
-
-**2025-10-27**: Route Rename - test-voice-first → home
-- **Change**: Renamed `/calculator/test-voice-first` to `/calculator/home`
-- **Files Updated**:
-  - Directory: `src/app/calculator/test-voice-first/` → `src/app/calculator/home/`
-  - Landing page route: `src/app/page.tsx`
-  - Webhook comments: `src/app/api/layercode/batch-webhook/route.ts`
-  - Flow manager: `src/lib/conversation/batch-flow-manager.ts`
-  - Parser: `src/lib/conversation/batch-parser.ts`
-  - Documentation: `CLAUDE.md`
-- **Rationale**: "home" is clearer and more production-ready than "test-voice-first"
-- **New URL**: https://retire-[deployment].vercel.app/calculator/home
+**2025-10-28**: What-If Scenario Variants - Tabbed Comparison UI
+- **Goal**: Allow users to explore scenario variants (e.g., "Front-Load the Fun") with comprehensive side-by-side comparison
+- **Architecture Decisions**:
+  - **NO parent-child relationships**: Variants are temporary explorations, not permanently linked to baseline
+  - **NO age_based_changes in FormData**: These fields remain calculation-only, not user-editable
+  - **Variants are ephemeral**: Created on-demand from baseline, not saved unless user explicitly chooses to save
+  - **Save = new baseline**: When user saves a variant, it becomes a new independent scenario (not linked to original)
+- **UI Implementation**:
+  - **Tabbed Interface**: "Your Plan" (baseline) | "Front-Load the Fun" (variant)
+  - **Single-column layout**: All 5 result components stacked vertically for better readability
+  - **What-If buttons**: Moved to heading area (below "Your Retirement Projection"), always visible when results exist
+  - **Button state management**: Active variants show "Active" badge and are disabled to prevent duplicate tabs
+  - **Conditional display**: Baseline results hidden when variant active (shown in tab instead)
+  - **Gradient save buttons**: Consistent styling across baseline and variant tabs (rose/orange/amber light, blue/indigo/purple dark)
+  - **Centered buttons**: Save buttons centered in all views (baseline-only, baseline tab, variant tabs)
+- **User Flow**:
+  1. User completes calculation → sees baseline results + what-if buttons
+  2. Clicks "Front-Load the Fun" → baseline replaced by tabbed interface
+  3. Can switch between "Your Plan" and variant tabs to compare
+  4. Each tab has "Save This Scenario" button (saves that specific scenario as new baseline)
+  5. Close variant tab (X icon) → returns to baseline-only view
+- **Components Modified**:
+  - `ScenarioComparison.tsx`: Complete refactor to tabbed interface (420 lines)
+  - `VoiceFirstContentV2.tsx`: What-if buttons moved to heading, conditional baseline display
+- **Files**:
+  - `/src/components/results/ScenarioComparison.tsx` - Tabbed comparison UI
+  - `/src/components/scenarios/ScenarioModal.tsx` - Variant selection modal
+  - `/src/lib/calculations/scenario-variants.ts` - Pure functions for creating variants
+  - `/src/app/calculator/home/VoiceFirstContentV2.tsx` - Main UI integration
+- **Known Limitation**: Age-based spending data (for variants like Front-Load) is lost during save/load cycle because it's not in FormData interface. Future fix: Add metadata or regenerate variants on load.
+- **Status**: ✅ Implemented and deployed
+- **Build Status**: ✅ Production build passes
