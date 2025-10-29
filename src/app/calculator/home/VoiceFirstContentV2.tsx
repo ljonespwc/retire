@@ -59,6 +59,31 @@ function WarmDataField({
   onFocus?: () => void
   isRequired?: boolean
 }) {
+  // Auto-scroll on mobile to keep focused field visible above banner
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (onFocus) onFocus()
+
+    // Only on mobile (when help banner is visible)
+    if (window.innerWidth >= 1024) return
+
+    // Immediate scroll (no delay) so field is visible before banner animates in
+    setTimeout(() => {
+      const element = e.target
+      const offset = 120 // Padding from top of viewport
+
+      // Get element position
+      const rect = element.getBoundingClientRect()
+      const elementTop = rect.top + window.scrollY
+
+      // Scroll so element is visible in upper half of viewport
+      const scrollTo = elementTop - offset
+
+      window.scrollTo({
+        top: scrollTo,
+        behavior: 'smooth'
+      })
+    }, 50) // Minimal delay, just enough for focus to register
+  }
   const formatValue = () => {
     if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
     if (type === 'currency') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>${value.toLocaleString()}</span>
@@ -80,7 +105,7 @@ function WarmDataField({
           <select
             value={editValue !== undefined ? editValue : value || ''}
             onChange={(e) => onEdit(e.target.value || null)}
-            onFocus={onFocus}
+            onFocus={handleFocus}
             autoComplete="off"
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
               showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
@@ -106,7 +131,7 @@ function WarmDataField({
                 onEdit(parseInteger(e.target.value))
               }
             }}
-            onFocus={onFocus}
+            onFocus={handleFocus}
             autoComplete="off"
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
               showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
@@ -890,7 +915,7 @@ export function VoiceFirstContentV2() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
+              <CardContent className={`pt-6 sm:pt-8 px-4 sm:px-6 ${planningStarted ? 'pb-[52vh] lg:pb-6' : ''}`}>
                 <div className="space-y-6 sm:space-y-8">
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
