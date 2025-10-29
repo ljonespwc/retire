@@ -5,9 +5,9 @@ import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb, HelpCircle } from 'lucide-react'
+import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb } from 'lucide-react'
 import { HELP_TIPS, DEFAULT_TIP } from '@/lib/calculator/help-tips'
+import { MobileHelpBanner } from '@/components/help/MobileHelpBanner'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
 import { useAuth } from '@/contexts/AuthContext'
 import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
@@ -230,53 +230,6 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
   )
 }
 
-// Mobile Help Drawer - floating button with help content
-function HelpDrawerButton({ focusedField, isDarkMode, theme, planningStarted }: {
-  focusedField: string | null
-  isDarkMode: boolean
-  theme: any
-  planningStarted: boolean
-}) {
-  const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : null
-  const displayContent = tip || DEFAULT_TIP
-
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <button
-          className={`fixed bottom-6 right-6 z-50 lg:hidden w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${
-            isDarkMode
-              ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-              : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600'
-          }`}
-          aria-label="Open help"
-        >
-          <HelpCircle className="w-7 h-7 text-white" />
-        </button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className={`${theme.card} max-h-[80vh] overflow-y-auto`}>
-        <SheetHeader>
-          <SheetTitle className={theme.text.primary}>
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{displayContent.icon}</span>
-              <span>{displayContent.title}</span>
-            </div>
-          </SheetTitle>
-          <SheetDescription className="sr-only">
-            Helpful information about the selected field
-          </SheetDescription>
-        </SheetHeader>
-        <div className="mt-6 space-y-3">
-          {displayContent.content.split('\n\n').map((paragraph, idx) => (
-            <p key={idx} className={`${theme.text.secondary} text-base leading-relaxed`}>
-              {paragraph}
-            </p>
-          ))}
-        </div>
-      </SheetContent>
-    </Sheet>
-  )
-}
 
 export function VoiceFirstContentV2() {
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
@@ -1205,15 +1158,13 @@ export function VoiceFirstContentV2() {
         onRun={handleRunScenario}
       />
 
-      {/* Mobile Help Drawer Button */}
-      {planningStarted && (
-        <HelpDrawerButton
-          focusedField={focusedField}
-          isDarkMode={isDarkMode}
-          theme={theme}
-          planningStarted={planningStarted}
-        />
-      )}
+      {/* Mobile Help Banner (Auto-showing) */}
+      <MobileHelpBanner
+        focusedField={focusedField}
+        isDarkMode={isDarkMode}
+        theme={theme}
+        planningStarted={planningStarted}
+      />
     </div>
   )
 }
