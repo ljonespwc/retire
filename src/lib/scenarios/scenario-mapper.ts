@@ -129,7 +129,7 @@ export function formDataToScenario(
     assumptions: {
       inflation_rate: (formData.inflationRate || 2) / 100,
       pre_retirement_return: (formData.investmentReturn || 6) / 100,
-      post_retirement_return: (formData.postRetirementReturn || 5) / 100,
+      post_retirement_return: (formData.postRetirementReturn || 4) / 100,
     },
   }
 }

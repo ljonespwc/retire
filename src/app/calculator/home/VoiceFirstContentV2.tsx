@@ -40,7 +40,8 @@ function WarmDataField({
   editValue,
   isDarkMode,
   theme,
-  onFocus
+  onFocus,
+  isRequired = false
 }: {
   label: string
   value: any
@@ -52,6 +53,7 @@ function WarmDataField({
   isDarkMode: boolean
   theme: any
   onFocus?: () => void
+  isRequired?: boolean
 }) {
   const formatValue = () => {
     if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
@@ -60,6 +62,9 @@ function WarmDataField({
     if (type === 'number') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}</span>
     return <span className={`${theme.text.primary} font-semibold text-base sm:text-lg`}>{value}</span>
   }
+
+  const isEmpty = value === null || value === undefined || value === '';
+  const showRequiredBorder = isRequired && isEmpty && editMode;
 
   return (
     <div className="space-y-2">
@@ -72,7 +77,9 @@ function WarmDataField({
             value={editValue !== undefined ? editValue : value || ''}
             onChange={(e) => onEdit(e.target.value || null)}
             onFocus={onFocus}
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
+              showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
+            } ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
           >
             <option value="">Select...</option>
             {options?.map(opt => (
@@ -92,7 +99,9 @@ function WarmDataField({
               }
             }}
             onFocus={onFocus}
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
+              showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
+            } ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
             step={type === 'percentage' ? '0.1' : '1'}
           />
         )
@@ -120,92 +129,92 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
     currentAge: {
       title: "Current Age",
       icon: "🎂",
-      content: "Your age today. We use this to calculate how many years your investments will grow before retirement."
+      content: "Your age today. We calculate how many working years remain until retirement.\n\nMost Canadians start serious retirement planning in their 40s-50s, but starting earlier gives your investments more time to compound."
     },
     retirementAge: {
       title: "Retirement Age",
       icon: "🏖️",
-      content: "When you plan to stop working. The earlier you retire, the more portfolio you'll need to sustain your lifestyle."
+      content: "When you plan to stop working full-time. The average Canadian retires at 64.\n\nEarlier retirement (55-60) requires more savings. Later retirement (67-70) means more time to save and higher CPP/OAS benefits."
     },
     longevityAge: {
       title: "Life Expectancy",
       icon: "📅",
-      content: "How long you expect to live. Planning to age 95+ ensures your money lasts. Better to have leftovers than run out!"
+      content: "How long you expect to live. Canadian life expectancy: men 81, women 85.\n\nMost planners use 90-95 to be safe. Planning longer ensures your money lasts—better to have leftovers than run out!"
     },
     province: {
       title: "Province",
       icon: "📍",
-      content: "Your province determines your tax rates. Each province has different tax brackets and credits."
+      content: "Your province determines your tax rates. Each province has different brackets and credits.\n\nLowest taxes: Alberta, SK. Highest: QC, NS, NL. Moving provinces in retirement can affect your after-tax income."
     },
     currentIncome: {
       title: "Current Income",
       icon: "💵",
-      content: "Your annual employment income before taxes. Used to calculate pre-retirement contribution room and CPP estimates."
+      content: "Your annual employment income before taxes. Median Canadian income: ~$62,000.\n\nUsed to estimate your CPP contributions and future benefit. Higher income = higher CPP (up to max $17,200 at age 65)."
     },
     rrsp: {
       title: "RRSP Balance",
       icon: "🏦",
-      content: "Registered Retirement Savings Plan. Tax-deferred growth. You'll pay income tax when you withdraw in retirement."
+      content: "Registered Retirement Savings Plan. Tax-deferred growth—you pay income tax when you withdraw.\n\n2025 contribution limit: 18% of income (max $31,560). Converts to RRIF at age 71. Typical balance at 65: $200K-500K."
     },
     rrspContribution: {
       title: "RRSP Contributions",
       icon: "📈",
-      content: "How much you contribute annually. Contributions are tax-deductible and grow tax-free until withdrawal."
+      content: "Annual RRSP contributions. Tax-deductible and grow tax-free until withdrawal.\n\nTypical: 5-10% of income. With employer matching, aim for 10-15%. Max $31,560/year (2025). Unused room carries forward."
     },
     tfsa: {
       title: "TFSA Balance",
       icon: "🌟",
-      content: "Tax-Free Savings Account. Grows tax-free forever. Withdrawals are 100% tax-free. The best account for retirement income!"
+      content: "Tax-Free Savings Account. Grows tax-free forever. Withdrawals are 100% tax-free—the best account for retirement income!\n\nCumulative limit since 2009: ~$95,000 if you never contributed. No age restrictions."
     },
     tfsaContribution: {
       title: "TFSA Contributions",
       icon: "💎",
-      content: "Annual contributions to your TFSA. No tax deduction, but all growth and withdrawals are completely tax-free."
+      content: "Annual TFSA contributions. 2025 limit: $7,000. No tax deduction, but all growth and withdrawals are tax-free.\n\nIdeal for retirement: withdraw TFSA first to minimize taxable income and preserve OAS."
     },
     nonRegistered: {
       title: "Non-Registered",
       icon: "💼",
-      content: "Taxable investment accounts. You pay capital gains tax (50% inclusion rate) on profits when you sell."
+      content: "Taxable investment accounts. You pay capital gains tax (50% inclusion rate) on profits when you sell.\n\nUse these after maxing RRSP/TFSA. More tax-efficient for investments held long-term."
     },
     nonRegisteredContribution: {
       title: "Non-Registered Contributions",
       icon: "➕",
-      content: "Annual contributions to taxable accounts. Consider maxing out RRSP and TFSA first for better tax efficiency."
+      content: "Annual contributions to taxable accounts. No limits, but no tax advantages either.\n\nMax out RRSP ($31,560) and TFSA ($7,000) first for better tax efficiency—that's $38,560/year in tax-sheltered savings."
     },
     monthlySpending: {
       title: "Monthly Spending",
       icon: "🛒",
-      content: "Your desired monthly spending in retirement (pre-tax). We'll calculate the taxes for you and adjust for inflation."
+      content: "Your desired monthly spending in retirement (pre-tax). Rule of thumb: 70-80% of pre-retirement income.\n\nMedian Canadian retiree: ~$4,000-5,000/month. We'll calculate taxes and adjust for inflation automatically."
     },
     pensionIncome: {
       title: "Pension Income",
       icon: "🏢",
-      content: "Employer pension you'll receive annually. Common for government and union workers. Indexed to inflation if applicable."
+      content: "Annual employer pension. Common for government, education, and union workers.\n\nTypical defined benefit pension: $30K-60K/year. Federal public service avg: ~$45K. Check if yours is indexed to inflation."
     },
     otherIncome: {
       title: "Other Income",
       icon: "💰",
-      content: "Any other income sources in retirement (rental income, part-time work, side business). Can help reduce portfolio withdrawals."
+      content: "Any other income in retirement: rental properties, part-time work, consulting, dividends from a business.\n\nReduces portfolio withdrawals and can delay CPP/OAS for higher benefits. Include annual amount."
     },
     cppStartAge: {
       title: "CPP Start Age",
       icon: "🇨🇦",
-      content: "When you'll start Canada Pension Plan. Earlier (60) = reduced benefit. Later (70) = 42% increase. Most start at 65."
+      content: "When you'll start Canada Pension Plan. 2025 max at 65: $17,200/year.\n\nStart at 60: 36% reduction ($11,000). Start at 70: 42% increase ($24,400). Break-even around age 74. Most Canadians start at 65."
     },
     investmentReturn: {
       title: "Pre-Retirement Return",
       icon: "📊",
-      content: "Expected annual return while working. Historical stock market average: ~6-7%. Conservative: 5%. Aggressive: 8%."
+      content: "Expected annual return while working (ages 30-65). Historical Canadian stock market: ~6-7%.\n\nConservative (bonds/GICs): 3-4%. Balanced (60/40): 5-6%. Aggressive (stocks): 7-8%. Default: 6%."
     },
     postRetirementReturn: {
       title: "Post-Retirement Return",
       icon: "🎯",
-      content: "Expected return in retirement. Usually lower (4-5%) as you shift to bonds and GICs for stability."
+      content: "Expected return in retirement. Usually lower (4-5%) as you shift to bonds/GICs for stability and income.\n\nConservative: 3%. Balanced: 4-5%. Still some growth: 5-6%. Default: 4%."
     },
     inflationRate: {
       title: "Inflation Rate",
       icon: "📉",
-      content: "Expected annual inflation. Historical average: 2%. Your spending and some income sources will adjust for inflation."
+      content: "Expected annual inflation. Canadian long-term average: 2-2.5%. Bank of Canada target: 2%.\n\nYour spending, CPP, and OAS will adjust for inflation. Using 2% is standard for retirement planning. Default: 2%."
     }
   }
 
@@ -257,9 +266,13 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
               <span className="text-4xl">{tip.icon}</span>
               <h3 className={`text-xl font-bold ${theme.text.primary}`}>{tip.title}</h3>
             </div>
-            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-              {tip.content}
-            </p>
+            <div className="space-y-3">
+              {tip.content.split('\n\n').map((paragraph, idx) => (
+                <p key={idx} className={`${theme.text.secondary} text-base leading-relaxed`}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -296,12 +309,13 @@ export function VoiceFirstContentV2() {
   const [pensionIncome, setPensionIncome] = useState<number | null>(null)
   const [otherIncome, setOtherIncome] = useState<number | null>(null)
   const [cppStartAge, setCppStartAge] = useState<number | null>(null)
-  const [investmentReturn, setInvestmentReturn] = useState<number | null>(null)
-  const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(null)
-  const [inflationRate, setInflationRate] = useState<number | null>(null)
+  const [investmentReturn, setInvestmentReturn] = useState<number | null>(6)
+  const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(4)
+  const [inflationRate, setInflationRate] = useState<number | null>(2)
 
   // UI state
   const [editMode, setEditMode] = useState(false)
+  const [justCalculated, setJustCalculated] = useState(false)
   const [planningStarted, setPlanningStarted] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [showSaveWithAccountModal, setShowSaveWithAccountModal] = useState(false)
@@ -427,6 +441,11 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle Start Planning button
+  // Check if mandatory fields are complete
+  const isMandatoryFieldsComplete = () => {
+    return currentAge !== null && retirementAge !== null && longevityAge !== null && province !== null
+  }
+
   const handleStartPlanning = () => {
     setPlanningStarted(true)
     setEditMode(true)
@@ -434,7 +453,7 @@ export function VoiceFirstContentV2() {
 
   // Handle Calculate button click
   const handleCalculate = async () => {
-    if (!currentAge || !retirementAge || !longevityAge || !province) {
+    if (!isMandatoryFieldsComplete()) {
       alert('Please complete at least the basic information before calculating')
       return
     }
@@ -505,6 +524,8 @@ export function VoiceFirstContentV2() {
       if (data.success && data.results) {
         setCalculationResults(data.results)
         setShowResults(true)
+        setEditMode(false)
+        setJustCalculated(true)
       } else {
         console.error('❌ Calculation failed:', data.error)
         alert(`Calculation failed: ${data.error || 'Unknown error'}`)
@@ -564,7 +585,7 @@ export function VoiceFirstContentV2() {
 
     setLoadedScenarioName(scenarioName)
     setPlanningStarted(true)
-    setEditMode(true)
+    setEditMode(false)
 
     console.log(`✅ Loaded scenario: ${scenarioName}`)
   }
@@ -836,13 +857,20 @@ export function VoiceFirstContentV2() {
                       Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
                     </CardTitle>
                   </div>
-                  {editMode && (
+                  {calculationResults && (
                     <Button
-                      onClick={() => setEditMode(!editMode)}
+                      onClick={() => {
+                        if (!editMode) {
+                          // Entering edit mode - hide results display to avoid stale data errors
+                          setShowResults(false)
+                        }
+                        setEditMode(!editMode)
+                        setJustCalculated(false)
+                      }}
                       variant="outline"
                       className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl text-sm sm:text-base flex-shrink-0" : "border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-sm sm:text-base flex-shrink-0"}
                     >
-                      {editMode ? 'Done' : '✏️ Edit'}
+                      {editMode ? 'Done Editing' : '✏️ Edit'}
                     </Button>
                   )}
                 </div>
@@ -860,6 +888,7 @@ export function VoiceFirstContentV2() {
                       isDarkMode={isDarkMode}
                       theme={theme}
                       onFocus={() => setFocusedField('currentAge')}
+                      isRequired={true}
                     />
                     <WarmDataField
                       label="Retirement Age"
@@ -870,6 +899,7 @@ export function VoiceFirstContentV2() {
                       isDarkMode={isDarkMode}
                       theme={theme}
                       onFocus={() => setFocusedField('retirementAge')}
+                      isRequired={true}
                     />
                     <WarmDataField
                       label="Life Expectancy Age"
@@ -880,6 +910,7 @@ export function VoiceFirstContentV2() {
                       isDarkMode={isDarkMode}
                       theme={theme}
                       onFocus={() => setFocusedField('longevityAge')}
+                      isRequired={true}
                     />
                     <WarmDataField
                       label="Current Income (Annual)"
@@ -904,6 +935,7 @@ export function VoiceFirstContentV2() {
                     isDarkMode={isDarkMode}
                     theme={theme}
                     onFocus={() => setFocusedField('province')}
+                    isRequired={true}
                   />
 
                   {/* Accounts */}
@@ -947,31 +979,29 @@ export function VoiceFirstContentV2() {
                   </div>
 
                   {/* Calculate Button */}
-                  {editMode && (
-                    <Button
-                      size="lg"
-                      onClick={handleCalculate}
-                      disabled={isCalculating}
-                      className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isCalculating ? (
-                        <>
-                          <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 animate-pulse" fill="white" />
-                          Calculating...
-                        </>
-                      ) : calculationResults ? (
-                        <>
-                          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                          Recalculate
-                        </>
-                      ) : (
-                        <>
-                          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                          Calculate
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    size="lg"
+                    onClick={handleCalculate}
+                    disabled={isCalculating || !isMandatoryFieldsComplete() || (editMode && !!calculationResults) || justCalculated}
+                    className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {isCalculating ? (
+                      <>
+                        <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 animate-pulse" fill="white" />
+                        Calculating...
+                      </>
+                    ) : calculationResults ? (
+                      <>
+                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                        Recalculate
+                      </>
+                    ) : (
+                      <>
+                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                        Calculate
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
