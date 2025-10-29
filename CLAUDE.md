@@ -17,41 +17,17 @@ Your job is to:
 3. Report the results to the user
 4. Let the user handle git/deployment
 
-## ⚠️ CRITICAL: Voice & LLM Architecture
-
-**DO NOT modify any of the following without explicit user permission:**
-
-### Layercode Voice Infrastructure
-- Layercode WebRTC streaming setup
-- Text-to-speech streaming (`stream.ttsTextStream()`)
-- LLM response streaming (`generateStream()`)
-- Webhook SSE (Server-Sent Events) flow
-- Voice conversation state management
-- AI provider configuration (OpenAI/Gemini)
-
-### Batch Conversation System
-- Batch prompt structure and question grouping (5 batches: personal_info, savings, savings_contributions, retirement_income, investment_assumptions)
-- LLM parsing logic in `batch-parser.ts` (optimized prompts, confidence thresholds, field extraction)
-- Retry logic and missing field re-prompting
-- State management in `batch-flow-manager.ts`
-- Natural language transitions between batches
-
-**The current architecture is optimized and tested.** Any changes to streaming, latency optimization, conversation flow, batch parsing, or LLM prompts **must be approved by the user first**.
-
-If you identify potential improvements, **propose them and wait for approval** before implementing.
-
 ## Project Overview
 
-A voice-driven Canadian retirement income calculator that combines conversational AI with sophisticated financial modeling. The platform helps Canadians understand their retirement income potential through natural language interaction, eliminating complex spreadsheets and financial jargon.
+A Canadian retirement income calculator with sophisticated financial modeling. The platform helps Canadians understand their retirement income potential, eliminating complex spreadsheets and financial jargon.
 
 ### Core Functionality
-- **Voice-First Interface**: Real-time speech-to-text and text-to-speech powered by Layercode WebRTC SDK
 - **Canadian Tax Engine**: Accurate projections based on federal/provincial tax rules, CPP/OAS benefits, and registered account regulations (RRSP/RRIF/TFSA)
 - **Scenario Modeling**: Compare different retirement ages, spending levels, and investment strategies
 - **Visual Projections**: Interactive charts showing portfolio balance, income composition, and tax impact over retirement timeline
 
 ### Product Tiers
-1. **Basic (Free)**: Voice/text input, single scenario, basic simulation with simple visualizations
+1. **Basic (Free)**: Single scenario, basic simulation with simple visualizations
 2. **Pro ($9-19/mo)**: Multi-scenario comparison (up to 3), detailed tax breakdown, joint/spouse planning, PDF reports
 3. **Advanced ($99-499/mo)**: Unlimited scenarios, Monte Carlo simulation, advisor dashboard, white-label branding, API access
 
@@ -84,8 +60,8 @@ Available Playwright MCP tools:
 - `browser_network_requests` - Inspect network activity
 
 **Example use cases**:
-- Testing the voice UI at `/calculator/home`
-- Verifying form field updates after voice input
+- Testing the calculator UI at `/calculator/home`
+- Verifying form field updates and calculations
 - Capturing screenshots of calculation results
 - Testing responsive design across viewports
 - Debugging browser console errors
@@ -171,12 +147,6 @@ Contains only TypeScript types and interfaces:
 - **React 18** with React DOM
 - **Tailwind CSS** with PostCSS and Autoprefixer
 
-### Voice & AI
-- **Layercode WebRTC SDK** (@layercode/react-sdk, @layercode/node-server-sdk) - Real-time voice streaming
-- **OpenAI** (GPT-4 via @ai-sdk/openai)
-- **Google Gemini** (@ai-sdk/google, @google/generative-ai)
-- **Vercel AI SDK** (ai package) - AI provider abstraction
-
 ### Database
 - **Supabase** (@supabase/supabase-js) - PostgreSQL backend
 
@@ -225,9 +195,6 @@ retire/
 ## Environment Setup
 
 Environment variables are configured in `.env.local` (already exists):
-- **Layercode**: Pipeline ID and API keys from https://layercode.com
-- **OpenAI**: API key from https://platform.openai.com/api-keys
-- **Gemini**: API key from https://ai.google.dev/
 - **Supabase**: URL and keys from your Supabase project
 
 Run `npm run dev` to start development.
@@ -259,9 +226,8 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 **3. TypeScript Type System**
 - `src/types/calculator.ts` (400+ lines): BasicInputs, Assets, IncomeSources, Expenses, Assumptions, YearByYearResult, CalculationResults, Scenario
-- `src/types/voice.ts`: VoiceIntent, ConversationState, VoiceResponse, VoiceSession
 - `src/types/constants.ts`: Province enum, TaxBracket interface
-- `src/types/database.ts`: Schema types for all 9 tables
+- `src/types/database.ts`: Schema types for all tables
 - `src/types/index.ts`: Barrel export
 
 **4. Database Optimizations**
@@ -332,145 +298,47 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 **Achievement**: Complete calculation engine with 100% test coverage, deployed to production.
 
-### Sprint 3: Voice Interface & Data Collection ⏳ IN PROGRESS
+### Sprint 3: UI & Results Visualization ✅ COMPLETED
 
-**Goal**: Voice-first data collection with LLM-based parsing, 3 UX prototypes, production voice/form hybrid UI.
+**Goal**: Production-ready calculator UI with comprehensive results visualization and scenario comparison.
 
-#### ✅ Section 1: Layercode Voice Foundation
+**UI Implementation**:
+- Form-first calculator at `/calculator/home` with contextual help sidebar
+- "Start Planning" button flow with empty form initial state
+- Field-level focus tracking with 17 contextual help tips
+- Dark mode support via useLocalStorage hook
+- Responsive two-column layout (40% sidebar, 60% form)
+- Confetti celebration on calculation completion
 
-**Files Created**:
-- `/src/lib/ai-provider.ts` (159 lines) - Switchable OpenAI/Gemini
-- `/src/app/api/layercode/authorize/route.ts` (70 lines) - Session authorization
-- `/src/app/api/layercode/webhook/route.ts` (270 lines) - SSE webhook handler
-- `/src/hooks/useLayercodeVoice.ts` (95 lines) - React voice hook
-- `/src/app/test-voice/page.tsx` (32 lines) - Test wrapper (SSR disabled)
-- `/src/app/test-voice/TestVoiceContent.tsx` (280+ lines) - Test UI
-- `.env.example` (31 lines)
+**Results Components**:
+- `ResultsSummary.tsx` - Key metrics overview
+- `BalanceOverTimeChart.tsx` - Portfolio balance projection
+- `IncomeCompositionChart.tsx` - Income source breakdown
+- `TaxSummaryCard.tsx` - Tax impact analysis
+- `RetirementNarrative.tsx` - AI-generated summary
 
-**Features**:
-- WebRTC voice via Layercode SDK
-- Automatic STT/TTS (Layercode cloud)
-- Voice activity detection (VAD) - hands-free
-- Connection state management, audio visualization
-- Test page at `/test-voice`
-
-**AI Configuration**:
-- OpenAI: GPT-4.1-mini (`gpt-4-1106-preview`)
-- Gemini: Flash Lite (`gemini-2.5-flash-lite`) - faster
-- Switchable via `AI_PROVIDER` env var, temp 0.7
-
-**Architecture**: User speaks → WebRTC → Cloud STT → Webhook → AI → STREAMING `stream.ttsTextStream()` → Cloud TTS → User hears (~300ms)
-
-**Latency Optimization**:
-- Before: `generateCompletion()` → 1-2s wait → speak (2-3s total)
-- After: Vercel AI `streamText()` → stream tokens → speak as generated (~300ms, 5-10x faster)
-- Implementation: Added `generateStream()` to ai-provider.ts, all webhooks use `stream.ttsTextStream()`
-
-**Deployment**: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
-
----
-
-#### ✅ Section 2: Conversation Intelligence
-
-**Architecture**: LLM-based data extraction (replaced regex) for natural language understanding.
+**Scenario Features**:
+- Save/load scenarios with LoadScenarioDropdown
+- What-if scenario variants (Front-Load the Fun, Delay CPP/OAS, etc.)
+- Tabbed comparison UI for baseline vs variant analysis
+- Anonymous auth with seamless upgrade flow
 
 **Files Created**:
-- `/src/lib/conversation/llm-parser.ts` (200+ lines) - LLM extraction
-- `/src/lib/conversation/question-flow-manager.ts` (380+ lines) - State machine
-- ~~`/src/lib/conversation/number-parser.ts`~~ (deprecated)
+- `/src/components/results/*.tsx` - 5 visualization components
+- `/src/components/scenarios/*.tsx` - Scenario management
+- `/src/lib/calculations/results-formatter.ts` - Data formatting utilities
+- `/src/lib/calculations/scenario-variants.ts` - Variant creation logic
 
-**LLM Parser Functions** (async):
-1. `extractAge(text)` - "I'm 58", "mid-fifties" → number (18-120) or null
-2. `extractAmount(text)` - "$500k", "half a million" → number or null
-3. `extractProvince(text)` - "Ontario", "BC" → Province code or null
-4. `extractPercentage(text)` - "5%", "five percent" → number (0-100) or null
-5. `extractYesNo(text)` - "yeah", "nope" → true/false/null
-6. `detectSkipIntent(text)` - "skip", "I don't know" → boolean
-
-**Question Flow**:
-- 17 questions total across 5 batches
-- Conditional branching (only asks for account amounts if user has account)
-- In-memory state (Map-based)
-- Progress tracking, validation (age ranges, amount limits)
-
-**5 Batches**:
-1. Personal Info (5Q): current_age, retirement_age, longevity_age, province, current_income
-2. Current Savings (3Q): rrsp_amount, tfsa_amount, non_registered_amount
-3. Savings Contributions (3Q): rrsp_contribution, tfsa_contribution, non_registered_contribution
-4. Retirement Income (4Q): monthly_spending, pension_income, other_income, cpp_start_age
-5. Rate Assumptions (3Q): investment_return, post_retirement_return, inflation_rate
-
-**Webhook Integration**:
-- `session.start`: Initialize → ask first batch
-- `message`: Parse → validate → next batch or clarify
-- `session.end`: Clean up state
-- Progress via `stream.data()`, completion sends `collectedData`
-
-**Performance Optimizations**:
-- Opt 1: Eliminated wasted LLM calls → 44% faster (41s → 23s), 33% fewer calls (24 → 16)
-- Opt 2: Combined parse + response (`parseAndGenerateResponse()`) → 66% faster (41s → 13.8s), 50% fewer calls (16 → 8), ~1.7s avg latency
-- Batch mode: User answers all questions in batch → AI parses all at once → 3 turns vs 8 (62% reduction)
-
-**Database Persistence** (Oct 23):
-- `conversation_states` table (ephemeral, 24h TTL) - crash recovery
-- `scenarios` table (permanent) - saved plans with `source='voice'`
-- Auto-save on completion
-- Migrations: 006 (user_id), 007 (expiry), 008 (source tracking)
-- `voice-to-scenario-mapper.ts` - Transforms 17 flat fields to nested calculator format
-- `cleanup-conversations.ts` + `/api/cleanup-conversations` - Scheduled cleanup
-- Smart defaults (CPP/OAS from 2025 max, cost_base 70%)
-
-**Bug Fixes**:
-1. Data message unwrapping (Layercode wrapper structure)
-2. Conditional logic placement (`followUp` on yes/no questions)
-3. Already-collected fields re-asked (prompt fix)
-4. Final batch completion with retry limit
-5. "Use defaults" intent recognition
-
----
-
-#### ~~SKIPPED: Sprint 3 Sections 3-7~~ (Superseded by direct integration)
-
-**Decision**: Instead of building 3 separate UX prototypes and then choosing one, we integrated the calculation engine directly into the existing VoiceFirstContentV2 UI (which was already the preferred design from Section 2). This saved development time and delivered working end-to-end functionality immediately.
-
-**Skipped Sections**:
-- ~~Sections 3-5: UX Prototypes~~ - Form-First, additional Voice-First variants, Wizard
-- ~~Section 6: Production Components~~ - Reusable component library
-- ~~Section 7: Production Implementation~~ - User testing and final UX selection
-
-**What We Built Instead**:
-- Direct calculation integration into VoiceFirstContentV2 (light & dark themes)
-- Results visualization components (charts, summaries, tax breakdown)
-- End-to-end flow: Voice → Data Collection → Calculation → Results Display
-- See "Calculation Engine Integration" entry below for full details
-
-**Test URL**: https://retire-9iek00jw3-lances-projects-6d1c03d4.vercel.app/test-voice
-
-**Key Files**:
-- `/src/lib/ai-provider.ts` - AI abstraction (OpenAI/Gemini)
-- `/src/lib/conversation/llm-parser.ts` - LLM extraction
-- `/src/lib/conversation/question-flow-manager.ts` - State machine (sequential)
-- `/src/lib/conversation/batch-flow-manager.ts` - State machine (batch)
-- `/src/lib/conversation/batch-parser.ts` - Batch parsing
-- `/src/lib/conversation/voice-to-scenario-mapper.ts` - Voice → calculator format
-- `/src/hooks/useLayercodeVoice.ts` - React voice hook
-- `/src/app/api/layercode/authorize/route.ts` - Session auth
-- `/src/app/api/layercode/webhook/route.ts` - Sequential webhook
-- `/src/app/api/layercode/batch-webhook/route.ts` - Batch webhook
-- `/src/app/test-voice/TestVoiceContent.tsx` - Sequential UI
-- `/src/app/calculator/home/VoiceFirstContent.tsx` - Batch UI (production)
-
----
+**Achievement**: Full end-to-end flow from form entry → calculation → results display → scenario comparison.
 
 ## Recent Updates
 
-**2025-10-24-25**: Voice UI & Calculation Integration (Consolidated)
-- **Voice-First UI**: Production UI at `/calculator/home` with responsive design, glow animations on field updates
-- **Batch Optimization**: 30-40% latency reduction (avg 1.35s per turn), 50% token reduction
-- **Anonymous Auth**: Auto-creates anonymous sessions with seamless upgrade flow via SavePromptModal
-- **Results Visualization**: 4 chart components (ResultsSummary, BalanceOverTimeChart, IncomeCompositionChart, TaxSummaryCard)
-- **End-to-End Flow**: Voice → Data Collection → Automatic Calculation → Results Display
-- **Files**: `src/components/results/*.tsx`, `src/lib/calculations/results-formatter.ts`, `src/contexts/AuthContext.tsx`
+**2025-10-28**: Voice Infrastructure Removal
+- **Removed**: All voice/LLM/Layercode infrastructure (15+ files, 7 npm packages)
+- **Refactored**: VoiceFirstContentV2.tsx to form-first UI with contextual help sidebar
+- **Database**: Dropped conversation_states table and conversation_id column
+- **UI Changes**: "Start Planning" button, field focus tracking, 17 help tips
+- **Preserved**: All calculation, results, scenario comparison, auth functionality
 
 **2025-10-27**: What-If Scenario Planning
 - **Proposed**: 8 scenario variant buttons (retire early, spend more, front-load, max RRSP, windfall, increase contributions, optimize CPP/OAS, target reserve)

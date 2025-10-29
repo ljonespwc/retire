@@ -1,14 +1,11 @@
 'use client'
 
-import { useLayercodeVoice } from '@/hooks/useLayercodeVoice'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Mic, MicOff, Heart, CheckCircle2, MessageCircle, BarChart3, Calculator, Sun, Moon, Save, LogIn, LogOut, User } from 'lucide-react'
+import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
 import { LoginModal } from '@/components/auth/LoginModal'
@@ -32,47 +29,29 @@ import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
 import confetti from 'canvas-confetti'
 
-interface Message {
-  role: 'user' | 'assistant'
-  text: string
-  timestamp: Date
-}
-
-interface BatchPrompt {
-  batchId: string
-  batchTitle: string
-  questions: {
-    id: string
-    text: string
-    type: string
-  }[]
-  batchIndex: number
-  totalBatches: number
-}
-
-// WarmDataField - theme-aware form field component (extracted to prevent re-creation on render)
+// WarmDataField - theme-aware form field component
 function WarmDataField({
   label,
   value,
   editMode,
   onEdit,
   type,
-  isGlowing,
   options,
   editValue,
   isDarkMode,
-  theme
+  theme,
+  onFocus
 }: {
   label: string
   value: any
   editMode: boolean
   onEdit?: (val: any) => void
   type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
-  isGlowing?: boolean
   options?: { value: string; label: string }[]
   editValue?: any
   isDarkMode: boolean
   theme: any
+  onFocus?: () => void
 }) {
   const formatValue = () => {
     if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
@@ -92,6 +71,7 @@ function WarmDataField({
           <select
             value={editValue !== undefined ? editValue : value || ''}
             onChange={(e) => onEdit(e.target.value || null)}
+            onFocus={onFocus}
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
           >
             <option value="">Select...</option>
@@ -111,17 +91,14 @@ function WarmDataField({
                 onEdit(numValue)
               }
             }}
+            onFocus={onFocus}
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
             step={type === 'percentage' ? '0.1' : '1'}
           />
         )
       ) : (
         <div className={`px-4 sm:px-5 py-3 sm:py-4 rounded-2xl border-2 transition-all duration-300 ${
-          isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800/20' : 'bg-gradient-to-br from-gray-50 to-orange-50/20'
-        } ${
-          isGlowing
-            ? `${isDarkMode ? 'border-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.7)]' : 'border-orange-400 shadow-[0_0_25px_rgba(251,146,60,0.7)]'} animate-pulse`
-            : isDarkMode ? 'border-gray-600' : 'border-gray-200'
+          isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800/20 border-gray-600' : 'bg-gradient-to-br from-gray-50 to-orange-50/20 border-gray-200'
         }`}>
           {formatValue()}
         </div>
@@ -130,11 +107,180 @@ function WarmDataField({
   )
 }
 
+// Help Sidebar - contextual tips based on focused field
+function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadScenario, planningStarted }: {
+  focusedField: string | null
+  isDarkMode: boolean
+  theme: any
+  onStartPlanning: () => void
+  onLoadScenario: (formData: FormData, scenarioName: string) => void
+  planningStarted: boolean
+}) {
+  const tips: Record<string, { title: string; content: string; icon: string }> = {
+    currentAge: {
+      title: "Current Age",
+      icon: "🎂",
+      content: "Your age today. We use this to calculate how many years your investments will grow before retirement."
+    },
+    retirementAge: {
+      title: "Retirement Age",
+      icon: "🏖️",
+      content: "When you plan to stop working. The earlier you retire, the more portfolio you'll need to sustain your lifestyle."
+    },
+    longevityAge: {
+      title: "Life Expectancy",
+      icon: "📅",
+      content: "How long you expect to live. Planning to age 95+ ensures your money lasts. Better to have leftovers than run out!"
+    },
+    province: {
+      title: "Province",
+      icon: "📍",
+      content: "Your province determines your tax rates. Each province has different tax brackets and credits."
+    },
+    currentIncome: {
+      title: "Current Income",
+      icon: "💵",
+      content: "Your annual employment income before taxes. Used to calculate pre-retirement contribution room and CPP estimates."
+    },
+    rrsp: {
+      title: "RRSP Balance",
+      icon: "🏦",
+      content: "Registered Retirement Savings Plan. Tax-deferred growth. You'll pay income tax when you withdraw in retirement."
+    },
+    rrspContribution: {
+      title: "RRSP Contributions",
+      icon: "📈",
+      content: "How much you contribute annually. Contributions are tax-deductible and grow tax-free until withdrawal."
+    },
+    tfsa: {
+      title: "TFSA Balance",
+      icon: "🌟",
+      content: "Tax-Free Savings Account. Grows tax-free forever. Withdrawals are 100% tax-free. The best account for retirement income!"
+    },
+    tfsaContribution: {
+      title: "TFSA Contributions",
+      icon: "💎",
+      content: "Annual contributions to your TFSA. No tax deduction, but all growth and withdrawals are completely tax-free."
+    },
+    nonRegistered: {
+      title: "Non-Registered",
+      icon: "💼",
+      content: "Taxable investment accounts. You pay capital gains tax (50% inclusion rate) on profits when you sell."
+    },
+    nonRegisteredContribution: {
+      title: "Non-Registered Contributions",
+      icon: "➕",
+      content: "Annual contributions to taxable accounts. Consider maxing out RRSP and TFSA first for better tax efficiency."
+    },
+    monthlySpending: {
+      title: "Monthly Spending",
+      icon: "🛒",
+      content: "Your desired monthly spending in retirement (pre-tax). We'll calculate the taxes for you and adjust for inflation."
+    },
+    pensionIncome: {
+      title: "Pension Income",
+      icon: "🏢",
+      content: "Employer pension you'll receive annually. Common for government and union workers. Indexed to inflation if applicable."
+    },
+    otherIncome: {
+      title: "Other Income",
+      icon: "💰",
+      content: "Any other income sources in retirement (rental income, part-time work, side business). Can help reduce portfolio withdrawals."
+    },
+    cppStartAge: {
+      title: "CPP Start Age",
+      icon: "🇨🇦",
+      content: "When you'll start Canada Pension Plan. Earlier (60) = reduced benefit. Later (70) = 42% increase. Most start at 65."
+    },
+    investmentReturn: {
+      title: "Pre-Retirement Return",
+      icon: "📊",
+      content: "Expected annual return while working. Historical stock market average: ~6-7%. Conservative: 5%. Aggressive: 8%."
+    },
+    postRetirementReturn: {
+      title: "Post-Retirement Return",
+      icon: "🎯",
+      content: "Expected return in retirement. Usually lower (4-5%) as you shift to bonds and GICs for stability."
+    },
+    inflationRate: {
+      title: "Inflation Rate",
+      icon: "📉",
+      content: "Expected annual inflation. Historical average: 2%. Your spending and some income sources will adjust for inflation."
+    }
+  }
+
+  const tip = focusedField && tips[focusedField] ? tips[focusedField] : null
+
+  return (
+    <Card className={`border-0 shadow-lg rounded-3xl ${theme.card} h-full`}>
+      <CardContent className="pt-6 sm:pt-8 lg:pt-10">
+        {!planningStarted ? (
+          <div className="py-6 sm:py-8 lg:py-10 px-4 space-y-6">
+            <div className="text-center space-y-4">
+              <div className="text-6xl">🇨🇦</div>
+              <h2 className={`text-2xl font-bold ${theme.text.primary}`}>Let's Plan Your Retirement</h2>
+              <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+                Fill out the form to see your personalized retirement projection. We'll calculate your income, taxes, and portfolio balance year by year.
+              </p>
+            </div>
+
+            {/* Load Saved Scenario */}
+            <div className="max-w-xs mx-auto">
+              <LoadScenarioDropdown
+                onLoad={onLoadScenario}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 my-4">
+              <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+              <span className={`text-sm ${theme.text.muted}`}>or</span>
+              <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+            </div>
+
+            {/* Start Planning Button */}
+            <div className="text-center">
+              <Button
+                onClick={onStartPlanning}
+                size="lg"
+                className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
+              >
+                <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
+                Start Planning
+              </Button>
+            </div>
+          </div>
+        ) : tip ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{tip.icon}</span>
+              <h3 className={`text-xl font-bold ${theme.text.primary}`}>{tip.title}</h3>
+            </div>
+            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+              {tip.content}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Lightbulb className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
+              <h3 className={`text-xl font-bold ${theme.text.primary}`}>Pro Tip</h3>
+            </div>
+            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
+              Click on any field to see helpful information about what it means and how it affects your retirement plan.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function VoiceFirstContentV2() {
-  // Get auth context for user ID
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
 
-  // Form state (read-only preview)
+  // Form state
   const [currentAge, setCurrentAge] = useState<number | null>(null)
   const [retirementAge, setRetirementAge] = useState<number | null>(null)
   const [longevityAge, setLongevityAge] = useState<number | null>(null)
@@ -154,14 +300,10 @@ export function VoiceFirstContentV2() {
   const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(null)
   const [inflationRate, setInflationRate] = useState<number | null>(null)
 
-  const [messages, setMessages] = useState<Message[]>([])
-  const [batchPrompts, setBatchPrompts] = useState<BatchPrompt[]>([])
-  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
-  const [isComplete, setIsComplete] = useState(false)
+  // UI state
   const [editMode, setEditMode] = useState(false)
-  const [glowingFields, setGlowingFields] = useState<Set<string>>(new Set())
-  const [completedBatches, setCompletedBatches] = useState<Set<string>>(new Set())
+  const [planningStarted, setPlanningStarted] = useState(false)
+  const [focusedField, setFocusedField] = useState<string | null>(null)
   const [showSaveWithAccountModal, setShowSaveWithAccountModal] = useState(false)
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
   const [loadedScenarioName, setLoadedScenarioName] = useState<string | null>(null)
@@ -173,7 +315,7 @@ export function VoiceFirstContentV2() {
   const [variantScenario, setVariantScenario] = useState<Scenario | null>(null)
   const [variantResults, setVariantResults] = useState<CalculationResults | null>(null)
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [savingVariant, setSavingVariant] = useState(false) // Track if we're saving variant vs baseline
+  const [savingVariant, setSavingVariant] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
@@ -182,9 +324,7 @@ export function VoiceFirstContentV2() {
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
   const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
-  const [formGlowing, setFormGlowing] = useState(false)
 
-  // Ref for auto-scrolling to results
   const resultsRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to results when they appear
@@ -214,172 +354,10 @@ export function VoiceFirstContentV2() {
         ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
         : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600',
     },
-    progress: isDarkMode
-      ? 'bg-gradient-to-r from-blue-500 to-purple-500'
-      : 'bg-gradient-to-r from-rose-500 to-orange-500',
-    badge: {
-      active: isDarkMode ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white',
-      inactive: isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700',
-    },
     input: isDarkMode
       ? 'bg-gray-700 border-gray-600 text-white'
       : 'bg-white border-gray-200',
-    glow: isDarkMode
-      ? 'ring-4 ring-blue-400/50 ring-offset-2 ring-offset-gray-800'
-      : 'ring-4 ring-rose-300/50 ring-offset-2 ring-offset-white',
   }
-
-  // All question sections (shown immediately)
-  const allSections = [
-    { id: 'personal_info', title: 'Tell me about yourself', index: 0 },
-    { id: 'savings', title: 'Tell me about your current savings', index: 1 },
-    { id: 'savings_contributions', title: 'Tell me about your annual contributions', index: 2 },
-    { id: 'retirement_income', title: 'Tell me about your retirement income', index: 3 },
-    { id: 'investment_assumptions', title: 'Tell me about your investment expectations', index: 4 }
-  ]
-
-  // Helper function to trigger glow effect on a field
-  const triggerGlow = (fieldName: string) => {
-    setGlowingFields(prev => new Set(prev).add(fieldName))
-    setTimeout(() => {
-      setGlowingFields(prev => {
-        const next = new Set(prev)
-        next.delete(fieldName)
-        return next
-      })
-    }, 1000)
-  }
-
-  // Handle login success - check for anonymous scenarios to merge
-  const handleLoginSuccess = async () => {
-    console.log('🔐 Login successful, checking for anonymous scenarios...')
-
-    // Check if we had anonymous scenarios before login
-    const anonCount = await getAnonymousScenarioCount()
-    console.log(`📊 Found ${anonCount} anonymous scenarios`)
-
-    if (anonCount > 0 && user?.id) {
-      // Store anonymous user_id and count for merge modal
-      setAnonymousUserIdBeforeLogin(user.id)
-      setAnonymousScenarioCountBeforeLogin(anonCount)
-      setShowMergeModal(true)
-    }
-  }
-
-  // Handle logout
-  const handleLogout = async () => {
-    await logout()
-    console.log('👋 Logged out successfully')
-  }
-
-  // Handle merge complete - refresh scenario list
-  const handleMergeComplete = () => {
-    console.log('✅ Merge complete, scenarios should now be visible')
-    // LoadScenarioDropdown will auto-refresh via useEffect when user changes
-  }
-
-  // Create metadata object that updates when user changes
-  const metadata = useMemo(() => {
-    if (user?.id) {
-      console.log('📋 Creating Layercode metadata with user_id:', user.id)
-      return { user_id: user.id }
-    }
-    console.warn('⚠️ No user_id available for Layercode metadata')
-    return undefined
-  }, [user?.id])
-
-  const {
-    isConnected,
-    isConnecting,
-    userAudioLevel,
-    agentAudioLevel,
-    connect,
-    disconnect,
-  } = useLayercodeVoice({
-    autoConnect: false,
-    metadata, // Pass user ID to webhook
-    onDataMessage: (data) => {
-      const content = data.type === 'response.data' ? data.content : data
-
-      if (content.type === 'batch_prompt') {
-        setBatchPrompts(prev => [...prev, {
-          batchId: content.batchId,
-          batchTitle: content.batchTitle,
-          questions: content.questions,
-          batchIndex: content.batchIndex,
-          totalBatches: content.totalBatches
-        }])
-        // Mark this batch as the current active batch
-        setCurrentBatchId(content.batchId)
-        // Don't update progress here - wait for batch_response after fields are filled
-      }
-
-      if (content.type === 'batch_complete') {
-        // Batch is fully complete - update progress and mark batch as completed
-        if (content.progress) {
-          setProgress({ current: content.progress.current, total: content.progress.total })
-        }
-        // Mark this batch as completed (for green checkmark)
-        setCompletedBatches(prev => new Set(prev).add(content.completedBatchId))
-      }
-
-      if (content.type === 'batch_response') {
-        const values = content.values
-        // Fill fields with glow animation (progress updates later on batch_complete)
-        if (values.current_age !== undefined) { setCurrentAge(values.current_age); triggerGlow('current_age') }
-        if (values.retirement_age !== undefined) { setRetirementAge(values.retirement_age); triggerGlow('retirement_age') }
-        if (values.longevity_age !== undefined) { setLongevityAge(values.longevity_age); triggerGlow('longevity_age') }
-        if (values.province !== undefined) { setProvince(values.province); triggerGlow('province') }
-        if (values.current_income !== undefined) { setCurrentIncome(values.current_income); triggerGlow('current_income') }
-        if (values.rrsp_amount !== undefined) { setRrsp(values.rrsp_amount); triggerGlow('rrsp') }
-        if (values.rrsp_contribution !== undefined) { setRrspContribution(values.rrsp_contribution); triggerGlow('rrsp_contribution') }
-        if (values.tfsa_amount !== undefined) { setTfsa(values.tfsa_amount); triggerGlow('tfsa') }
-        if (values.tfsa_contribution !== undefined) { setTfsaContribution(values.tfsa_contribution); triggerGlow('tfsa_contribution') }
-        if (values.non_registered_amount !== undefined) { setNonRegistered(values.non_registered_amount); triggerGlow('non_registered') }
-        if (values.non_registered_contribution !== undefined) { setNonRegisteredContribution(values.non_registered_contribution); triggerGlow('non_registered_contribution') }
-        if (values.monthly_spending !== undefined) { setMonthlySpending(values.monthly_spending); triggerGlow('monthly_spending') }
-        if (values.pension_income !== undefined) { setPensionIncome(values.pension_income); triggerGlow('pension_income') }
-        if (values.other_income !== undefined) { setOtherIncome(values.other_income); triggerGlow('other_income') }
-        if (values.cpp_start_age !== undefined) { setCppStartAge(values.cpp_start_age); triggerGlow('cpp_start_age') }
-        if (values.investment_return !== undefined) { setInvestmentReturn(values.investment_return); triggerGlow('investment_return') }
-        if (values.post_retirement_return !== undefined) { setPostRetirementReturn(values.post_retirement_return); triggerGlow('post_retirement_return') }
-        if (values.inflation_rate !== undefined) { setInflationRate(values.inflation_rate); triggerGlow('inflation_rate') }
-      }
-
-      if (content.type === 'complete') {
-        setIsComplete(true)
-        const d = content.collectedData
-        if (d.currentAge) setCurrentAge(d.currentAge)
-        if (d.retirementAge) setRetirementAge(d.retirementAge)
-        if (d.longevityAge) setLongevityAge(d.longevityAge)
-        if (d.province) setProvince(d.province)
-        if (d.currentIncome) setCurrentIncome(d.currentIncome)
-        if (d.rrsp !== undefined) setRrsp(d.rrsp)
-        if (d.rrspContribution !== undefined) setRrspContribution(d.rrspContribution)
-        if (d.tfsa !== undefined) setTfsa(d.tfsa)
-        if (d.tfsaContribution !== undefined) setTfsaContribution(d.tfsaContribution)
-        if (d.non_registered !== undefined) setNonRegistered(d.non_registered)
-        if (d.nonRegisteredContribution !== undefined) setNonRegisteredContribution(d.nonRegisteredContribution)
-        if (d.monthlySpending) setMonthlySpending(d.monthlySpending)
-        if (d.pensionIncome !== undefined) setPensionIncome(d.pensionIncome)
-        if (d.otherIncome !== undefined) setOtherIncome(d.otherIncome)
-        if (d.cppStartAge) setCppStartAge(d.cppStartAge)
-        if (d.investmentReturn) setInvestmentReturn(d.investmentReturn)
-        if (d.postRetirementReturn) setPostRetirementReturn(d.postRetirementReturn)
-        if (d.inflationRate) setInflationRate(d.inflationRate)
-
-        // Store scenario ID if returned from webhook
-        if (content.scenarioId) {
-          setScenarioId(content.scenarioId)
-        }
-
-        // Store calculation results if returned from webhook
-        if (content.calculationResults) {
-          setCalculationResults(content.calculationResults)
-        }
-      }
-    }
-  })
 
   const provinceNames: Record<Province, string> = {
     AB: 'Alberta',
@@ -432,7 +410,6 @@ export function VoiceFirstContentV2() {
 
       const particleCount = 50 * (timeLeft / duration)
 
-      // Fire from left side
       confetti({
         ...defaults,
         particleCount,
@@ -440,7 +417,6 @@ export function VoiceFirstContentV2() {
         colors: ['#f43f5e', '#fb923c', '#fbbf24', '#10b981', '#06b6d4']
       })
 
-      // Fire from right side
       confetti({
         ...defaults,
         particleCount,
@@ -448,6 +424,12 @@ export function VoiceFirstContentV2() {
         colors: ['#f43f5e', '#fb923c', '#fbbf24', '#10b981', '#06b6d4']
       })
     }, 250)
+  }
+
+  // Handle Start Planning button
+  const handleStartPlanning = () => {
+    setPlanningStarted(true)
+    setEditMode(true)
   }
 
   // Handle Calculate button click
@@ -458,12 +440,9 @@ export function VoiceFirstContentV2() {
     }
 
     setIsCalculating(true)
-
-    // Fire confetti celebration
     fireConfetti()
 
     try {
-      // Build scenario object from collected data
       const scenario = {
         id: scenarioId || 'temp-id',
         user_id: user?.id || '00000000-0000-0000-0000-000000000000',
@@ -515,7 +494,6 @@ export function VoiceFirstContentV2() {
         updated_at: new Date().toISOString()
       }
 
-      // Call calculation API
       const response = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -565,7 +543,6 @@ export function VoiceFirstContentV2() {
 
   // Handle loading a saved scenario
   const handleLoadScenario = (formData: FormData, scenarioName: string) => {
-    // Populate all form fields
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
     setLongevityAge(formData.longevityAge)
@@ -585,27 +562,40 @@ export function VoiceFirstContentV2() {
     setPostRetirementReturn(formData.postRetirementReturn)
     setInflationRate(formData.inflationRate)
 
-    // Mark as complete so form is visible
-    setIsComplete(true)
-
-    // Store the loaded scenario name
     setLoadedScenarioName(scenarioName)
+    setPlanningStarted(true)
+    setEditMode(true)
 
-    // Trigger green glow animation
-    setFormGlowing(true)
-    setTimeout(() => setFormGlowing(false), 2000) // 2 second glow
-
-    // Show success feedback
     console.log(`✅ Loaded scenario: ${scenarioName}`)
+  }
+
+  // Handle login success
+  const handleLoginSuccess = async () => {
+    console.log('🔐 Login successful, checking for anonymous scenarios...')
+    const anonCount = await getAnonymousScenarioCount()
+    console.log(`📊 Found ${anonCount} anonymous scenarios`)
+
+    if (anonCount > 0 && user?.id) {
+      setAnonymousUserIdBeforeLogin(user.id)
+      setAnonymousScenarioCountBeforeLogin(anonCount)
+      setShowMergeModal(true)
+    }
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    console.log('👋 Logged out successfully')
+  }
+
+  const handleMergeComplete = () => {
+    console.log('✅ Merge complete, scenarios should now be visible')
   }
 
   // Create scenario from current form data
   const createScenarioFromFormData = (): Scenario => {
     const defaultPreRetirementReturn = (investmentReturn || 6) / 100
 
-    // Build assets with contributions
     const assets: any = {}
-
     if (rrsp) {
       assets.rrsp = {
         balance: rrsp,
@@ -613,7 +603,6 @@ export function VoiceFirstContentV2() {
         rate_of_return: defaultPreRetirementReturn
       }
     }
-
     if (tfsa) {
       assets.tfsa = {
         balance: tfsa,
@@ -621,7 +610,6 @@ export function VoiceFirstContentV2() {
         rate_of_return: defaultPreRetirementReturn
       }
     }
-
     if (nonRegistered) {
       assets.non_registered = {
         balance: nonRegistered,
@@ -631,23 +619,19 @@ export function VoiceFirstContentV2() {
       }
     }
 
-    // Build income sources
     const income_sources: any = {}
-
     if (currentIncome && currentIncome > 0) {
       income_sources.employment = {
         annual_amount: currentIncome,
         until_age: retirementAge || 65
       }
     }
-
     if (cppStartAge) {
       income_sources.cpp = {
         start_age: cppStartAge,
         monthly_amount_at_65: 1364.60
       }
     }
-
     income_sources.oas = {
       start_age: 65,
       monthly_amount: 713.34
@@ -662,7 +646,6 @@ export function VoiceFirstContentV2() {
         indexed_to_inflation: true
       })
     }
-
     if (otherIncome && otherIncome > 0) {
       otherIncomeItems.push({
         description: 'Other Income',
@@ -671,7 +654,6 @@ export function VoiceFirstContentV2() {
         indexed_to_inflation: true
       })
     }
-
     if (otherIncomeItems.length > 0) {
       income_sources.other_income = otherIncomeItems
     }
@@ -710,12 +692,10 @@ export function VoiceFirstContentV2() {
 
     setIsCalculatingVariant(true)
     try {
-      // Create variant scenario from current form data
       const baseScenario = createScenarioFromFormData()
       const variant = createFrontLoadVariant(baseScenario)
       setVariantScenario(variant)
 
-      // Run calculation
       const supabase = createClient()
       const results = await calculateRetirementProjection(supabase, variant)
       setVariantResults(results)
@@ -726,7 +706,6 @@ export function VoiceFirstContentV2() {
     }
   }
 
-  // Handle resetting to baseline
   const handleResetVariant = () => {
     setVariantScenario(null)
     setVariantResults(null)
@@ -734,7 +713,6 @@ export function VoiceFirstContentV2() {
 
   // Convert Scenario to FormData format
   const scenarioToFormData = (scenario: Scenario): FormData => {
-    // Extract other income sources once to avoid repeated lookups
     const pension = scenario.income_sources.other_income?.find(i => i.description === 'Pension Income')
     const other = scenario.income_sources.other_income?.find(i => i.description === 'Other Income')
 
@@ -760,7 +738,6 @@ export function VoiceFirstContentV2() {
     }
   }
 
-  // Handle saving variant scenario
   const handleSaveVariant = () => {
     if (!variantScenario || !variantResults) return
     setSavingVariant(true)
@@ -769,7 +746,7 @@ export function VoiceFirstContentV2() {
 
   return (
     <div className={`min-h-screen ${theme.background}`}>
-      {/* Header with Theme Toggle */}
+      {/* Header */}
       <div className={theme.headerBg}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
           <div className="flex items-center justify-between gap-3 sm:gap-4">
@@ -781,12 +758,12 @@ export function VoiceFirstContentV2() {
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                   The Ultimate Canadian Retirement Calculator
                 </h1>
-                <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Voice-powered. Tax-accurate. Future teller.</p>
+                <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Tax-accurate. Future teller.</p>
               </div>
             </div>
+
             {/* Auth & Theme Controls */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              {/* Login/Logout */}
               {!authLoading && (
                 <>
                   {isAnonymous ? (
@@ -817,7 +794,7 @@ export function VoiceFirstContentV2() {
                 </>
               )}
 
-              {/* Theme Toggle Button */}
+              {/* Theme Toggle */}
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-all duration-200"
@@ -834,169 +811,24 @@ export function VoiceFirstContentV2() {
         </div>
       </div>
 
-      {/* Asymmetric Two-Column Layout */}
+      {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 space-y-6 lg:space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* Left Column - Conversation (40%) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Voice Card */}
-            <Card className={`border-0 shadow-lg rounded-3xl overflow-hidden ${theme.card}`}>
-              <CardContent className="pt-6 sm:pt-8 lg:pt-10">
-                {!isConnected && !isConnecting && (
-                  <div className="py-6 sm:py-8 lg:py-10 px-4 space-y-6">
-                    <p className={`${theme.text.secondary} text-center text-base sm:text-lg leading-relaxed`}>
-                      Let's figure out your retirement together. Just tap and our AI retirement expert will assist you!
-                    </p>
-
-                    {/* Load Saved Scenario */}
-                    <div className="max-w-xs mx-auto">
-                      <LoadScenarioDropdown onLoad={handleLoadScenario} isDarkMode={isDarkMode} />
-                    </div>
-
-                    {/* Divider */}
-                    <div className="flex items-center gap-4 my-4">
-                      <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
-                      <span className={`text-sm ${theme.text.muted}`}>or</span>
-                      <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
-                    </div>
-
-                    {/* Start Conversation Button */}
-                    <div className="text-center">
-                      <Button
-                        onClick={() => {
-                          setIsComplete(false)  // Reset completion state when starting new conversation
-                          connect()
-                        }}
-                        disabled={authLoading || !user}
-                        size="lg"
-                        className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <Mic className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                        {authLoading ? 'Loading...' : 'Start New Conversation'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {isConnecting && (
-                  <div className="text-center py-6 sm:py-8 lg:py-10 px-4">
-                    <div className={`inline-block w-12 h-12 sm:w-16 sm:h-16 rounded-full ${theme.progress} animate-pulse mb-4`}></div>
-                    <p className={`${theme.text.secondary} text-base sm:text-lg`}>Getting ready...</p>
-                  </div>
-                )}
-
-                {isConnected && (
-                  <div className="space-y-6">
-                    {/* Audio Levels */}
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className={`flex items-center justify-between text-sm font-semibold ${theme.text.primary}`}>
-                          <span>You're speaking</span>
-                          <span className={isDarkMode ? "text-blue-400" : "text-rose-500"}>{Math.round(Math.min((userAudioLevel || 0) * 300, 100))}%</span>
-                        </div>
-                        <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full overflow-hidden`}>
-                          <div
-                            className={`h-full ${isDarkMode ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 'bg-gradient-to-r from-rose-400 to-rose-500'} transition-all duration-100 rounded-full`}
-                            style={{ width: `${Math.min((userAudioLevel || 0) * 300, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className={`flex items-center justify-between text-sm font-semibold ${theme.text.primary}`}>
-                          <span>I'm speaking</span>
-                          <span className={isDarkMode ? "text-purple-400" : "text-teal-500"}>{Math.round(Math.min((agentAudioLevel || 0) * 300, 100))}%</span>
-                        </div>
-                        <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full overflow-hidden`}>
-                          <div
-                            className={`h-full ${isDarkMode ? 'bg-gradient-to-r from-purple-400 to-purple-500' : 'bg-gradient-to-r from-teal-400 to-teal-500'} transition-all duration-100 rounded-full`}
-                            style={{ width: `${Math.min((agentAudioLevel || 0) * 300, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status */}
-                    {!isComplete && (
-                      <div className={`flex items-center justify-between pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                          <span className={`text-sm font-medium ${theme.text.primary}`}>
-                            Listening...
-                          </span>
-                        </div>
-                        <Button
-                          onClick={disconnect}
-                          variant="outline"
-                          className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl" : "border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"}
-                          size="sm"
-                        >
-                          <MicOff className="w-4 h-4 mr-2" />
-                          End
-                        </Button>
-                      </div>
-                    )}
-
-                    {isComplete && (
-                      <div className={isDarkMode ? "bg-gradient-to-r from-emerald-900/30 to-teal-900/30 rounded-2xl p-5 border-2 border-emerald-700" : "bg-gradient-to-r from-emerald-100 to-teal-100 rounded-2xl p-5 border-2 border-emerald-200"}>
-                        <p className={`${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'} font-bold flex items-center gap-2 text-center justify-center`}>
-                          <CheckCircle2 className="w-6 h-6" />
-                          Wonderful! We've got everything we need!
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Questions Timeline */}
-            {isConnected && (
-              <Card className={`border-0 shadow-lg rounded-3xl ${theme.card}`}>
-                <CardHeader>
-                  <CardTitle className={`text-lg font-bold ${theme.text.primary}`}>What we're discussing</CardTitle>
-                  <p className={`text-sm ${theme.text.secondary} mt-2`}>If something doesn't apply to you, just say the item name and "none" or "zero"</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {allSections.map((section) => {
-                      const isCompleted = completedBatches.has(section.id)
-                      const isActive = currentBatchId === section.id
-                      const isInactive = !isCompleted && !isActive
-
-                      return (
-                        <div key={section.id} className="flex items-center gap-4">
-                          {isCompleted ? (
-                            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-white shadow-lg">
-                              <CheckCircle2 className="w-6 h-6" />
-                            </div>
-                          ) : isActive ? (
-                            <div className={`flex-shrink-0 w-10 h-10 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-500 to-purple-500' : 'bg-gradient-to-br from-rose-400 to-orange-400'} flex items-center justify-center text-white font-bold shadow-lg`}>
-                              {section.index + 1}
-                            </div>
-                          ) : (
-                            <div className={`flex-shrink-0 w-10 h-10 rounded-2xl ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-300 text-gray-500'} flex items-center justify-center font-bold`}>
-                              {section.index + 1}
-                            </div>
-                          )}
-                          <h4 className={`font-bold ${isInactive ? theme.text.muted : theme.text.primary}`}>
-                            {section.title}
-                          </h4>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+          {/* Left Sidebar - Help/Tips (40%) */}
+          <div className="lg:col-span-5">
+            <HelpSidebar
+              focusedField={focusedField}
+              isDarkMode={isDarkMode}
+              theme={theme}
+              onStartPlanning={handleStartPlanning}
+              onLoadScenario={handleLoadScenario}
+              planningStarted={planningStarted}
+            />
           </div>
 
-          {/* Right Column - Data (60%) */}
+          {/* Right Column - Form (60%) */}
           <div className="lg:col-span-7">
-            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card} lg:sticky lg:top-8 transition-all duration-500 ${
-              formGlowing
-                ? 'ring-4 ring-emerald-500 shadow-emerald-500/50'
-                : ''
-            }`}>
+            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card} lg:sticky lg:top-8`}>
               <CardHeader className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} pb-4 sm:pb-6 px-4 sm:px-6`}>
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -1004,7 +836,7 @@ export function VoiceFirstContentV2() {
                       Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
                     </CardTitle>
                   </div>
-                  {isComplete && (
+                  {editMode && (
                     <Button
                       onClick={() => setEditMode(!editMode)}
                       variant="outline"
@@ -1019,10 +851,46 @@ export function VoiceFirstContentV2() {
                 <div className="space-y-6 sm:space-y-8">
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                    <WarmDataField label="Current Age" value={currentAge} editMode={editMode} onEdit={setCurrentAge} type="number" isGlowing={glowingFields.has('current_age')} isDarkMode={isDarkMode} theme={theme} />
-                    <WarmDataField label="Retirement Age" value={retirementAge} editMode={editMode} onEdit={setRetirementAge} type="number" isGlowing={glowingFields.has('retirement_age')} isDarkMode={isDarkMode} theme={theme} />
-                    <WarmDataField label="Life Expectancy Age" value={longevityAge} editMode={editMode} onEdit={setLongevityAge} type="number" isGlowing={glowingFields.has('longevity_age')} isDarkMode={isDarkMode} theme={theme} />
-                    <WarmDataField label="Current Income (Annual)" value={currentIncome} editMode={editMode} onEdit={setCurrentIncome} type="currency" isGlowing={glowingFields.has('current_income')} isDarkMode={isDarkMode} theme={theme} />
+                    <WarmDataField
+                      label="Current Age"
+                      value={currentAge}
+                      editMode={editMode}
+                      onEdit={setCurrentAge}
+                      type="number"
+                      isDarkMode={isDarkMode}
+                      theme={theme}
+                      onFocus={() => setFocusedField('currentAge')}
+                    />
+                    <WarmDataField
+                      label="Retirement Age"
+                      value={retirementAge}
+                      editMode={editMode}
+                      onEdit={setRetirementAge}
+                      type="number"
+                      isDarkMode={isDarkMode}
+                      theme={theme}
+                      onFocus={() => setFocusedField('retirementAge')}
+                    />
+                    <WarmDataField
+                      label="Life Expectancy Age"
+                      value={longevityAge}
+                      editMode={editMode}
+                      onEdit={setLongevityAge}
+                      type="number"
+                      isDarkMode={isDarkMode}
+                      theme={theme}
+                      onFocus={() => setFocusedField('longevityAge')}
+                    />
+                    <WarmDataField
+                      label="Current Income (Annual)"
+                      value={currentIncome}
+                      editMode={editMode}
+                      onEdit={setCurrentIncome}
+                      type="currency"
+                      isDarkMode={isDarkMode}
+                      theme={theme}
+                      onFocus={() => setFocusedField('currentIncome')}
+                    />
                   </div>
 
                   <WarmDataField
@@ -1033,9 +901,9 @@ export function VoiceFirstContentV2() {
                     onEdit={setProvince}
                     type="select"
                     options={provinceOptions}
-                    isGlowing={glowingFields.has('province')}
                     isDarkMode={isDarkMode}
                     theme={theme}
+                    onFocus={() => setFocusedField('province')}
                   />
 
                   {/* Accounts */}
@@ -1044,12 +912,12 @@ export function VoiceFirstContentV2() {
                       💰 Your Accounts
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isGlowing={glowingFields.has('rrsp')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="RRSP Contribution (Annual)" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isGlowing={glowingFields.has('rrsp_contribution')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isGlowing={glowingFields.has('tfsa')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="TFSA Contribution (Annual)" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isGlowing={glowingFields.has('tfsa_contribution')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="Non-Registered Balance" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isGlowing={glowingFields.has('non_registered')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="Non-Registered Contribution (Annual)" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isGlowing={glowingFields.has('non_registered_contribution')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('rrsp')} />
+                      <WarmDataField label="RRSP Contribution (Annual)" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('rrspContribution')} />
+                      <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('tfsa')} />
+                      <WarmDataField label="TFSA Contribution (Annual)" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('tfsaContribution')} />
+                      <WarmDataField label="Non-Registered Balance" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('nonRegistered')} />
+                      <WarmDataField label="Non-Registered Contribution (Annual)" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('nonRegisteredContribution')} />
                     </div>
                   </div>
 
@@ -1059,10 +927,10 @@ export function VoiceFirstContentV2() {
                       🏖️ In Retirement
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="Monthly Spending (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isGlowing={glowingFields.has('monthly_spending')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isGlowing={glowingFields.has('pension_income')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isGlowing={glowingFields.has('other_income')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isGlowing={glowingFields.has('cpp_start_age')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Monthly Spending (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('monthlySpending')} />
+                      <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('pensionIncome')} />
+                      <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('otherIncome')} />
+                      <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('cppStartAge')} />
                     </div>
                   </div>
 
@@ -1072,14 +940,14 @@ export function VoiceFirstContentV2() {
                       📊 Rate Assumptions
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-                      <WarmDataField label="Pre-Retirement" value={investmentReturn} editMode={editMode} onEdit={setInvestmentReturn} type="percentage" isGlowing={glowingFields.has('investment_return')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="Post-Retirement" value={postRetirementReturn} editMode={editMode} onEdit={setPostRetirementReturn} type="percentage" isGlowing={glowingFields.has('post_retirement_return')} isDarkMode={isDarkMode} theme={theme} />
-                      <WarmDataField label="Inflation" value={inflationRate} editMode={editMode} onEdit={setInflationRate} type="percentage" isGlowing={glowingFields.has('inflation_rate')} isDarkMode={isDarkMode} theme={theme} />
+                      <WarmDataField label="Pre-Retirement" value={investmentReturn} editMode={editMode} onEdit={setInvestmentReturn} type="percentage" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('investmentReturn')} />
+                      <WarmDataField label="Post-Retirement" value={postRetirementReturn} editMode={editMode} onEdit={setPostRetirementReturn} type="percentage" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('postRetirementReturn')} />
+                      <WarmDataField label="Inflation" value={inflationRate} editMode={editMode} onEdit={setInflationRate} type="percentage" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('inflationRate')} />
                     </div>
                   </div>
 
-                  {/* Calculate/Recalculate Button */}
-                  {isComplete && (
+                  {/* Calculate Button */}
+                  {editMode && (
                     <Button
                       size="lg"
                       onClick={handleCalculate}
@@ -1162,7 +1030,6 @@ export function VoiceFirstContentV2() {
                   <button
                     onClick={() => {
                       console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
-                      // Show appropriate modal based on user type
                       if (isAnonymous) {
                         console.log('💾 Opening SaveWithAccountModal (anonymous user)')
                         setShowSaveWithAccountModal(true)
@@ -1202,7 +1069,7 @@ export function VoiceFirstContentV2() {
         )}
       </div>
 
-      {/* Save With Account Modal (for anonymous users clicking Save Scenario) */}
+      {/* Modals */}
       <SaveWithAccountModal
         isOpen={showSaveWithAccountModal}
         onClose={() => setShowSaveWithAccountModal(false)}
@@ -1210,7 +1077,6 @@ export function VoiceFirstContentV2() {
         calculationResults={calculationResults}
       />
 
-      {/* Save Scenario Modal (for authenticated users) */}
       <SaveScenarioModal
         isOpen={showScenarioSaveModal}
         onClose={() => {
@@ -1223,7 +1089,6 @@ export function VoiceFirstContentV2() {
         defaultName={savingVariant && variantScenario ? variantScenario.name : undefined}
       />
 
-      {/* Login Modal */}
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -1231,7 +1096,6 @@ export function VoiceFirstContentV2() {
         isDarkMode={isDarkMode}
       />
 
-      {/* Merge Anonymous Scenarios Modal */}
       {anonymousUserIdBeforeLogin && user && (
         <MergeAnonymousScenariosModal
           isOpen={showMergeModal}
@@ -1244,7 +1108,6 @@ export function VoiceFirstContentV2() {
         />
       )}
 
-      {/* Scenario Modal */}
       <ScenarioModal
         isOpen={showScenarioModal}
         onClose={() => setShowScenarioModal(false)}

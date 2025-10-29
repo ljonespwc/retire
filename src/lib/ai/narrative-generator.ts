@@ -6,7 +6,6 @@
  */
 
 import { CalculationResults } from '@/types/calculator';
-import { getAIProvider } from '@/lib/ai-provider';
 
 interface NarrativeInsights {
   startingBalance: number;
@@ -165,19 +164,69 @@ ${context}
 
 Create a story that highlights the key financial transitions and outcomes.`;
 
-    console.log('🤖 Narrative Generator: Calling AI provider...');
-    const ai = getAIProvider();
-    const narrative = await ai.generateCompletion(
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      {
-        temperature: 0.7,
-        maxTokens: 150,
-        timeout: 15000, // 15 second timeout
+    const provider = process.env.AI_PROVIDER || 'openai';
+    console.log(`🤖 Narrative Generator: Calling ${provider} API...`);
+
+    let narrative = '';
+
+    if (provider === 'gemini') {
+      // Direct Gemini API call
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: `${systemPrompt}\n\n${userPrompt}` }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 150,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status}`);
       }
-    );
+
+      const data = await response.json();
+      narrative = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      // Direct OpenAI API call
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 150,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      narrative = data.choices[0]?.message?.content || '';
+    }
+
     console.log('✅ Narrative Generator: AI response received:', narrative);
 
     return narrative.trim();
