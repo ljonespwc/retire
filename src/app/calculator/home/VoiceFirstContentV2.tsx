@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb } from 'lucide-react'
 import { HELP_TIPS, DEFAULT_TIP } from '@/lib/calculator/help-tips'
 import { MobileHelpBanner } from '@/components/help/MobileHelpBanner'
+import { parseInteger, parsePercentage, roundPercentage } from '@/lib/utils/number-utils'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
 import { useAuth } from '@/contexts/AuthContext'
 import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
@@ -97,9 +98,12 @@ function WarmDataField({
             onChange={(e) => {
               if (type === 'text') {
                 onEdit(e.target.value || null)
+              } else if (type === 'percentage') {
+                // Percentages: allow 1 decimal place
+                onEdit(parsePercentage(e.target.value))
               } else {
-                const numValue = e.target.value === '' ? null : Number(e.target.value)
-                onEdit(numValue)
+                // Ages and currency: integers only
+                onEdit(parseInteger(e.target.value))
               }
             }}
             onFocus={onFocus}
@@ -538,9 +542,10 @@ export function VoiceFirstContentV2() {
     setPensionIncome(formData.pensionIncome)
     setOtherIncome(formData.otherIncome)
     setCppStartAge(formData.cppStartAge)
-    setInvestmentReturn(formData.investmentReturn)
-    setPostRetirementReturn(formData.postRetirementReturn)
-    setInflationRate(formData.inflationRate)
+    // Round percentages to 1 decimal place
+    setInvestmentReturn(formData.investmentReturn !== null ? roundPercentage(formData.investmentReturn) : null)
+    setPostRetirementReturn(formData.postRetirementReturn !== null ? roundPercentage(formData.postRetirementReturn) : null)
+    setInflationRate(formData.inflationRate !== null ? roundPercentage(formData.inflationRate) : null)
 
     setLoadedScenarioName(scenarioName)
     setPlanningStarted(true)
@@ -701,20 +706,20 @@ export function VoiceFirstContentV2() {
       retirementAge: scenario.basic_inputs.retirement_age,
       longevityAge: scenario.basic_inputs.longevity_age,
       province: scenario.basic_inputs.province,
-      currentIncome: scenario.income_sources.employment?.annual_amount || 0,
-      rrspAmount: scenario.assets.rrsp?.balance || 0,
-      rrspContribution: scenario.assets.rrsp?.annual_contribution || 0,
-      tfsaAmount: scenario.assets.tfsa?.balance || 0,
-      tfsaContribution: scenario.assets.tfsa?.annual_contribution || 0,
-      nonRegisteredAmount: scenario.assets.non_registered?.balance || 0,
-      nonRegisteredContribution: scenario.assets.non_registered?.annual_contribution || 0,
+      currentIncome: scenario.income_sources.employment?.annual_amount || null,
+      rrspAmount: scenario.assets.rrsp?.balance || null,
+      rrspContribution: scenario.assets.rrsp?.annual_contribution || null,
+      tfsaAmount: scenario.assets.tfsa?.balance || null,
+      tfsaContribution: scenario.assets.tfsa?.annual_contribution || null,
+      nonRegisteredAmount: scenario.assets.non_registered?.balance || null,
+      nonRegisteredContribution: scenario.assets.non_registered?.annual_contribution || null,
       monthlySpending: scenario.expenses.fixed_monthly,
-      pensionIncome: pension?.annual_amount || 0,
-      otherIncome: other?.annual_amount || 0,
-      cppStartAge: scenario.income_sources.cpp?.start_age || 65,
-      investmentReturn: Math.round((scenario.assumptions.pre_retirement_return * 100) * 100) / 100,
-      postRetirementReturn: Math.round((scenario.assumptions.post_retirement_return * 100) * 100) / 100,
-      inflationRate: Math.round((scenario.assumptions.inflation_rate * 100) * 100) / 100,
+      pensionIncome: pension?.annual_amount || null,
+      otherIncome: other?.annual_amount || null,
+      cppStartAge: scenario.income_sources.cpp?.start_age || null,
+      investmentReturn: roundPercentage(scenario.assumptions.pre_retirement_return * 100),
+      postRetirementReturn: roundPercentage(scenario.assumptions.post_retirement_return * 100),
+      inflationRate: roundPercentage(scenario.assumptions.inflation_rate * 100),
     }
   }
 

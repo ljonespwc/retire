@@ -6,6 +6,7 @@
 
 import { Scenario } from '@/types/calculator'
 import { Province } from '@/types/constants'
+import { roundPercentage } from '@/lib/utils/number-utils'
 
 /**
  * Form state interface matching VoiceFirstContentV2 state
@@ -165,10 +166,10 @@ export function scenarioToFormData(scenario: Scenario): FormData {
     otherIncome: scenario.income_sources.other_income?.find(i => i.description === 'Other Income')?.annual_amount || null,
     cppStartAge: scenario.income_sources.cpp?.start_age || null,
 
-    // Assumptions (convert from decimal to percentage)
-    investmentReturn: scenario.assumptions.pre_retirement_return * 100,
-    postRetirementReturn: scenario.assumptions.post_retirement_return * 100,
-    inflationRate: scenario.assumptions.inflation_rate * 100,
+    // Assumptions (convert from decimal to percentage, round to 1 decimal)
+    investmentReturn: roundPercentage(scenario.assumptions.pre_retirement_return * 100),
+    postRetirementReturn: roundPercentage(scenario.assumptions.post_retirement_return * 100),
+    inflationRate: roundPercentage(scenario.assumptions.inflation_rate * 100),
   }
 }
 
