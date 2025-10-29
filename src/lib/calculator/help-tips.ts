@@ -66,9 +66,9 @@ export const HELP_TIPS: Record<string, HelpTip> = {
     content: "Annual contributions to taxable accounts. No limits, but no tax advantages either.\n\nMax out RRSP ($31,560) and TFSA ($7,000) first for better tax efficiency—that's $38,560/year in tax-sheltered savings."
   },
   monthlySpending: {
-    title: "Monthly Spending",
+    title: "Monthly Spending Goal",
     icon: "🛒",
-    content: "Your desired monthly spending in retirement (pre-tax). Rule of thumb: 70-80% of pre-retirement income.\n\nMedian Canadian retiree: ~$4,000-5,000/month. We'll calculate taxes and adjust for inflation automatically."
+    content: "Your desired monthly spending in retirement (pre-tax). This is your gross spending target—your actual after-tax income will be lower.\n\nRule of thumb: 70-80% of pre-retirement income. Median Canadian retiree: ~$4,000-5,000/month. We'll calculate taxes and show your net income after taxes."
   },
   pensionIncome: {
     title: "Pension Income",

@@ -66,13 +66,13 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false }: E
       {/* Monthly Income - Prominent Display */}
       <div className="text-center">
         <div className={`text-sm ${labelColor} mb-2 font-medium`}>
-          Monthly After-Tax Income in Retirement
+          Year 1 After-Tax Income
         </div>
         <div className={`text-5xl font-bold ${valueColor}`}>
           {formatCurrency(summary.monthlyAfterTaxIncome)}
         </div>
         <div className={`text-sm ${subLabelColor} mt-1`}>
-          per month (all sources)
+          per month (year 1, after taxes)
         </div>
       </div>
 

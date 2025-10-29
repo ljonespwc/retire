@@ -96,9 +96,9 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
 
         {/* Monthly Net Income */}
         <div className={`flex justify-between items-center py-3 border-b ${dividerBorder}`}>
-          <span className={textSecondary}>Monthly Net Income (Average)</span>
+          <span className={textSecondary}>Average After-Tax Income</span>
           <span className={`font-semibold ${textPrimary}`}>
-            {formatCurrency(taxSummary.monthlyNetIncome)}
+            {formatCurrency(taxSummary.monthlyNetIncome)}<span className={`text-xs ml-1 ${textSecondary}`}>/mo</span>
           </span>
         </div>
 
