@@ -297,7 +297,7 @@ export function VoiceFirstContentV2() {
   const [currentAge, setCurrentAge] = useState<number | null>(null)
   const [retirementAge, setRetirementAge] = useState<number | null>(null)
   const [longevityAge, setLongevityAge] = useState<number | null>(null)
-  const [province, setProvince] = useState<Province | null>(null)
+  const [province, setProvince] = useState<string>('')
   const [currentIncome, setCurrentIncome] = useState<number | null>(null)
   const [rrsp, setRrsp] = useState<number | null>(null)
   const [rrspContribution, setRrspContribution] = useState<number | null>(null)
@@ -443,7 +443,7 @@ export function VoiceFirstContentV2() {
   // Handle Start Planning button
   // Check if mandatory fields are complete
   const isMandatoryFieldsComplete = () => {
-    return currentAge !== null && retirementAge !== null && longevityAge !== null && province !== null
+    return currentAge !== null && retirementAge !== null && longevityAge !== null && province !== ''
   }
 
   const handleStartPlanning = () => {
@@ -567,7 +567,7 @@ export function VoiceFirstContentV2() {
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
     setLongevityAge(formData.longevityAge)
-    setProvince(formData.province as Province | null)
+    setProvince(formData.province || '')
     setCurrentIncome(formData.currentIncome)
     setRrsp(formData.rrspAmount)
     setRrspContribution(formData.rrspContribution)
@@ -685,7 +685,7 @@ export function VoiceFirstContentV2() {
         current_age: currentAge || 0,
         retirement_age: retirementAge || 65,
         longevity_age: longevityAge || 95,
-        province: province || Province.ON
+        province: (province as Province) || Province.ON
       },
       assets,
       income_sources,
@@ -926,7 +926,7 @@ export function VoiceFirstContentV2() {
 
                   <WarmDataField
                     label="Province/Territory"
-                    value={province ? provinceNames[province] : null}
+                    value={province ? provinceNames[province as Province] : null}
                     editValue={province}
                     editMode={editMode}
                     onEdit={setProvince}
