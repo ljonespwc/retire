@@ -195,7 +195,7 @@ function BaselineTab({
                 : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
             }`}
           >
-            SAVE SCENARIO: Baseline
+            SAVE THIS SCENARIO: Baseline
           </button>
         </div>
       )}
@@ -399,7 +399,7 @@ function VariantTab({
                 : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
             }`}
           >
-            SAVE SCENARIO: {variantScenario.name}
+            SAVE THIS SCENARIO: {variantScenario.name}
           </button>
         </div>
       )}

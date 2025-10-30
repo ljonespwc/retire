@@ -1228,15 +1228,15 @@ export function VoiceFirstContentV2() {
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
 
               {/* What-If Scenarios Buttons */}
-              <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-3xl mx-auto`}>
-                <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4`}>
+              <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-6xl mx-auto`}>
+                <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4 text-center`}>
                   Try What-If Scenarios
                 </h3>
-                <div className="space-y-3">
+                <div className="flex flex-wrap gap-3 justify-center">
                   <button
                     onClick={() => handleScenarioClick('front_load')}
                     disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')}
-                    className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                    className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
                       loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')
                         ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
                         : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
@@ -1261,7 +1261,7 @@ export function VoiceFirstContentV2() {
                   <button
                     onClick={() => handleScenarioClick('delay_benefits')}
                     disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')}
-                    className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                    className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
                       loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')
                         ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
                         : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
@@ -1317,7 +1317,7 @@ export function VoiceFirstContentV2() {
                         : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                     }`}
                   >
-                    SAVE SCENARIO: Baseline
+                    SAVE THIS SCENARIO: Baseline
                   </button>
                 </div>
 
