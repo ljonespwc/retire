@@ -1257,6 +1257,23 @@ export function VoiceFirstContentV2() {
                     </div>
                   </div>
 
+                  {/* Done Editing Button (Bottom) - Mobile convenience */}
+                  {editMode && calculationResults && (
+                    <div className={`pt-4 border-t-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <Button
+                        size="lg"
+                        onClick={() => setEditMode(false)}
+                        className={`w-full ${
+                          isDarkMode
+                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 hover:text-blue-300'
+                            : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 hover:text-rose-800'
+                        } text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl transition-all`}
+                      >
+                        ✓ Done Editing
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Calculate Button */}
                   <Button
                     size="lg"
