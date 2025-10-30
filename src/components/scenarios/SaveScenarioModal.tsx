@@ -25,6 +25,8 @@ interface SaveScenarioModalProps {
   variantConfig?: Record<string, any> // Optional variant config
   baselineId?: string // Optional baseline scenario ID
   scenarioId?: string // Optional scenario ID (for updates)
+  aiInsight?: string // Optional AI-generated insight (for variants)
+  aiNarrative?: string // Optional AI-generated narrative (for variants)
   onSaveSuccess?: (scenarioId: string, scenarioName: string) => void // Callback after successful save
 }
 
@@ -39,6 +41,8 @@ export function SaveScenarioModal({
   variantConfig,
   baselineId,
   scenarioId,
+  aiInsight,
+  aiNarrative,
   onSaveSuccess,
 }: SaveScenarioModalProps) {
   const [scenarioName, setScenarioName] = useState(defaultName || getDefaultScenarioName())
@@ -93,7 +97,7 @@ export function SaveScenarioModal({
 
       // Add variant metadata if this is a variant scenario
       if (variantType) {
-        inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId)
+        inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId, aiInsight, aiNarrative)
       }
 
       if (scenarioId) {

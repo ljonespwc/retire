@@ -22,6 +22,7 @@ import { IncomeCompositionChart } from '@/components/results/IncomeCompositionCh
 import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
 import { CalculationDisclosure } from '@/components/results/CalculationDisclosure'
 import { RetirementNarrative } from '@/components/results/RetirementNarrative'
+import { VariantDetailsBanner } from '@/components/results/VariantDetailsBanner'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
@@ -168,7 +169,23 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
   return (
     <Card className={`border-0 shadow-lg rounded-3xl ${theme.card} h-full`}>
       <CardContent className="pt-6 sm:pt-8 lg:pt-10">
-        {!planningStarted ? (
+        {tip ? (
+          // Show tooltip when field is focused (highest priority)
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{tip.icon}</span>
+              <h3 className={`text-xl font-bold ${theme.text.primary}`}>{tip.title}</h3>
+            </div>
+            <div className="space-y-3">
+              {tip.content.split('\n\n').map((paragraph, idx) => (
+                <p key={idx} className={`${theme.text.secondary} text-base leading-relaxed`}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </div>
+        ) : !planningStarted || calculationResults ? (
+          // Show welcome state if not started yet OR after calculation
           <div className="py-6 sm:py-8 lg:py-10 px-4 space-y-6">
             <div className="text-center space-y-4">
               <div className="text-6xl">🇨🇦</div>
@@ -193,7 +210,7 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
               <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
             </div>
 
-            {/* Start Planning Button */}
+            {/* Create New Plan Button */}
             <div className="text-center">
               <Button
                 onClick={onStartPlanning}
@@ -201,36 +218,9 @@ function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadS
                 className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
               >
                 <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                Start Planning
+                Create New Plan
               </Button>
             </div>
-          </div>
-        ) : tip ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">{tip.icon}</span>
-              <h3 className={`text-xl font-bold ${theme.text.primary}`}>{tip.title}</h3>
-            </div>
-            <div className="space-y-3">
-              {tip.content.split('\n\n').map((paragraph, idx) => (
-                <p key={idx} className={`${theme.text.secondary} text-base leading-relaxed`}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
-        ) : calculationResults ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">📊</span>
-              <h3 className={`text-xl font-bold ${theme.text.primary}`}>Your Results</h3>
-            </div>
-            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-              Your retirement projection is ready! Scroll down to see your year-by-year breakdown, portfolio balance, income sources, and tax impact.
-            </p>
-            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-              Want to explore what-if scenarios? Try different spending patterns or retirement ages to see how they affect your plan.
-            </p>
           </div>
         ) : isMandatoryFieldsComplete() ? (
           <div className="space-y-4">
@@ -386,7 +376,7 @@ export function VoiceFirstContentV2() {
     }, 250)
   }
 
-  // Handle Start Planning button
+  // Handle Create New Plan button
   // Check if mandatory fields are complete and valid
   const isMandatoryFieldsComplete = () => {
     // Check if required fields exist
@@ -420,15 +410,46 @@ export function VoiceFirstContentV2() {
     setPlanningStarted(true)
     setEditMode(true)
 
-    // Clear scenario tracking (user is starting fresh)
+    // Clear ALL form fields (user is starting completely fresh)
+    setCurrentAge(null)
+    setRetirementAge(null)
+    setLongevityAge(null)
+    setProvince('')
+    setCurrentIncome(null)
+    setRrsp(null)
+    setRrspContribution(null)
+    setTfsa(null)
+    setTfsaContribution(null)
+    setNonRegistered(null)
+    setNonRegisteredContribution(null)
+    setMonthlySpending(null)
+    setPensionIncome(null)
+    setOtherIncome(null)
+    setCppStartAge(65)
+
+    // Set default rate assumptions
+    setInvestmentReturn(6)
+    setPostRetirementReturn(4)
+    setInflationRate(2)
+
+    // Clear scenario tracking and sidebar state
     setScenarioId(undefined)
     setLoadedScenarioName(null)
     setLoadedVariantMetadata(null)
+    setFocusedField(null)
 
-    // Pre-fill rate assumptions with sensible defaults if not already set
-    if (investmentReturn === null) setInvestmentReturn(6)
-    if (postRetirementReturn === null) setPostRetirementReturn(4)
-    if (inflationRate === null) setInflationRate(2)
+    // Clear calculation results
+    setJustCalculated(false)
+    setShowResults(false)
+    setCalculationResults(null)
+    setBaselineNarrative(null)
+
+    // Clear any variant scenarios
+    setVariantScenarios([])
+    setVariantResultsArray([])
+    setVariantScenarioIds([])
+    setVariantInsights([])
+    setVariantNarratives([])
   }
 
   // Handle Calculate button click
@@ -556,6 +577,7 @@ export function VoiceFirstContentV2() {
         setShowResults(true)
         setEditMode(false)
         setJustCalculated(true)
+        setFocusedField(null) // Reset sidebar to original state
       } else {
         console.error('❌ Calculation failed:', data.error)
         alert(`Calculation failed: ${data.error || 'Unknown error'}`)
@@ -617,6 +639,19 @@ export function VoiceFirstContentV2() {
     setLoadedScenarioName(scenarioName)
     setPlanningStarted(true)
     setEditMode(false)
+
+    // Reset calculation state to enable Calculate button
+    setJustCalculated(false)
+    setShowResults(false)
+    setCalculationResults(null)
+    setBaselineNarrative(null)
+
+    // Clear any variant scenarios
+    setVariantScenarios([])
+    setVariantResultsArray([])
+    setVariantScenarioIds([])
+    setVariantInsights([])
+    setVariantNarratives([])
 
     // Store scenario ID if present
     if (scenarioId) {
@@ -1025,8 +1060,8 @@ export function VoiceFirstContentV2() {
 
       {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 space-y-6 lg:space-y-8">
-        {/* Mobile Intro - Only shown before planning starts, only on mobile */}
-        {!planningStarted && (
+        {/* Mobile Intro - Shown before planning starts OR after calculation, only on mobile */}
+        {(!planningStarted || calculationResults) && (
           <div className="lg:hidden">
             <Card className={`border-0 shadow-lg rounded-3xl ${theme.card}`}>
               <CardContent className="pt-6 sm:pt-8">
@@ -1054,7 +1089,7 @@ export function VoiceFirstContentV2() {
                     <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
                   </div>
 
-                  {/* Start Planning Button */}
+                  {/* Create New Plan Button */}
                   <div className="text-center">
                     <Button
                       onClick={handleStartPlanning}
@@ -1062,7 +1097,7 @@ export function VoiceFirstContentV2() {
                       className={`${theme.button.secondary} text-white px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
                     >
                       <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                      Start Planning
+                      Create New Plan
                     </Button>
                   </div>
                 </div>
@@ -1328,6 +1363,16 @@ export function VoiceFirstContentV2() {
             {/* Baseline Results (shown only when NO variants active) */}
             {variantScenarios.length === 0 && (
               <div className="space-y-6 lg:space-y-8">
+                {/* Variant Details Banner (shown when loaded variant has metadata) */}
+                {loadedVariantMetadata && (
+                  <VariantDetailsBanner
+                    variantMetadata={loadedVariantMetadata}
+                    scenario={createScenarioFromFormData()}
+                    isDarkMode={isDarkMode}
+                    isCollapsible={true}
+                  />
+                )}
+
                 <ResultsSummary
                   results={calculationResults}
                   retirementAge={retirementAge || 65}
@@ -1415,6 +1460,8 @@ export function VoiceFirstContentV2() {
         variantType={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? detectVariantTypeFromName(variantScenarios[savingVariantIndex].name) || undefined : loadedVariantMetadata?.variant_type}
         variantConfig={loadedVariantMetadata?.variant_config}
         scenarioId={savingVariantIndex !== null ? variantScenarioIds[savingVariantIndex] : scenarioId}
+        aiInsight={savingVariantIndex !== null && variantInsights[savingVariantIndex] ? variantInsights[savingVariantIndex] : loadedVariantMetadata?.ai_insight}
+        aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : loadedVariantMetadata?.ai_narrative}
         onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}
       />
 
