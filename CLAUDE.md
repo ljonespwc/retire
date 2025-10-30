@@ -333,6 +333,22 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
+**2025-10-29**: AI Architecture Simplification
+- **Problem**: Complex client-side caching (~160 lines) with module-level Maps and in-flight promise tracking to prevent duplicate AI calls in React StrictMode
+- **Solution**: Server-side AI generation architecture - generate narratives/insights during calculation (in API routes), return with results, pass as props
+- **Changes**:
+  - Modified `/api/calculate` to generate baseline narrative server-side (src/app/api/calculate/route.ts:38-46)
+  - Updated `handleRunScenario` to call `/api/generate-insight` and `/api/generate-narrative` via fetch (parallel execution)
+  - Simplified `RetirementNarrative.tsx` from ~100 lines to ~40 lines (removed all caching, accepts narrative prop)
+  - Simplified `ScenarioComparison.tsx` to accept `baselineNarrative`, `variantInsights[]`, `variantNarratives[]` as props
+  - Removed all console logging for AI generation (kept error logs only)
+  - Removed "Tax Efficiency Tips" section from TaxSummaryCard
+  - Reordered components: Banner → AI Analysis → Save Button → Charts (better narrative flow)
+- **Impact**: Deleted ~160 lines of caching code, cleaner architecture, accept dev-mode duplicates (StrictMode) over complex optimization
+- **Philosophy**: Follow mindset.md - "don't build what you don't need", Simple/Lovable/Complete over premature optimization
+- **Status**: ✅ Implemented and deployed
+- **Build Status**: ✅ Production build passes
+
 **2025-10-29**: Variant Regeneration Bug Fix - CRITICAL
 - **Problem**: Saved variants (e.g., "Front-Load the Fun") showed different results when reloaded and recalculated
   - Original variant: $18.1M ending balance, TWO distinct spending dips at ages 71 and 81
