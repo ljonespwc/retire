@@ -333,6 +333,33 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
+**2025-10-30**: Save Once, Update Forever Pattern
+- **Problem**: Scenarios could only be saved as new records, no way to update existing scenarios after making changes
+- **Solution**: "Save once, update forever" pattern - after first save, button switches to UPDATE mode automatically
+- **Implementation**:
+  - `SaveScenarioModal`: Added `onSaveSuccess(scenarioId, scenarioName)` callback that fires after CREATE (not UPDATE)
+  - `VoiceFirstContentV2`: Added `handleSaveSuccess` to capture and store scenario ID/name after first save
+  - `VoiceFirstContentV2`: Added `variantScenarioIds[]` array to track IDs for each variant tab
+  - `ScenarioComparison`: Pass `baselineScenarioId`, `baselineScenarioName`, `variantScenarioIds` to tabs
+  - Both `BaselineTab` and `VariantTab`: Show "UPDATE THIS SCENARIO: [Name]" when ID exists, else "SAVE THIS SCENARIO: [Name]"
+  - "Start Planning" button: Clears `scenarioId`, `loadedScenarioName`, `loadedVariantMetadata` for fresh scenarios
+- **User Flow**:
+  1. First save → Creates new scenario → Captures ID → Button becomes UPDATE
+  2. Subsequent saves → Updates same scenario (no new records)
+  3. "Start Planning" → Clears tracking → Next save creates new scenario
+  4. Load different scenario → Replaces tracking
+  5. Variant tabs → Same pattern (save once, update forever)
+- **Benefits**:
+  - Prevents scenario proliferation (100s of similar scenarios)
+  - Clearer mental model: "Save once, then refine via updates"
+  - Forces intentional new scenario creation via "Start Planning"
+- **Files Modified**:
+  - `/src/components/scenarios/SaveScenarioModal.tsx` - Added callback prop
+  - `/src/app/calculator/home/VoiceFirstContentV2.tsx` - Added save success handlers, variant ID tracking, Start Planning clear
+  - `/src/components/results/ScenarioComparison.tsx` - Added ID props, updated button text logic
+- **Status**: ✅ Implemented and tested
+- **Build Status**: ✅ Production build passes
+
 **2025-10-29**: AI Architecture Simplification
 - **Problem**: Complex client-side caching (~160 lines) with module-level Maps and in-flight promise tracking to prevent duplicate AI calls in React StrictMode
 - **Solution**: Server-side AI generation architecture - generate narratives/insights during calculation (in API routes), return with results, pass as props

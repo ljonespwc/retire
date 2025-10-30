@@ -303,6 +303,7 @@ export function VoiceFirstContentV2() {
   const [variantResultsArray, setVariantResultsArray] = useState<CalculationResults[]>([])
   const [variantInsights, setVariantInsights] = useState<string[]>([])
   const [variantNarratives, setVariantNarratives] = useState<string[]>([])
+  const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
@@ -418,6 +419,11 @@ export function VoiceFirstContentV2() {
   const handleStartPlanning = () => {
     setPlanningStarted(true)
     setEditMode(true)
+
+    // Clear scenario tracking (user is starting fresh)
+    setScenarioId(undefined)
+    setLoadedScenarioName(null)
+    setLoadedVariantMetadata(null)
 
     // Pre-fill rate assumptions with sensible defaults if not already set
     if (investmentReturn === null) setInvestmentReturn(6)
@@ -587,7 +593,7 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle loading a saved scenario
-  const handleLoadScenario = (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => {
+  const handleLoadScenario = (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string) => {
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
     setLongevityAge(formData.longevityAge)
@@ -612,6 +618,12 @@ export function VoiceFirstContentV2() {
     setPlanningStarted(true)
     setEditMode(false)
 
+    // Store scenario ID if present
+    if (scenarioId) {
+      setScenarioId(scenarioId)
+      console.log(`✅ Loaded scenario ID: ${scenarioId}`)
+    }
+
     // Store variant metadata if present
     if (variantMetadata) {
       setLoadedVariantMetadata(variantMetadata)
@@ -620,6 +632,26 @@ export function VoiceFirstContentV2() {
       setLoadedVariantMetadata(null)
       console.log(`✅ Loaded scenario: ${scenarioName}`)
     }
+  }
+
+  // Handle successful scenario save (baseline only, not variants)
+  const handleSaveSuccess = (newScenarioId: string, newScenarioName: string) => {
+    console.log(`💾 Scenario saved successfully - ID: ${newScenarioId}, Name: ${newScenarioName}`)
+    setScenarioId(newScenarioId)
+    setLoadedScenarioName(newScenarioName)
+  }
+
+  // Handle successful variant save
+  const handleVariantSaveSuccess = (newScenarioId: string, newScenarioName: string) => {
+    if (savingVariantIndex === null) return
+    console.log(`💾 Variant saved successfully - Index: ${savingVariantIndex}, ID: ${newScenarioId}, Name: ${newScenarioName}`)
+
+    // Update the scenario ID for this variant
+    setVariantScenarioIds(prev => {
+      const updated = [...prev]
+      updated[savingVariantIndex] = newScenarioId
+      return updated
+    })
   }
 
   // Handle login success
@@ -1283,6 +1315,13 @@ export function VoiceFirstContentV2() {
                     </div>
                   </button>
                 </div>
+
+                {/* Disabled message for saved variants */}
+                {loadedVariantMetadata && (
+                  <p className={`text-sm text-center mt-4 ${theme.text.secondary}`}>
+                    ℹ️ Not available for previously saved what-if scenarios
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1317,7 +1356,9 @@ export function VoiceFirstContentV2() {
                         : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                     }`}
                   >
-                    SAVE THIS SCENARIO: Baseline
+                    {scenarioId && loadedScenarioName
+                      ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
+                      : 'SAVE THIS SCENARIO: Baseline'}
                   </button>
                 </div>
 
@@ -1333,10 +1374,13 @@ export function VoiceFirstContentV2() {
                 baselineScenario={createScenarioFromFormData()}
                 baselineResults={calculationResults}
                 baselineNarrative={baselineNarrative}
+                baselineScenarioId={scenarioId}
+                baselineScenarioName={loadedScenarioName || undefined}
                 variantScenarios={variantScenarios}
                 variantResults={variantResultsArray}
                 variantInsights={variantInsights}
                 variantNarratives={variantNarratives}
+                variantScenarioIds={variantScenarioIds}
                 isDarkMode={isDarkMode}
                 onSave={handleSaveVariant}
                 onReset={handleResetVariant}
@@ -1355,6 +1399,7 @@ export function VoiceFirstContentV2() {
         onClose={() => setShowSaveWithAccountModal(false)}
         formData={getCurrentFormData()}
         calculationResults={calculationResults}
+        onSaveSuccess={handleSaveSuccess}
       />
 
       <SaveScenarioModal
@@ -1366,9 +1411,11 @@ export function VoiceFirstContentV2() {
         formData={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? scenarioToFormData(variantScenarios[savingVariantIndex]) : getCurrentFormData()}
         calculationResults={savingVariantIndex !== null && variantResultsArray[savingVariantIndex] ? variantResultsArray[savingVariantIndex] : calculationResults}
         isDarkMode={isDarkMode}
-        defaultName={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex].name : undefined}
+        defaultName={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex].name : scenarioId ? loadedScenarioName || undefined : undefined}
         variantType={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? detectVariantTypeFromName(variantScenarios[savingVariantIndex].name) || undefined : loadedVariantMetadata?.variant_type}
         variantConfig={loadedVariantMetadata?.variant_config}
+        scenarioId={savingVariantIndex !== null ? variantScenarioIds[savingVariantIndex] : scenarioId}
+        onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}
       />
 
       <LoginModal

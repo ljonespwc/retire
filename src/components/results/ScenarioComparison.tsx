@@ -21,10 +21,13 @@ interface ScenarioComparisonProps {
   baselineScenario: Scenario
   baselineResults: CalculationResults
   baselineNarrative?: string | null
+  baselineScenarioId?: string
+  baselineScenarioName?: string
   variantScenarios: Scenario[]
   variantResults: CalculationResults[]
   variantInsights?: string[]
   variantNarratives?: string[]
+  variantScenarioIds?: (string | undefined)[]
   isDarkMode?: boolean
   onSave?: (index: number) => void
   onTryAnother?: () => void
@@ -35,10 +38,13 @@ export function ScenarioComparison({
   baselineScenario,
   baselineResults,
   baselineNarrative,
+  baselineScenarioId,
+  baselineScenarioName,
   variantScenarios,
   variantResults,
   variantInsights = [],
   variantNarratives = [],
+  variantScenarioIds = [],
   isDarkMode = false,
   onSave,
   onTryAnother,
@@ -116,6 +122,8 @@ export function ScenarioComparison({
             isDarkMode={isDarkMode}
             onSave={onSave ? () => onSave(-1) : undefined}
             onTryAnother={onTryAnother}
+            scenarioId={baselineScenarioId}
+            scenarioName={baselineScenarioName}
           />
         ) : (
           <VariantTab
@@ -147,6 +155,8 @@ export function ScenarioComparison({
             highlightYellow={highlightYellow}
             variantInsight={variantInsights[activeTab]}
             variantNarrative={variantNarratives[activeTab]}
+            scenarioId={variantScenarioIds[activeTab]}
+            scenarioName={variantScenarios[activeTab].name}
           />
         )}
       </div>
@@ -163,7 +173,9 @@ function BaselineTab({
   narrative,
   isDarkMode,
   onSave,
-  onTryAnother
+  onTryAnother,
+  scenarioId,
+  scenarioName
 }: {
   scenario: Scenario
   results: CalculationResults
@@ -171,6 +183,8 @@ function BaselineTab({
   isDarkMode: boolean
   onSave?: () => void
   onTryAnother?: () => void
+  scenarioId?: string
+  scenarioName?: string
 }) {
   return (
     <div className="space-y-6">
@@ -195,7 +209,9 @@ function BaselineTab({
                 : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
             }`}
           >
-            SAVE THIS SCENARIO: Baseline
+            {scenarioId && scenarioName
+              ? `UPDATE THIS SCENARIO: ${scenarioName}`
+              : 'SAVE THIS SCENARIO: Baseline'}
           </button>
         </div>
       )}
@@ -241,7 +257,9 @@ function VariantTab({
   highlightGreen,
   highlightYellow,
   variantInsight,
-  variantNarrative
+  variantNarrative,
+  scenarioId,
+  scenarioName
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -249,6 +267,8 @@ function VariantTab({
   variantResults: CalculationResults
   isDarkMode: boolean
   onSave?: () => void
+  scenarioId?: string
+  scenarioName?: string
   baselineMonthly: number
   baselineDepletion: number | undefined
   baselineEndBalance: number
@@ -399,7 +419,9 @@ function VariantTab({
                 : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
             }`}
           >
-            SAVE THIS SCENARIO: {variantScenario.name}
+            {scenarioId && scenarioName
+              ? `UPDATE THIS SCENARIO: ${scenarioName}`
+              : `SAVE THIS SCENARIO: ${variantScenario.name}`}
           </button>
         </div>
       )}

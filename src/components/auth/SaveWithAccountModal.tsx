@@ -20,13 +20,15 @@ interface SaveWithAccountModalProps {
   onClose: () => void
   formData: FormData
   calculationResults: CalculationResults | null
+  onSaveSuccess?: (scenarioId: string, scenarioName: string) => void // Callback after successful save
 }
 
 export function SaveWithAccountModal({
   isOpen,
   onClose,
   formData,
-  calculationResults
+  calculationResults,
+  onSaveSuccess
 }: SaveWithAccountModalProps) {
   const { upgradeAccount } = useAuth()
 
@@ -86,7 +88,7 @@ export function SaveWithAccountModal({
       // Convert form data to proper scenario structure
       const scenario = formDataToScenario(formData, scenarioName)
 
-      const { error: saveError } = await supabase
+      const { data: savedScenario, error: saveError } = await supabase
         .from('scenarios')
         .insert({
           user_id: user.id,
@@ -101,6 +103,8 @@ export function SaveWithAccountModal({
           results: calculationResults as any,
           source: 'manual'  // Manually saved by user
         } as any)
+        .select()
+        .single()
 
       if (saveError) {
         console.error('Failed to save scenario:', saveError)
@@ -109,7 +113,12 @@ export function SaveWithAccountModal({
         return
       }
 
-      console.log('✅ Scenario saved successfully')
+      console.log('✅ Scenario saved successfully:', savedScenario?.id)
+
+      // Notify parent of successful save (so it can track the new ID)
+      if (onSaveSuccess && savedScenario?.id) {
+        onSaveSuccess(savedScenario.id, scenario.name)
+      }
 
       // Success feedback
       confetti({

@@ -112,7 +112,8 @@ export function getVariantDisplayName(variantType: VariantType): string {
     'delay-cpp-oas': 'Delay CPP/OAS to Age 70',
     'retire-early': 'Retire Early'
   }
-  return names[variantType] || variantType
+  const baseName = names[variantType] || variantType
+  return `What-If Variant: ${baseName}`
 }
 
 /**

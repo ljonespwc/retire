@@ -15,7 +15,7 @@ import { getVariantMetadata, type VariantMetadata } from '@/lib/scenarios/varian
 import { useAuth } from '@/contexts/AuthContext'
 
 interface LoadScenarioDropdownProps {
-  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => void
+  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string) => void
   isDarkMode?: boolean
 }
 
@@ -113,7 +113,7 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       // Extract variant metadata if present
       const variantMetadata = getVariantMetadata(scenario.inputs)
 
-      onLoad(formData, scenario.name, variantMetadata || undefined)
+      onLoad(formData, scenario.name, variantMetadata || undefined, scenario.id)
       setIsOpen(false)
     } catch (err) {
       console.error('Error loading scenario:', err)

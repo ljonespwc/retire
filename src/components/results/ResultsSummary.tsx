@@ -86,13 +86,8 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false, var
           </div>
           {/* Variant Indicator Badge */}
           {variantName && (
-            <div className="flex flex-col items-end gap-1">
-              <div className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-purple-900/50 border border-purple-700 text-purple-300' : 'bg-purple-100 border border-purple-300 text-purple-700'}`}>
-                Variant: {variantName}
-              </div>
-              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} italic`}>
-                What-if scenarios not available for saved variants
-              </div>
+            <div className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-purple-900/50 border border-purple-700 text-purple-300' : 'bg-purple-100 border border-purple-300 text-purple-700'}`}>
+              {variantName}
             </div>
           )}
         </div>

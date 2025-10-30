@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { saveScenario } from '@/lib/supabase/queries'
+import { saveScenario, updateScenario } from '@/lib/supabase/queries'
 import { formDataToScenario, getDefaultScenarioName, type FormData } from '@/lib/scenarios/scenario-mapper'
 import { addVariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
 import { CalculationResults } from '@/types/calculator'
@@ -24,6 +24,8 @@ interface SaveScenarioModalProps {
   variantType?: VariantType // Optional variant metadata
   variantConfig?: Record<string, any> // Optional variant config
   baselineId?: string // Optional baseline scenario ID
+  scenarioId?: string // Optional scenario ID (for updates)
+  onSaveSuccess?: (scenarioId: string, scenarioName: string) => void // Callback after successful save
 }
 
 export function SaveScenarioModal({
@@ -36,6 +38,8 @@ export function SaveScenarioModal({
   variantType,
   variantConfig,
   baselineId,
+  scenarioId,
+  onSaveSuccess,
 }: SaveScenarioModalProps) {
   const [scenarioName, setScenarioName] = useState(defaultName || getDefaultScenarioName())
   const [isSaving, setIsSaving] = useState(false)
@@ -92,16 +96,38 @@ export function SaveScenarioModal({
         inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId)
       }
 
-      // Save to database
-      const { data, error: saveError } = await saveScenario(client, {
-        name: scenario.name,
-        inputs,
-        results: calculationResults as any,
-        source: 'manual',  // Manually saved by user
-      })
+      if (scenarioId) {
+        // UPDATE existing scenario
+        const { data, error: updateError } = await updateScenario(client, scenarioId, {
+          name: scenario.name,
+          inputs,
+          results: calculationResults as any,
+        })
 
-      if (saveError) {
-        throw saveError
+        if (updateError) {
+          throw updateError
+        }
+
+        console.log('✅ Scenario updated successfully:', scenarioId)
+      } else {
+        // CREATE new scenario
+        const { data, error: saveError } = await saveScenario(client, {
+          name: scenario.name,
+          inputs,
+          results: calculationResults as any,
+          source: 'manual',  // Manually saved by user
+        })
+
+        if (saveError) {
+          throw saveError
+        }
+
+        console.log('✅ Scenario created successfully:', data?.id)
+
+        // Notify parent of successful save (so it can track the new ID)
+        if (onSaveSuccess && data?.id) {
+          onSaveSuccess(data.id, scenario.name)
+        }
       }
 
       // Success!
@@ -133,7 +159,9 @@ export function SaveScenarioModal({
       <div className={`${modalBg} border ${modalBorder} rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className={`text-2xl font-bold ${textPrimary}`}>Save Scenario</h3>
+          <h3 className={`text-2xl font-bold ${textPrimary}`}>
+            {scenarioId ? 'Update Scenario' : 'Save Scenario'}
+          </h3>
           <button
             onClick={handleClose}
             disabled={isSaving}
@@ -153,10 +181,15 @@ export function SaveScenarioModal({
               type="text"
               value={scenarioName}
               onChange={(e) => setScenarioName(e.target.value)}
-              disabled={isSaving || success}
-              className={`w-full px-4 py-3 ${inputBg} border ${inputBorder} ${inputText} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all disabled:opacity-50`}
+              disabled={isSaving || success || !!scenarioId}
+              className={`w-full px-4 py-3 ${inputBg} border ${inputBorder} ${inputText} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all disabled:opacity-50 ${scenarioId ? 'cursor-not-allowed' : ''}`}
               placeholder="Enter a name for this scenario"
             />
+            {scenarioId && (
+              <p className={`text-xs ${textSecondary} mt-2`}>
+                Scenario name cannot be changed when updating
+              </p>
+            )}
           </div>
 
           {/* Error message */}
@@ -188,7 +221,11 @@ export function SaveScenarioModal({
             disabled={isSaving || !scenarioName.trim() || success}
             className={`flex-1 px-6 py-3 ${buttonPrimary} text-white rounded-lg font-medium transition-all disabled:opacity-50`}
           >
-            {isSaving ? 'Saving...' : success ? 'Saved!' : 'Save'}
+            {isSaving
+              ? (scenarioId ? 'Updating...' : 'Saving...')
+              : success
+              ? (scenarioId ? 'Updated!' : 'Saved!')
+              : (scenarioId ? 'Update' : 'Save')}
           </button>
         </div>
       </div>
