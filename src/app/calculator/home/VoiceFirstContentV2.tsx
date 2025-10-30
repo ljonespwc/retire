@@ -27,9 +27,9 @@ import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdow
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
-import { regenerateVariant, getVariantDisplayName, type VariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
+import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
@@ -536,6 +536,12 @@ export function VoiceFirstContentV2() {
       const data = await response.json()
 
       if (data.success && data.results) {
+        console.log('🔍 BASELINE RESULTS:', {
+          final_portfolio: data.results.final_portfolio_value,
+          total_cpp: data.results.total_cpp_received,
+          total_oas: data.results.total_oas_received,
+          first_year_income: data.results.first_year_retirement_income
+        })
         setCalculationResults(data.results)
         setShowResults(true)
         setEditMode(false)
@@ -752,13 +758,41 @@ export function VoiceFirstContentV2() {
     setIsCalculatingVariant(true)
     try {
       const baseScenario = createScenarioFromFormData()
-      const variant = createFrontLoadVariant(baseScenario)
+
+      console.log('🔍 BASE SCENARIO CPP:', baseScenario.income_sources.cpp)
+      console.log('🔍 BASE SCENARIO OAS:', baseScenario.income_sources.oas)
+
+      // Create variant based on selected type
+      let variant: Scenario
+      switch (selectedScenarioType) {
+        case 'front_load':
+          variant = createFrontLoadVariant(baseScenario)
+          break
+        case 'delay_benefits':
+          variant = createDelayCppOasVariant(baseScenario)
+          break
+        default:
+          console.error(`Unknown scenario type: ${selectedScenarioType}`)
+          return
+      }
+
+      console.log('🔍 VARIANT CPP:', variant.income_sources.cpp)
+      console.log('🔍 VARIANT OAS:', variant.income_sources.oas)
+
       setVariantScenario(variant)
       // Clear loaded variant metadata (user is creating a NEW variant via what-if button)
       setLoadedVariantMetadata(null)
 
       const supabase = createClient()
       const results = await calculateRetirementProjection(supabase, variant)
+
+      console.log('🔍 VARIANT RESULTS:', {
+        final_portfolio: results.final_portfolio_value,
+        total_cpp: results.total_cpp_received,
+        total_oas: results.total_oas_received,
+        first_year_income: results.first_year_retirement_income
+      })
+
       setVariantResults(results)
     } catch (error) {
       console.error('Variant calculation failed:', error)
@@ -1113,30 +1147,57 @@ export function VoiceFirstContentV2() {
                 <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4`}>
                   Try What-If Scenarios
                 </h3>
-                <button
-                  onClick={() => handleScenarioClick('front_load')}
-                  disabled={!!loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'}
-                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                    loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'
-                      ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-                      : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">🎯</span>
-                    <div className="flex-1">
-                      <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                        Front-Load the Fun
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleScenarioClick('front_load')}
+                    disabled={!!loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'}
+                    className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                      loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'
+                        ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">🎯</span>
+                      <div className="flex-1">
+                        <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                          Front-Load the Fun
+                        </div>
+                        <p className={`text-sm ${theme.text.secondary}`}>
+                          Spend more early, scale back later
+                        </p>
                       </div>
-                      <p className={`text-sm ${theme.text.secondary}`}>
-                        Spend more early, scale back later
-                      </p>
+                      {variantScenario?.name === 'Front-Load the Fun' && (
+                        <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
+                      )}
                     </div>
-                    {variantScenario?.name === 'Front-Load the Fun' && (
-                      <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-                    )}
-                  </div>
-                </button>
+                  </button>
+
+                  <button
+                    onClick={() => handleScenarioClick('delay_benefits')}
+                    disabled={!!loadedVariantMetadata || variantScenario?.name === 'Delay CPP/OAS to 70'}
+                    className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                      loadedVariantMetadata || variantScenario?.name === 'Delay CPP/OAS to 70'
+                        ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">⏰</span>
+                      <div className="flex-1">
+                        <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                          Delay CPP/OAS to 70
+                        </div>
+                        <p className={`text-sm ${theme.text.secondary}`}>
+                          Maximize government benefits
+                        </p>
+                      </div>
+                      {variantScenario?.name === 'Delay CPP/OAS to 70' && (
+                        <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
+                      )}
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1216,7 +1277,7 @@ export function VoiceFirstContentV2() {
         calculationResults={savingVariant && variantResults ? variantResults : calculationResults}
         isDarkMode={isDarkMode}
         defaultName={savingVariant && variantScenario ? variantScenario.name : undefined}
-        variantType={savingVariant && variantScenario ? 'front-load' : loadedVariantMetadata?.variant_type}
+        variantType={savingVariant && variantScenario ? detectVariantTypeFromName(variantScenario.name) || undefined : loadedVariantMetadata?.variant_type}
         variantConfig={loadedVariantMetadata?.variant_config}
       />
 

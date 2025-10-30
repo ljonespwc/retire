@@ -7,7 +7,7 @@
  * Each tab displays all result visualizations with scenario-specific actions.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -39,6 +39,39 @@ export function ScenarioComparison({
   onReset
 }: ScenarioComparisonProps) {
   const [activeTab, setActiveTab] = useState<'baseline' | 'variant'>('variant')
+  const [variantInsight, setVariantInsight] = useState<string | null>(null)
+  const [insightLoading, setInsightLoading] = useState(false)
+
+  // Fetch variant insight from LLM when component mounts
+  useEffect(() => {
+    async function fetchInsight() {
+      setInsightLoading(true)
+      try {
+        const response = await fetch('/api/generate-insight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            baselineResults,
+            variantResults,
+            variantName: variantScenario.name
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setVariantInsight(data.insight)
+        } else {
+          console.error('Failed to generate insight:', await response.text())
+        }
+      } catch (error) {
+        console.error('Error fetching insight:', error)
+      } finally {
+        setInsightLoading(false)
+      }
+    }
+
+    fetchInsight()
+  }, [baselineResults, variantResults, variantScenario.name])
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -140,6 +173,8 @@ export function ScenarioComparison({
             headerBg={headerBg}
             highlightGreen={highlightGreen}
             highlightYellow={highlightYellow}
+            insightLoading={insightLoading}
+            variantInsight={variantInsight}
           />
         )}
       </div>
@@ -238,7 +273,9 @@ function VariantTab({
   tableBorder,
   headerBg,
   highlightGreen,
-  highlightYellow
+  highlightYellow,
+  insightLoading,
+  variantInsight
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -260,6 +297,8 @@ function VariantTab({
   headerBg: string
   highlightGreen: string
   highlightYellow: string
+  insightLoading: boolean
+  variantInsight: string | null
 }) {
   return (
     <div className="space-y-6">
@@ -358,15 +397,27 @@ function VariantTab({
         </table>
       </div>
 
-      {/* Key Insight */}
-      {variantScenario.name === 'Front-Load the Fun' && hasAgeBasedSpending && (
+      {/* Key Insight - LLM Generated */}
+      {insightLoading ? (
         <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
             <div>
               <div className={`font-semibold ${textPrimary} mb-1`}>Key Insight</div>
               <div className={`text-sm ${textSecondary}`}>
-                {calculateFrontLoadInsight(baselineMonthly, variantAgeChanges![0].monthly_amount)}
+                Generating insight...
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : variantInsight && (
+        <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">💡</span>
+            <div>
+              <div className={`font-semibold ${textPrimary} mb-1`}>Key Insight</div>
+              <div className={`text-sm ${textSecondary}`}>
+                {variantInsight}
               </div>
             </div>
           </div>
@@ -415,14 +466,3 @@ function VariantTab({
   )
 }
 
-/**
- * Calculate insight message for Front-Load scenario
- */
-function calculateFrontLoadInsight(baselineMonthly: number, goGoMonthly: number): string {
-  const extraPerMonth = goGoMonthly - baselineMonthly
-  const extraPerYear = extraPerMonth * 12
-  const goGoYears = 10
-  const totalExtra = extraPerYear * goGoYears
-
-  return `This scenario gives you an extra ${formatCompactCurrency(totalExtra)} to enjoy during your most active retirement years (go-go phase), while reducing spending in later years when you're less active.`
-}
