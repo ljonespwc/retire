@@ -1403,7 +1403,7 @@ export function VoiceFirstContentV2() {
                   >
                     {scenarioId && loadedScenarioName
                       ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
-                      : 'SAVE THIS SCENARIO: Baseline'}
+                      : 'SAVE THIS SCENARIO'}
                   </button>
                 </div>
 
