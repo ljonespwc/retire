@@ -1147,14 +1147,14 @@ export function VoiceFirstContentV2() {
                         setJustCalculated(false)
                       }}
                       variant="outline"
-                      className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 rounded-xl text-sm sm:text-base flex-shrink-0" : "border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-sm sm:text-base flex-shrink-0"}
+                      className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 rounded-xl text-sm sm:text-base flex-shrink-0" : "border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-800 rounded-xl text-sm sm:text-base flex-shrink-0"}
                     >
                       {editMode ? 'Done Editing' : '✏️ Edit'}
                     </Button>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className={`pt-6 sm:pt-8 px-4 sm:px-6 ${planningStarted ? 'pb-[52vh] lg:pb-6' : ''}`}>
+              <CardContent className={`pt-6 sm:pt-8 px-4 sm:px-6 ${planningStarted ? 'pb-[25vh] lg:pb-6' : ''}`}>
                 <div className="space-y-6 sm:space-y-8">
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
