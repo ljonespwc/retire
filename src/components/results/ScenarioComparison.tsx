@@ -20,58 +20,65 @@ import { RetirementNarrative } from './RetirementNarrative'
 interface ScenarioComparisonProps {
   baselineScenario: Scenario
   baselineResults: CalculationResults
-  variantScenario: Scenario
-  variantResults: CalculationResults
+  variantScenarios: Scenario[]
+  variantResults: CalculationResults[]
   isDarkMode?: boolean
-  onSave?: () => void
+  onSave?: (index: number) => void
   onTryAnother?: () => void
-  onReset: () => void
+  onReset: (index: number) => void
 }
 
 export function ScenarioComparison({
   baselineScenario,
   baselineResults,
-  variantScenario,
+  variantScenarios,
   variantResults,
   isDarkMode = false,
   onSave,
   onTryAnother,
   onReset
 }: ScenarioComparisonProps) {
-  const [activeTab, setActiveTab] = useState<'baseline' | 'variant'>('variant')
-  const [variantInsight, setVariantInsight] = useState<string | null>(null)
-  const [insightLoading, setInsightLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
+  const [variantInsights, setVariantInsights] = useState<(string | null)[]>([])
+  const [insightsLoading, setInsightsLoading] = useState<boolean[]>([])
 
-  // Fetch variant insight from LLM when component mounts
+  // Fetch insights for all variants when component mounts or variants change
   useEffect(() => {
-    async function fetchInsight() {
-      setInsightLoading(true)
-      try {
-        const response = await fetch('/api/generate-insight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            baselineResults,
-            variantResults,
-            variantName: variantScenario.name
-          })
-        })
+    async function fetchAllInsights() {
+      setInsightsLoading(new Array(variantScenarios.length).fill(true))
+      const insights: (string | null)[] = []
 
-        if (response.ok) {
-          const data = await response.json()
-          setVariantInsight(data.insight)
-        } else {
-          console.error('Failed to generate insight:', await response.text())
+      for (let i = 0; i < variantScenarios.length; i++) {
+        try {
+          const response = await fetch('/api/generate-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              baselineResults,
+              variantResults: variantResults[i],
+              variantName: variantScenarios[i].name
+            })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            insights[i] = data.insight
+          } else {
+            console.error(`Failed to generate insight for ${variantScenarios[i].name}:`, await response.text())
+            insights[i] = null
+          }
+        } catch (error) {
+          console.error(`Error fetching insight for ${variantScenarios[i].name}:`, error)
+          insights[i] = null
         }
-      } catch (error) {
-        console.error('Error fetching insight:', error)
-      } finally {
-        setInsightLoading(false)
       }
+
+      setVariantInsights(insights)
+      setInsightsLoading(new Array(variantScenarios.length).fill(false))
     }
 
-    fetchInsight()
-  }, [baselineResults, variantResults, variantScenario.name])
+    fetchAllInsights()
+  }, [baselineResults, variantResults, variantScenarios])
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -91,90 +98,88 @@ export function ScenarioComparison({
     ? 'text-white bg-gray-700 border-b-2 border-blue-500'
     : 'text-gray-900 bg-gray-50 border-b-2 border-orange-500'
 
-  // Extract key metrics for comparison table
+  // Extract baseline metrics
   const baselineMonthly = baselineScenario.expenses.fixed_monthly
   const baselineDepletion = baselineResults.portfolio_depleted_age
   const baselineEndBalance = baselineResults.final_portfolio_value
 
-  const variantAgeChanges = variantScenario.expenses.age_based_changes
-  const hasAgeBasedSpending = Boolean(variantAgeChanges && variantAgeChanges.length > 0)
-  const variantDepletion = variantResults.portfolio_depleted_age
-  const variantEndBalance = variantResults.final_portfolio_value
-
-  const depletionDiff = variantDepletion && baselineDepletion
-    ? variantDepletion - baselineDepletion
-    : variantDepletion && !baselineDepletion
-    ? -(variantScenario.basic_inputs.longevity_age - variantDepletion)
-    : null
-
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} mt-8 mb-8`}>
       {/* Tab Navigation */}
-      <div className={`border-b ${cardBorder}`}>
-        <div className="flex items-center">
+      <div className={`border-b ${cardBorder} ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-100'}`}>
+        <div className="flex items-center flex-wrap">
           {/* Baseline Tab */}
           <button
-            onClick={() => setActiveTab('baseline')}
+            onClick={() => setActiveTab(-1)}
             className={`px-6 py-4 font-medium transition-all ${
-              activeTab === 'baseline' ? tabActive : tabInactive
+              activeTab === -1 ? tabActive : tabInactive
             }`}
           >
-            Your Plan
+            Your Baseline
           </button>
 
-          {/* Variant Tab */}
-          <button
-            onClick={() => setActiveTab('variant')}
-            className={`px-6 py-4 font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'variant' ? tabActive : tabInactive
-            }`}
-          >
-            <span>{variantScenario.name}</span>
-            <X
-              className="w-4 h-4 opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
-              onClick={(e) => {
-                e.stopPropagation()
-                onReset()
-              }}
-            />
-          </button>
+          {/* Variant Tabs */}
+          {variantScenarios.map((variant, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveTab(index)}
+              className={`px-6 py-4 font-medium transition-all flex items-center gap-2 ${
+                activeTab === index ? tabActive : tabInactive
+              }`}
+            >
+              <span>{variant.name}</span>
+              <X
+                className="w-4 h-4 opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onReset(index)
+                }}
+              />
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Tab Content */}
       <div className="p-6">
-        {activeTab === 'baseline' ? (
+        {activeTab === -1 ? (
           <BaselineTab
             scenario={baselineScenario}
             results={baselineResults}
             isDarkMode={isDarkMode}
-            onSave={onSave}
+            onSave={onSave ? () => onSave(-1) : undefined}
             onTryAnother={onTryAnother}
           />
         ) : (
           <VariantTab
             baselineScenario={baselineScenario}
             baselineResults={baselineResults}
-            variantScenario={variantScenario}
-            variantResults={variantResults}
+            variantScenario={variantScenarios[activeTab]}
+            variantResults={variantResults[activeTab]}
             isDarkMode={isDarkMode}
-            onSave={onSave}
+            onSave={onSave ? () => onSave(activeTab) : undefined}
             baselineMonthly={baselineMonthly}
             baselineDepletion={baselineDepletion}
             baselineEndBalance={baselineEndBalance}
-            hasAgeBasedSpending={hasAgeBasedSpending}
-            variantAgeChanges={variantAgeChanges}
-            variantDepletion={variantDepletion}
-            variantEndBalance={variantEndBalance}
-            depletionDiff={depletionDiff}
+            hasAgeBasedSpending={Boolean(variantScenarios[activeTab].expenses.age_based_changes && variantScenarios[activeTab].expenses.age_based_changes.length > 0)}
+            variantAgeChanges={variantScenarios[activeTab].expenses.age_based_changes}
+            variantDepletion={variantResults[activeTab].portfolio_depleted_age}
+            variantEndBalance={variantResults[activeTab].final_portfolio_value}
+            depletionDiff={
+              variantResults[activeTab].portfolio_depleted_age && baselineDepletion
+                ? variantResults[activeTab].portfolio_depleted_age - baselineDepletion
+                : variantResults[activeTab].portfolio_depleted_age && !baselineDepletion
+                ? -(variantScenarios[activeTab].basic_inputs.longevity_age - variantResults[activeTab].portfolio_depleted_age)
+                : null
+            }
             textPrimary={textPrimary}
             textSecondary={textSecondary}
             tableBorder={tableBorder}
             headerBg={headerBg}
             highlightGreen={highlightGreen}
             highlightYellow={highlightYellow}
-            insightLoading={insightLoading}
-            variantInsight={variantInsight}
+            insightLoading={insightsLoading[activeTab] || false}
+            variantInsight={variantInsights[activeTab] || null}
           />
         )}
       </div>
@@ -305,7 +310,7 @@ function VariantTab({
       {/* Comparison Table */}
       <div className="overflow-x-auto">
         <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
-          Comparison: Your Plan vs {variantScenario.name}
+          Comparison: Your Baseline vs {variantScenario.name}
         </h3>
         <table className="w-full">
           <thead>
@@ -314,7 +319,7 @@ function VariantTab({
                 Metric
               </th>
               <th className={`text-left py-3 px-4 ${headerBg} ${textPrimary} font-semibold`}>
-                Your Plan
+                Your Baseline
               </th>
               <th className={`text-left py-3 px-4 ${headerBg} ${textPrimary} font-semibold`}>
                 {variantScenario.name}

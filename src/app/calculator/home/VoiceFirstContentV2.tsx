@@ -298,10 +298,10 @@ export function VoiceFirstContentV2() {
   // What-if scenario state
   const [showScenarioModal, setShowScenarioModal] = useState(false)
   const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early'>('front_load')
-  const [variantScenario, setVariantScenario] = useState<Scenario | null>(null)
-  const [variantResults, setVariantResults] = useState<CalculationResults | null>(null)
+  const [variantScenarios, setVariantScenarios] = useState<Scenario[]>([])
+  const [variantResultsArray, setVariantResultsArray] = useState<CalculationResults[]>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [savingVariant, setSavingVariant] = useState(false)
+  const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [loadedVariantMetadata, setLoadedVariantMetadata] = useState<VariantMetadata | null>(null)
@@ -450,8 +450,8 @@ export function VoiceFirstContentV2() {
       return
     }
 
-    // Check if variant is active - show confirmation modal instead of calculating
-    if (variantScenario) {
+    // Check if variants are active - show confirmation modal instead of calculating
+    if (variantScenarios.length > 0) {
       setShowRecalculateConfirmModal(true)
       return
     }
@@ -644,12 +644,12 @@ export function VoiceFirstContentV2() {
     // Close modal
     setShowRecalculateConfirmModal(false)
 
-    // Clear variant state and loaded variant metadata
-    setVariantScenario(null)
-    setVariantResults(null)
+    // Clear all variants and loaded variant metadata
+    setVariantScenarios([])
+    setVariantResultsArray([])
     setLoadedVariantMetadata(null)
 
-    // Proceed with calculation (handleCalculate will be called again without variant active)
+    // Proceed with calculation (handleCalculate will be called again without variants active)
     setTimeout(() => {
       const button = document.querySelector('button[data-calculate-button]') as HTMLButtonElement
       if (button) button.click()
@@ -779,7 +779,9 @@ export function VoiceFirstContentV2() {
       console.log('🔍 VARIANT CPP:', variant.income_sources.cpp)
       console.log('🔍 VARIANT OAS:', variant.income_sources.oas)
 
-      setVariantScenario(variant)
+      // Check if this variant already exists (by name)
+      const existingIndex = variantScenarios.findIndex(v => v.name === variant.name)
+
       // Clear loaded variant metadata (user is creating a NEW variant via what-if button)
       setLoadedVariantMetadata(null)
 
@@ -793,7 +795,21 @@ export function VoiceFirstContentV2() {
         first_year_income: results.first_year_retirement_income
       })
 
-      setVariantResults(results)
+      // Update or append to arrays
+      if (existingIndex >= 0) {
+        // Replace existing variant
+        const newScenarios = [...variantScenarios]
+        newScenarios[existingIndex] = variant
+        setVariantScenarios(newScenarios)
+
+        const newResults = [...variantResultsArray]
+        newResults[existingIndex] = results
+        setVariantResultsArray(newResults)
+      } else {
+        // Append new variant
+        setVariantScenarios([...variantScenarios, variant])
+        setVariantResultsArray([...variantResultsArray, results])
+      }
     } catch (error) {
       console.error('Variant calculation failed:', error)
     } finally {
@@ -801,9 +817,16 @@ export function VoiceFirstContentV2() {
     }
   }
 
-  const handleResetVariant = () => {
-    setVariantScenario(null)
-    setVariantResults(null)
+  const handleResetVariant = (index?: number) => {
+    if (index !== undefined) {
+      // Remove specific variant by index
+      setVariantScenarios(variantScenarios.filter((_, i) => i !== index))
+      setVariantResultsArray(variantResultsArray.filter((_, i) => i !== index))
+    } else {
+      // Clear all variants
+      setVariantScenarios([])
+      setVariantResultsArray([])
+    }
   }
 
   // Convert Scenario to FormData format
@@ -833,9 +856,9 @@ export function VoiceFirstContentV2() {
     }
   }
 
-  const handleSaveVariant = () => {
-    if (!variantScenario || !variantResults) return
-    setSavingVariant(true)
+  const handleSaveVariant = (index: number) => {
+    if (index < 0 || index >= variantScenarios.length) return
+    setSavingVariantIndex(index)
     setShowScenarioSaveModal(true)
   }
 
@@ -1143,16 +1166,16 @@ export function VoiceFirstContentV2() {
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
 
               {/* What-If Scenarios Buttons */}
-              <div className={`${theme.card} rounded-lg border p-6 max-w-3xl mx-auto`}>
+              <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-3xl mx-auto`}>
                 <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4`}>
                   Try What-If Scenarios
                 </h3>
                 <div className="space-y-3">
                   <button
                     onClick={() => handleScenarioClick('front_load')}
-                    disabled={!!loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'}
+                    disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')}
                     className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                      loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'
+                      loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')
                         ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
                         : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
                     }`}
@@ -1167,7 +1190,7 @@ export function VoiceFirstContentV2() {
                           Spend more early, scale back later
                         </p>
                       </div>
-                      {variantScenario?.name === 'Front-Load the Fun' && (
+                      {variantScenarios.some(v => v.name === 'Front-Load the Fun') && (
                         <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
                       )}
                     </div>
@@ -1175,9 +1198,9 @@ export function VoiceFirstContentV2() {
 
                   <button
                     onClick={() => handleScenarioClick('delay_benefits')}
-                    disabled={!!loadedVariantMetadata || variantScenario?.name === 'Delay CPP/OAS to 70'}
+                    disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')}
                     className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                      loadedVariantMetadata || variantScenario?.name === 'Delay CPP/OAS to 70'
+                      loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')
                         ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
                         : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
                     }`}
@@ -1192,7 +1215,7 @@ export function VoiceFirstContentV2() {
                           Maximize government benefits
                         </p>
                       </div>
-                      {variantScenario?.name === 'Delay CPP/OAS to 70' && (
+                      {variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70') && (
                         <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
                       )}
                     </div>
@@ -1201,8 +1224,8 @@ export function VoiceFirstContentV2() {
               </div>
             </div>
 
-            {/* Baseline Results (shown only when NO variant active) */}
-            {!variantScenario && (
+            {/* Baseline Results (shown only when NO variants active) */}
+            {variantScenarios.length === 0 && (
               <div className="space-y-6 lg:space-y-8">
                 <ResultsSummary
                   results={calculationResults}
@@ -1240,13 +1263,13 @@ export function VoiceFirstContentV2() {
               </div>
             )}
 
-            {/* Scenario Comparison Tabs (shown when variant exists) */}
-            {variantScenario && variantResults && (
+            {/* Scenario Comparison Tabs (shown when variants exist) */}
+            {variantScenarios.length > 0 && variantResultsArray.length > 0 && (
               <ScenarioComparison
                 baselineScenario={createScenarioFromFormData()}
                 baselineResults={calculationResults}
-                variantScenario={variantScenario}
-                variantResults={variantResults}
+                variantScenarios={variantScenarios}
+                variantResults={variantResultsArray}
                 isDarkMode={isDarkMode}
                 onSave={handleSaveVariant}
                 onReset={handleResetVariant}
@@ -1271,13 +1294,13 @@ export function VoiceFirstContentV2() {
         isOpen={showScenarioSaveModal}
         onClose={() => {
           setShowScenarioSaveModal(false)
-          setSavingVariant(false)
+          setSavingVariantIndex(null)
         }}
-        formData={savingVariant && variantScenario ? scenarioToFormData(variantScenario) : getCurrentFormData()}
-        calculationResults={savingVariant && variantResults ? variantResults : calculationResults}
+        formData={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? scenarioToFormData(variantScenarios[savingVariantIndex]) : getCurrentFormData()}
+        calculationResults={savingVariantIndex !== null && variantResultsArray[savingVariantIndex] ? variantResultsArray[savingVariantIndex] : calculationResults}
         isDarkMode={isDarkMode}
-        defaultName={savingVariant && variantScenario ? variantScenario.name : undefined}
-        variantType={savingVariant && variantScenario ? detectVariantTypeFromName(variantScenario.name) || undefined : loadedVariantMetadata?.variant_type}
+        defaultName={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex].name : undefined}
+        variantType={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? detectVariantTypeFromName(variantScenarios[savingVariantIndex].name) || undefined : loadedVariantMetadata?.variant_type}
         variantConfig={loadedVariantMetadata?.variant_config}
       />
 
@@ -1314,7 +1337,7 @@ export function VoiceFirstContentV2() {
         isOpen={showRecalculateConfirmModal}
         onClose={() => setShowRecalculateConfirmModal(false)}
         onConfirm={handleConfirmRecalculate}
-        variantName={variantScenario?.name || 'variant'}
+        variantName={variantScenarios.length === 1 ? variantScenarios[0].name : `${variantScenarios.length} active variants`}
         isDarkMode={isDarkMode}
       />
 
