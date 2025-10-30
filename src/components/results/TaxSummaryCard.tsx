@@ -32,9 +32,6 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
   const orangeText = isDarkMode ? 'text-orange-300' : 'text-orange-600'
   const purpleBox = isDarkMode ? 'bg-purple-900/30 border-purple-700' : 'bg-purple-50 border-purple-100'
   const purpleText = isDarkMode ? 'text-purple-300' : 'text-purple-600'
-  const blueBox = isDarkMode ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-50 border-blue-100'
-  const blueText = isDarkMode ? 'text-blue-300' : 'text-blue-800'
-  const blueTextMuted = isDarkMode ? 'text-blue-400' : 'text-blue-700'
   const grayBox = isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'
   const grayBorder = isDarkMode ? 'border-gray-600' : 'border-gray-300'
 
@@ -126,18 +123,6 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
                 {formatCurrency(taxSummary.netIncome)}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Tax Efficiency Note */}
-        <div className={`${blueBox} border rounded-lg p-3 mt-4`}>
-          <div className={`text-xs ${blueText}`}>
-            <div className="font-medium mb-1">Tax Efficiency Tips</div>
-            <ul className={`list-disc list-inside space-y-1 ${blueTextMuted}`}>
-              <li>TFSA withdrawals are tax-free</li>
-              <li>Income splitting can reduce tax burden</li>
-              <li>CPP/OAS timing affects total tax paid</li>
-            </ul>
           </div>
         </div>
       </div>

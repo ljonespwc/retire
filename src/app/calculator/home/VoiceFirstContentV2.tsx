@@ -294,12 +294,15 @@ export function VoiceFirstContentV2() {
   const [scenarioId, setScenarioId] = useState<string | undefined>(undefined)
   const [loadedScenarioName, setLoadedScenarioName] = useState<string | null>(null)
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
+  const [baselineNarrative, setBaselineNarrative] = useState<string | null>(null)
 
   // What-if scenario state
   const [showScenarioModal, setShowScenarioModal] = useState(false)
   const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early'>('front_load')
   const [variantScenarios, setVariantScenarios] = useState<Scenario[]>([])
   const [variantResultsArray, setVariantResultsArray] = useState<CalculationResults[]>([])
+  const [variantInsights, setVariantInsights] = useState<string[]>([])
+  const [variantNarratives, setVariantNarratives] = useState<string[]>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
@@ -543,6 +546,7 @@ export function VoiceFirstContentV2() {
           first_year_income: data.results.first_year_retirement_income
         })
         setCalculationResults(data.results)
+        setBaselineNarrative(data.narrative || null)
         setShowResults(true)
         setEditMode(false)
         setJustCalculated(true)
@@ -795,6 +799,50 @@ export function VoiceFirstContentV2() {
         first_year_income: results.first_year_retirement_income
       })
 
+      // Generate variant insight and narrative (non-blocking - if they fail, continue without them)
+      let insight: string | undefined
+      let narrative: string | undefined
+
+      try {
+        if (calculationResults) {
+          // Generate both in parallel via API routes
+          const [insightResult, narrativeResult] = await Promise.all([
+            fetch('/api/generate-insight', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                baselineResults: calculationResults,
+                variantResults: results,
+                variantName: variant.name
+              })
+            })
+              .then(res => res.json())
+              .then(data => data.insight)
+              .catch(err => {
+                console.error('⚠️  Failed to generate variant insight (non-critical):', err)
+                return undefined
+              }),
+            fetch('/api/generate-narrative', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ results })
+            })
+              .then(res => res.json())
+              .then(data => data.narrative)
+              .catch(err => {
+                console.error('⚠️  Failed to generate variant narrative (non-critical):', err)
+                return undefined
+              })
+          ])
+
+          insight = insightResult
+          narrative = narrativeResult
+        }
+      } catch (error) {
+        console.error('⚠️  Failed to generate variant AI content (non-critical):', error)
+        // Continue without insight/narrative - graceful degradation
+      }
+
       // Update or append to arrays
       if (existingIndex >= 0) {
         // Replace existing variant
@@ -805,10 +853,20 @@ export function VoiceFirstContentV2() {
         const newResults = [...variantResultsArray]
         newResults[existingIndex] = results
         setVariantResultsArray(newResults)
+
+        const newInsights = [...variantInsights]
+        newInsights[existingIndex] = insight || ''
+        setVariantInsights(newInsights)
+
+        const newNarratives = [...variantNarratives]
+        newNarratives[existingIndex] = narrative || ''
+        setVariantNarratives(newNarratives)
       } else {
         // Append new variant
         setVariantScenarios([...variantScenarios, variant])
         setVariantResultsArray([...variantResultsArray, results])
+        setVariantInsights([...variantInsights, insight || ''])
+        setVariantNarratives([...variantNarratives, narrative || ''])
       }
     } catch (error) {
       console.error('Variant calculation failed:', error)
@@ -822,10 +880,14 @@ export function VoiceFirstContentV2() {
       // Remove specific variant by index
       setVariantScenarios(variantScenarios.filter((_, i) => i !== index))
       setVariantResultsArray(variantResultsArray.filter((_, i) => i !== index))
+      setVariantInsights(variantInsights.filter((_, i) => i !== index))
+      setVariantNarratives(variantNarratives.filter((_, i) => i !== index))
     } else {
       // Clear all variants
       setVariantScenarios([])
       setVariantResultsArray([])
+      setVariantInsights([])
+      setVariantNarratives([])
     }
   }
 
@@ -1233,13 +1295,11 @@ export function VoiceFirstContentV2() {
                   isDarkMode={isDarkMode}
                   variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
                 />
-                <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
-                <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
-                <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
-                <RetirementNarrative results={calculationResults} isDarkMode={isDarkMode} />
+
+                <RetirementNarrative narrative={baselineNarrative} isDarkMode={isDarkMode} />
 
                 {/* Save Button */}
-                <div className="flex justify-center pt-4">
+                <div className="flex justify-center pt-2 pb-2">
                   <button
                     onClick={() => {
                       console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
@@ -1257,9 +1317,13 @@ export function VoiceFirstContentV2() {
                         : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                     }`}
                   >
-                    Save This Scenario
+                    SAVE SCENARIO: Baseline
                   </button>
                 </div>
+
+                <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
+                <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
+                <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
               </div>
             )}
 
@@ -1268,8 +1332,11 @@ export function VoiceFirstContentV2() {
               <ScenarioComparison
                 baselineScenario={createScenarioFromFormData()}
                 baselineResults={calculationResults}
+                baselineNarrative={baselineNarrative}
                 variantScenarios={variantScenarios}
                 variantResults={variantResultsArray}
+                variantInsights={variantInsights}
+                variantNarratives={variantNarratives}
                 isDarkMode={isDarkMode}
                 onSave={handleSaveVariant}
                 onReset={handleResetVariant}

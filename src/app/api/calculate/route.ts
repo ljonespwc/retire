@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { createClient } from '@/lib/supabase/server'
 import { Scenario } from '@/types/calculator'
+import { generateRetirementNarrative } from '@/lib/ai/narrative-generator'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,9 +35,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Calculation complete for ${scenario.name}`)
 
+    // Generate AI narrative (non-blocking - if it fails, still return results)
+    let narrative: string | undefined
+    try {
+      narrative = await generateRetirementNarrative(results)
+    } catch (error) {
+      console.error('⚠️  Failed to generate narrative (non-critical):', error)
+      // Continue without narrative - graceful degradation
+    }
+
     return NextResponse.json({
       success: true,
-      results
+      results,
+      narrative
     })
   } catch (error) {
     console.error('❌ Calculation error:', error)

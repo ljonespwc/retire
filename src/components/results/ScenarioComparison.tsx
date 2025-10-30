@@ -7,7 +7,7 @@
  * Each tab displays all result visualizations with scenario-specific actions.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -20,8 +20,11 @@ import { RetirementNarrative } from './RetirementNarrative'
 interface ScenarioComparisonProps {
   baselineScenario: Scenario
   baselineResults: CalculationResults
+  baselineNarrative?: string | null
   variantScenarios: Scenario[]
   variantResults: CalculationResults[]
+  variantInsights?: string[]
+  variantNarratives?: string[]
   isDarkMode?: boolean
   onSave?: (index: number) => void
   onTryAnother?: () => void
@@ -31,54 +34,17 @@ interface ScenarioComparisonProps {
 export function ScenarioComparison({
   baselineScenario,
   baselineResults,
+  baselineNarrative,
   variantScenarios,
   variantResults,
+  variantInsights = [],
+  variantNarratives = [],
   isDarkMode = false,
   onSave,
   onTryAnother,
   onReset
 }: ScenarioComparisonProps) {
   const [activeTab, setActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
-  const [variantInsights, setVariantInsights] = useState<(string | null)[]>([])
-  const [insightsLoading, setInsightsLoading] = useState<boolean[]>([])
-
-  // Fetch insights for all variants when component mounts or variants change
-  useEffect(() => {
-    async function fetchAllInsights() {
-      setInsightsLoading(new Array(variantScenarios.length).fill(true))
-      const insights: (string | null)[] = []
-
-      for (let i = 0; i < variantScenarios.length; i++) {
-        try {
-          const response = await fetch('/api/generate-insight', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              baselineResults,
-              variantResults: variantResults[i],
-              variantName: variantScenarios[i].name
-            })
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            insights[i] = data.insight
-          } else {
-            console.error(`Failed to generate insight for ${variantScenarios[i].name}:`, await response.text())
-            insights[i] = null
-          }
-        } catch (error) {
-          console.error(`Error fetching insight for ${variantScenarios[i].name}:`, error)
-          insights[i] = null
-        }
-      }
-
-      setVariantInsights(insights)
-      setInsightsLoading(new Array(variantScenarios.length).fill(false))
-    }
-
-    fetchAllInsights()
-  }, [baselineResults, variantResults, variantScenarios])
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -146,6 +112,7 @@ export function ScenarioComparison({
           <BaselineTab
             scenario={baselineScenario}
             results={baselineResults}
+            narrative={baselineNarrative}
             isDarkMode={isDarkMode}
             onSave={onSave ? () => onSave(-1) : undefined}
             onTryAnother={onTryAnother}
@@ -178,8 +145,8 @@ export function ScenarioComparison({
             headerBg={headerBg}
             highlightGreen={highlightGreen}
             highlightYellow={highlightYellow}
-            insightLoading={insightsLoading[activeTab] || false}
-            variantInsight={variantInsights[activeTab] || null}
+            variantInsight={variantInsights[activeTab]}
+            variantNarrative={variantNarratives[activeTab]}
           />
         )}
       </div>
@@ -193,12 +160,14 @@ export function ScenarioComparison({
 function BaselineTab({
   scenario,
   results,
+  narrative,
   isDarkMode,
   onSave,
   onTryAnother
 }: {
   scenario: Scenario
   results: CalculationResults
+  narrative?: string | null
   isDarkMode: boolean
   onSave?: () => void
   onTryAnother?: () => void
@@ -212,6 +181,25 @@ function BaselineTab({
         isDarkMode={isDarkMode}
       />
 
+      {/* AI Narrative */}
+      <RetirementNarrative narrative={narrative} isDarkMode={isDarkMode} />
+
+      {/* Save Button */}
+      {onSave && (
+        <div className="flex justify-center pt-2 pb-2">
+          <button
+            onClick={onSave}
+            className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+            }`}
+          >
+            SAVE SCENARIO: Baseline
+          </button>
+        </div>
+      )}
+
       {/* Balance Chart */}
       <BalanceOverTimeChart results={results} isDarkMode={isDarkMode} />
 
@@ -224,33 +212,6 @@ function BaselineTab({
         retirementAge={scenario.basic_inputs.retirement_age}
         isDarkMode={isDarkMode}
       />
-
-      {/* AI Narrative */}
-      <RetirementNarrative results={results} isDarkMode={isDarkMode} />
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap justify-center items-center gap-3 pt-4">
-        {onSave && (
-          <button
-            onClick={onSave}
-            className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-              isDarkMode
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-            }`}
-          >
-            Save This Scenario
-          </button>
-        )}
-        {onTryAnother && (
-          <button
-            onClick={onTryAnother}
-            className={`px-6 py-3 text-sm font-medium ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'} rounded-lg transition-colors`}
-          >
-            Try a What-If
-          </button>
-        )}
-      </div>
     </div>
   )
 }
@@ -279,8 +240,8 @@ function VariantTab({
   headerBg,
   highlightGreen,
   highlightYellow,
-  insightLoading,
-  variantInsight
+  variantInsight,
+  variantNarrative
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -302,8 +263,8 @@ function VariantTab({
   headerBg: string
   highlightGreen: string
   highlightYellow: string
-  insightLoading: boolean
-  variantInsight: string | null
+  variantInsight?: string
+  variantNarrative?: string
 }) {
   return (
     <div className="space-y-6">
@@ -403,19 +364,7 @@ function VariantTab({
       </div>
 
       {/* Key Insight - LLM Generated */}
-      {insightLoading ? (
-        <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">💡</span>
-            <div>
-              <div className={`font-semibold ${textPrimary} mb-1`}>Key Insight</div>
-              <div className={`text-sm ${textSecondary}`}>
-                Generating insight...
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : variantInsight && (
+      {variantInsight && (
         <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
@@ -436,6 +385,25 @@ function VariantTab({
         isDarkMode={isDarkMode}
       />
 
+      {/* AI Narrative */}
+      <RetirementNarrative narrative={variantNarrative} isDarkMode={isDarkMode} />
+
+      {/* Save Button */}
+      {onSave && (
+        <div className="flex justify-center pt-2 pb-2">
+          <button
+            onClick={onSave}
+            className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+            }`}
+          >
+            SAVE SCENARIO: {variantScenario.name}
+          </button>
+        </div>
+      )}
+
       {/* Balance Chart */}
       <BalanceOverTimeChart results={variantResults} isDarkMode={isDarkMode} />
 
@@ -448,25 +416,6 @@ function VariantTab({
         retirementAge={variantScenario.basic_inputs.retirement_age}
         isDarkMode={isDarkMode}
       />
-
-      {/* AI Narrative */}
-      <RetirementNarrative results={variantResults} isDarkMode={isDarkMode} />
-
-      {/* Action Button */}
-      <div className="flex justify-center pt-4">
-        {onSave && (
-          <button
-            onClick={onSave}
-            className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-              isDarkMode
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-            }`}
-          >
-            Save This Scenario
-          </button>
-        )}
-      </div>
     </div>
   )
 }

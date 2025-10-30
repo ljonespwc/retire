@@ -1,65 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import { CalculationResults } from '@/types/calculator';
 
 interface RetirementNarrativeProps {
-  results: CalculationResults;
+  narrative?: string | null;
   isDarkMode?: boolean;
 }
 
-export function RetirementNarrative({ results, isDarkMode = false }: RetirementNarrativeProps) {
-  const [narrative, setNarrative] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchNarrative() {
-      try {
-        console.log('📖 RetirementNarrative: Starting narrative generation...');
-        setIsLoading(true);
-        setError(false);
-
-        // Call server-side API route
-        const response = await fetch('/api/generate-narrative', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ results }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`API returned ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (isMounted) {
-          setNarrative(data.narrative);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('❌ RetirementNarrative: Failed to generate narrative:', err);
-        if (isMounted) {
-          setError(true);
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchNarrative();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [results]);
-
-  // Don't render if error occurred (graceful degradation)
-  if (error) {
+export function RetirementNarrative({ narrative, isDarkMode = false }: RetirementNarrativeProps) {
+  // Don't render if no narrative provided
+  if (!narrative) {
     return null;
   }
 
@@ -82,21 +32,10 @@ export function RetirementNarrative({ results, isDarkMode = false }: RetirementN
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="space-y-2 animate-pulse">
-          <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-full`}></div>
-          <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-5/6`}></div>
-          <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-4/6`}></div>
-        </div>
-      )}
-
       {/* Narrative Content */}
-      {!isLoading && narrative && (
-        <p className={`${textColor} leading-relaxed text-[15px]`}>
-          {narrative}
-        </p>
-      )}
+      <p className={`${textColor} leading-relaxed text-[15px]`}>
+        {narrative}
+      </p>
     </div>
   );
 }

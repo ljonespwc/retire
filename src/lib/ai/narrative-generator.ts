@@ -132,9 +132,7 @@ export async function generateRetirementNarrative(
   results: CalculationResults
 ): Promise<string> {
   try {
-    console.log('📊 Narrative Generator: Extracting insights from results...');
     const insights = extractInsights(results);
-    console.log('📊 Narrative Generator: Insights extracted:', insights);
 
     // Build context for LLM
     const context = `
@@ -165,8 +163,6 @@ ${context}
 Create a story that highlights the key financial transitions and outcomes.`;
 
     const provider = process.env.AI_PROVIDER || 'openai';
-    console.log(`🤖 Narrative Generator: Calling ${provider} API...`);
-
     let narrative = '';
 
     if (provider === 'gemini') {
@@ -226,8 +222,6 @@ Create a story that highlights the key financial transitions and outcomes.`;
       const data = await response.json();
       narrative = data.choices[0]?.message?.content || '';
     }
-
-    console.log('✅ Narrative Generator: AI response received:', narrative);
 
     return narrative.trim();
   } catch (error) {

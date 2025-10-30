@@ -84,9 +84,7 @@ export async function generateVariantInsight(
   variantName: string
 ): Promise<string> {
   try {
-    console.log(`📊 Insight Generator: Comparing ${variantName} to baseline...`);
     const metrics = extractComparison(baselineResults, variantResults);
-    console.log('📊 Insight Generator: Metrics extracted:', metrics);
 
     // Build context for LLM
     const context = `
@@ -116,8 +114,6 @@ ${context}
 What's the one thing the user needs to know about this variant?`;
 
     const provider = process.env.AI_PROVIDER || 'openai';
-    console.log(`🤖 Insight Generator: Calling ${provider} API...`);
-
     let insight = '';
 
     if (provider === 'gemini') {
@@ -177,8 +173,6 @@ What's the one thing the user needs to know about this variant?`;
       const data = await response.json();
       insight = data.choices[0]?.message?.content || '';
     }
-
-    console.log('✅ Insight Generator: AI response received:', insight);
 
     return insight.trim();
   } catch (error) {
