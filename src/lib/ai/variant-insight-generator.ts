@@ -88,7 +88,9 @@ export async function generateVariantInsight(
     const metrics = extractComparison(baselineResults, variantResults);
 
     // Build context for LLM with baseline reference
-    const baselineName = baselineScenarioName || 'your baseline plan';
+    const baselineName = baselineScenarioName
+      ? `your ${baselineScenarioName} baseline plan`
+      : 'your baseline plan';
     const context = `
 Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}

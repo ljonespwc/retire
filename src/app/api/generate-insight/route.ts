@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const baselineResults: CalculationResults = body.baselineResults;
     const variantResults: CalculationResults = body.variantResults;
     const variantName: string = body.variantName;
+    const baselineScenarioName: string | undefined = body.baselineScenarioName;
 
     if (!baselineResults || !variantResults || !variantName) {
       return NextResponse.json(
@@ -30,7 +31,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const insight = await generateVariantInsight(baselineResults, variantResults, variantName);
+    const insight = await generateVariantInsight(
+      baselineResults,
+      variantResults,
+      variantName,
+      baselineScenarioName
+    );
 
     return NextResponse.json({ insight });
   } catch (error) {

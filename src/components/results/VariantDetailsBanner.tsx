@@ -89,7 +89,6 @@ export function VariantDetailsBanner({
                 <h4 className={`text-sm font-bold ${textPrimary}`}>Key Insight</h4>
               </div>
               <div className={`text-sm ${textSecondary} leading-relaxed prose prose-sm max-w-none
-                prose-strong:font-semibold prose-strong:text-orange-600 dark:prose-strong:text-orange-400
                 prose-p:my-2
                 ${isDarkMode ? 'prose-invert' : ''}`}
               >
@@ -97,7 +96,7 @@ export function VariantDetailsBanner({
                   components={{
                     p: ({ children }) => <p className="my-2">{children}</p>,
                     strong: ({ children }) => (
-                      <strong className={`font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                      <strong className={`font-semibold ${isDarkMode ? '!text-orange-400' : '!text-orange-600'}`}>
                         {children}
                       </strong>
                     ),

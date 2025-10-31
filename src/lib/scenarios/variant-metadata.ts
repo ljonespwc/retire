@@ -191,9 +191,9 @@ export function getVariantDetails(
       const baseline = scenario?.expenses.fixed_monthly || 0
       const retirementAge = scenario?.basic_inputs.retirement_age || 65
 
-      // Format baseline spending reference
-      const baselineSpendingLabel = baselineSnapshot?.name
-        ? `${baselineSnapshot.name} Spending`
+      // Format baseline spending reference (simplified since insight already mentions name)
+      const baselineSpendingLabel = baselineSnapshot
+        ? 'Baseline Plan Spending'
         : 'Baseline Spending'
 
       return {
@@ -229,13 +229,13 @@ export function getVariantDetails(
       const cppAt70 = cppMonthlyAt65 * 1.42 // 42% increase for delaying to 70
       const oasAt70 = oasMonthlyAt65 * 1.36 // 36% increase for delaying to 70
 
-      // Format baseline references
-      const cppBaselineRef = baselineSnapshot?.name
-        ? `(vs ${baselineSnapshot.name}: Age ${baselineSnapshot.cpp_start_age})`
+      // Format baseline references (simplified since insight already mentions name)
+      const cppBaselineRef = baselineSnapshot
+        ? `(vs baseline plan: Age ${baselineSnapshot.cpp_start_age})`
         : '(vs 65 baseline)'
 
-      const oasBaselineRef = baselineSnapshot?.name
-        ? `(vs ${baselineSnapshot.name}: Age ${baselineSnapshot.oas_start_age})`
+      const oasBaselineRef = baselineSnapshot
+        ? `(vs baseline plan: Age ${baselineSnapshot.oas_start_age})`
         : '(vs 65 baseline)'
 
       return {
@@ -270,9 +270,9 @@ export function getVariantDetails(
       const baselineRetirementAge = baselineSnapshot?.retirement_age || (newRetirementAge + 3) // Use snapshot or estimate
       const yearsEarlier = baselineRetirementAge - newRetirementAge
 
-      // Format baseline reference
-      const retirementBaselineRef = baselineSnapshot?.name
-        ? `(vs ${baselineSnapshot.name}: Age ${baselineRetirementAge})`
+      // Format baseline reference (simplified since insight already mentions name)
+      const retirementBaselineRef = baselineSnapshot
+        ? `(vs baseline plan: Age ${baselineRetirementAge})`
         : `(vs ${baselineRetirementAge} baseline)`
 
       return {

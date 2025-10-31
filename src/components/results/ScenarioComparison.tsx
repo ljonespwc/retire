@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { X, Share2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
 import { ResultsSummary } from './ResultsSummary'
@@ -492,10 +493,21 @@ function VariantTab({
         <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
-            <div>
+            <div className="flex-1">
               <div className={`font-semibold ${textPrimary} mb-1`}>Key Insight</div>
-              <div className={`text-sm ${textSecondary}`}>
-                {variantInsight}
+              <div className={`text-sm ${textSecondary} prose prose-sm max-w-none prose-p:my-2 ${isDarkMode ? 'prose-invert' : ''}`}>
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="my-2">{children}</p>,
+                    strong: ({ children }) => (
+                      <strong className={`font-semibold ${isDarkMode ? '!text-orange-400' : '!text-orange-600'}`}>
+                        {children}
+                      </strong>
+                    ),
+                  }}
+                >
+                  {variantInsight}
+                </ReactMarkdown>
               </div>
             </div>
           </div>

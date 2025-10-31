@@ -909,7 +909,8 @@ export function VoiceFirstContentV2() {
             body: JSON.stringify({
               baselineResults: calculationResults,
               variantResults: results,
-              variantName: variant.name
+              variantName: variant.name,
+              baselineScenarioName: loadedScenarioName || undefined
             })
           })
             .then(res => res.json())
