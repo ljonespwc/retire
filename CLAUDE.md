@@ -333,6 +333,21 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ## Recent Updates
 
+**2025-10-30**: Enhanced AI Narratives with Token Optimization
+- **Enhancement**: AI narratives expanded from 60-80 words to 150-250 words (2-3 paragraphs) with comprehensive data
+  - Now includes: year-by-year snapshots (first 5 + every 5th + last 5 years), tax analysis (lifetime tax, efficiency score, OAS clawback), income strategy breakdowns (CPP/OAS/RRIF timing), user context
+  - Markdown support with **bold** formatting for key numbers, embedded bullet lists
+  - Prompt engineering for structured narrative flow (outcome → transitions → insights)
+- **Optimization**: Narratives only shown for baseline and saved variants (not temporary what-if variants)
+  - Saves ~$432/year at scale (10K users × 3 variants/month)
+  - Temporary variants still show comparison insights (cheap, useful)
+- **Files Modified**:
+  - `/src/lib/ai/narrative-generator.ts` - Complete data extraction refactor (422 lines)
+  - `/src/components/results/RetirementNarrative.tsx` - Added markdown rendering
+  - `/src/app/calculator/home/VoiceFirstContentV2.tsx` - Removed narrative generation for temp variants
+- **Status**: ✅ Implemented and tested
+- **Build Status**: ✅ Production build passes
+
 **2025-10-30**: Save Once, Update Forever Pattern
 - **Problem**: Scenarios could only be saved as new records, no way to update existing scenarios after making changes
 - **Solution**: "Save once, update forever" pattern - after first save, button switches to UPDATE mode automatically
