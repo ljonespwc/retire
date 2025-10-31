@@ -275,39 +275,39 @@ function BaselineTab({
         results={results}
         retirementAge={scenario.basic_inputs.retirement_age}
         isDarkMode={isDarkMode}
+        actionButtons={
+          onSave && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onSave}
+                className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                    : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+                }`}
+              >
+                {scenarioId && scenarioName
+                  ? `UPDATE THIS SCENARIO: ${scenarioName}`
+                  : 'SAVE THIS SCENARIO: Baseline'}
+              </button>
+
+              {/* Share Button (only visible if scenario is saved) */}
+              {scenarioId && scenarioName && onShare && (
+                <button
+                  onClick={onShare}
+                  className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+                >
+                  <Share2 className="w-4 h-4 inline mr-2" />
+                  SHARE
+                </button>
+              )}
+            </div>
+          )
+        }
       />
 
       {/* AI Narrative */}
       <RetirementNarrative narrative={narrative} isDarkMode={isDarkMode} />
-
-      {/* Save and Share Buttons */}
-      {onSave && (
-        <div className="flex justify-center items-center gap-3 pt-2 pb-2">
-          <button
-            onClick={onSave}
-            className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-              isDarkMode
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-            }`}
-          >
-            {scenarioId && scenarioName
-              ? `UPDATE THIS SCENARIO: ${scenarioName}`
-              : 'SAVE THIS SCENARIO: Baseline'}
-          </button>
-
-          {/* Share Button (only visible if scenario is saved) */}
-          {scenarioId && scenarioName && onShare && (
-            <button
-              onClick={onShare}
-              className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
-            >
-              <Share2 className="w-4 h-4 inline mr-2" />
-              SHARE
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Balance Chart */}
       <BalanceOverTimeChart results={results} isDarkMode={isDarkMode} />
@@ -519,39 +519,39 @@ function VariantTab({
         results={variantResults}
         retirementAge={variantScenario.basic_inputs.retirement_age}
         isDarkMode={isDarkMode}
+        actionButtons={
+          onSave && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onSave}
+                className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                    : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+                }`}
+              >
+                {scenarioId && scenarioName
+                  ? `UPDATE THIS SCENARIO: ${scenarioName}`
+                  : `SAVE THIS SCENARIO: ${variantScenario.name}`}
+              </button>
+
+              {/* Share Button (only visible if scenario is saved) */}
+              {scenarioId && scenarioName && onShare && (
+                <button
+                  onClick={onShare}
+                  className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+                >
+                  <Share2 className="w-4 h-4 inline mr-2" />
+                  SHARE
+                </button>
+              )}
+            </div>
+          )
+        }
       />
 
       {/* AI Narrative - Only shown for saved variants, undefined for temporary what-if variants (saves tokens) */}
       <RetirementNarrative narrative={variantNarrative} isDarkMode={isDarkMode} />
-
-      {/* Save and Share Buttons */}
-      {onSave && (
-        <div className="flex justify-center items-center gap-3 pt-2 pb-2">
-          <button
-            onClick={onSave}
-            className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-              isDarkMode
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-            }`}
-          >
-            {scenarioId && scenarioName
-              ? `UPDATE THIS SCENARIO: ${scenarioName}`
-              : `SAVE THIS SCENARIO: ${variantScenario.name}`}
-          </button>
-
-          {/* Share Button (only visible if scenario is saved) */}
-          {scenarioId && scenarioName && onShare && (
-            <button
-              onClick={onShare}
-              className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
-            >
-              <Share2 className="w-4 h-4 inline mr-2" />
-              SHARE
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Balance Chart */}
       <BalanceOverTimeChart results={variantResults} isDarkMode={isDarkMode} />

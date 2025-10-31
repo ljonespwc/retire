@@ -805,3 +805,78 @@ CREATE INDEX idx_scenarios_parent ON scenarios(parent_scenario_id);
 **Last Updated**: 2025-10-28
 **Owner**: Lance Jones
 **Status**: Approved for future implementation
+
+---
+
+## CRITICAL NOTE: Adding New What-If Scenarios (2025-10-31)
+
+⚠️ **IMPORTANT**: When adding new variant types to the what-if scenario system, you MUST follow this complete 6-step pattern to ensure proper functionality across the entire application (creation, regeneration, display, detection, and sharing).
+
+### The 6-Step Pattern for New Variants
+
+**1. Define Type**: Add to `VariantType` enum (`variant-metadata.ts:19-22`)
+```typescript
+export type VariantType =
+  | 'front-load'
+  | 'delay-cpp-oas'
+  | 'retire-early'
+  | 'your-new-variant' // Add here
+```
+
+**2. Create Function**: Add variant creation function (`scenario-variants.ts`)
+```typescript
+export function createYourNewVariant(baseScenario: Scenario): Scenario {
+  return { ...baseScenario, /* modifications */ }
+}
+```
+
+**3. Add Regeneration**: Add case to switch statement (`variant-metadata.ts:112-125`)
+```typescript
+case 'your-new-variant':
+  return createYourNewVariant(baseScenario)
+```
+
+**4. Add Detection**: Add pattern to `detectVariantTypeFromName()` (`variant-metadata.ts:144-158`)
+```typescript
+if (lowercaseName.includes('your new variant name')) {
+  return 'your-new-variant'
+}
+```
+
+**5. Add Display Name**: Add to `getVariantDisplayName()` (`variant-metadata.ts:131-139`)
+```typescript
+'your-new-variant': 'Your New Variant Display Name'
+```
+
+**6. Add Details**: Add case to `getVariantDetails()` (`variant-metadata.ts:184-303`)
+```typescript
+case 'your-new-variant': {
+  return { title: '...', items: [...] }
+}
+```
+
+### Why This Matters
+
+- **Variants are saved with metadata** (`__metadata.variant_type`) in the database
+- **Saved variants can be recalculated** - when a user loads a saved variant and clicks Calculate, the variant modifications are regenerated from the current form values using `regenerateVariant()`
+- **Missing any step breaks the regeneration flow** - variants will fail to recalculate properly or show incorrect details
+- **All 3 current variants verified working**: front-load, delay-cpp-oas, retire-early
+
+### Architecture Overview
+
+```
+User creates variant → Saves → Loads later → Edits form → Clicks Calculate
+                                                                 ↓
+                                        Detects variant metadata exists
+                                                                 ↓
+                                    Calls regenerateVariant() with type
+                                                                 ↓
+                          Switch matches type → Calls creation function
+                                                                 ↓
+                        Variant modifications applied to NEW baseline values
+```
+
+**Key Files**:
+- `/src/lib/scenarios/variant-metadata.ts` - Metadata handling, regeneration, detection, display
+- `/src/lib/calculations/scenario-variants.ts` - Variant creation functions
+- `/src/app/calculator/home/VoiceFirstContentV2.tsx:572-576` - Regeneration trigger

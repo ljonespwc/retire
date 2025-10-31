@@ -83,7 +83,7 @@ export default async function SharedScenarioPage({ params }: PageProps) {
   const results: CalculationResults = scenarioRow.results as unknown as CalculationResults
 
   // Extract narrative from results if available
-  const narrative = (scenarioRow.results as any)?.narrative || null
+  const narrative = inputs.__baseline_narrative || inputs.__metadata?.ai_narrative || null
 
   return (
     <SharedReport
@@ -91,7 +91,7 @@ export default async function SharedScenarioPage({ params }: PageProps) {
       results={results}
       narrative={narrative}
       rawInputs={inputs}
-      isDarkMode={false} // TODO: Detect user preference or default to light
+      isDarkMode={true} // Dark mode for shared reports
     />
   )
 }

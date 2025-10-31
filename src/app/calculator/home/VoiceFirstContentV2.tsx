@@ -349,24 +349,22 @@ export function VoiceFirstContentV2() {
       : 'bg-white border-gray-200',
   }
 
-  // Confetti celebration effect
-  const fireConfetti = () => {
-    const duration = 3000
-    const animationEnd = Date.now() + duration
+  // Confetti celebration effect - persists until results render
+  const confettiIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const startConfetti = () => {
+    // Clear any existing confetti
+    stopConfetti()
+
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
 
     function randomInRange(min: number, max: number) {
       return Math.random() * (max - min) + min
     }
 
-    const interval: NodeJS.Timeout = setInterval(function() {
-      const timeLeft = animationEnd - Date.now()
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval)
-      }
-
-      const particleCount = 50 * (timeLeft / duration)
+    // Start continuous confetti until stopped
+    confettiIntervalRef.current = setInterval(function() {
+      const particleCount = 50
 
       confetti({
         ...defaults,
@@ -383,6 +381,18 @@ export function VoiceFirstContentV2() {
       })
     }, 250)
   }
+
+  const stopConfetti = () => {
+    if (confettiIntervalRef.current) {
+      clearInterval(confettiIntervalRef.current)
+      confettiIntervalRef.current = null
+    }
+  }
+
+  // Cleanup confetti on unmount
+  useEffect(() => {
+    return () => stopConfetti()
+  }, [])
 
   // Handle Create New Plan button
   // Check if mandatory fields are complete and valid
@@ -497,7 +507,7 @@ export function VoiceFirstContentV2() {
     }
 
     setIsCalculating(true)
-    fireConfetti()
+    startConfetti()
 
     try {
       let scenario: any = {
@@ -585,15 +595,18 @@ export function VoiceFirstContentV2() {
         setCalculationResults(data.results)
         setBaselineNarrative(data.narrative || null)
         setShowResults(true)
+        stopConfetti() // Stop fireworks when results render
         setEditMode(false)
         setJustCalculated(true)
         setFocusedField(null) // Reset sidebar to original state
       } else {
         console.error('❌ Calculation failed:', data.error)
+        stopConfetti() // Stop fireworks on error
         alert(`Calculation failed: ${data.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('❌ Calculate error:', error)
+      stopConfetti() // Stop fireworks on error
       alert('An error occurred during calculation. Please try again.')
     } finally {
       setIsCalculating(false)
@@ -1487,49 +1500,49 @@ export function VoiceFirstContentV2() {
                   retirementAge={retirementAge || 65}
                   isDarkMode={isDarkMode}
                   variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
+                  actionButtons={
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
+                          if (isAnonymous) {
+                            console.log('💾 Opening SaveWithAccountModal (anonymous user)')
+                            setShowSaveWithAccountModal(true)
+                          } else {
+                            console.log('💾 Opening SaveScenarioModal (authenticated user)')
+                            setShowScenarioSaveModal(true)
+                          }
+                        }}
+                        className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+                          isDarkMode
+                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                            : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+                        }`}
+                      >
+                        {scenarioId && loadedScenarioName
+                          ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
+                          : 'SAVE THIS SCENARIO'}
+                      </button>
+
+                      {/* Share Button (only visible if scenario is saved) */}
+                      {scenarioId && loadedScenarioName && (
+                        <button
+                          onClick={() => setShowShareModal(true)}
+                          className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${
+                            isDarkMode
+                              ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          }`}
+                        >
+                          <Share2 className="w-4 h-4 inline mr-2" />
+                          SHARE
+                        </button>
+                      )}
+                    </div>
+                  }
                 />
 
                 <RetirementNarrative narrative={baselineNarrative} isDarkMode={isDarkMode} />
-
-                {/* Save and Share Buttons */}
-                <div className="flex justify-center items-center gap-3 pt-2 pb-2">
-                  <button
-                    onClick={() => {
-                      console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
-                      if (isAnonymous) {
-                        console.log('💾 Opening SaveWithAccountModal (anonymous user)')
-                        setShowSaveWithAccountModal(true)
-                      } else {
-                        console.log('💾 Opening SaveScenarioModal (authenticated user)')
-                        setShowScenarioSaveModal(true)
-                      }
-                    }}
-                    className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-                      isDarkMode
-                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                        : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-                    }`}
-                  >
-                    {scenarioId && loadedScenarioName
-                      ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
-                      : 'SAVE THIS SCENARIO'}
-                  </button>
-
-                  {/* Share Button (only visible if scenario is saved) */}
-                  {scenarioId && loadedScenarioName && (
-                    <button
-                      onClick={() => setShowShareModal(true)}
-                      className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${
-                        isDarkMode
-                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      <Share2 className="w-4 h-4 inline mr-2" />
-                      SHARE
-                    </button>
-                  )}
-                </div>
 
                 <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
                 <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />

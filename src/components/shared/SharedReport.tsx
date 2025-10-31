@@ -16,6 +16,8 @@ import { TaxSummaryCard } from '@/components/results/TaxSummaryCard'
 import { RetirementNarrative } from '@/components/results/RetirementNarrative'
 import { VariantDetailsBanner } from '@/components/results/VariantDetailsBanner'
 import { getVariantMetadata } from '@/lib/scenarios/variant-metadata'
+import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
+import ReactMarkdown from 'react-markdown'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 
@@ -87,6 +89,123 @@ export function SharedReport({
               isDarkMode={isDarkMode}
               isCollapsible={false}
             />
+          </div>
+        )}
+
+        {/* Variant Comparison Table (if baseline snapshot exists) */}
+        {variantMetadata && variantMetadata.baseline_snapshot && (
+          <div className={`${bgCard} border ${borderColor} rounded-lg p-6 mb-6`}>
+            <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
+              Comparison: {variantMetadata.baseline_snapshot.name} vs {scenario.name}
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className={`border-b ${borderColor}`}>
+                    <th className={`text-left py-3 px-4 ${textPrimary} font-semibold`}>
+                      Metric
+                    </th>
+                    <th className={`text-left py-3 px-4 ${textPrimary} font-semibold`}>
+                      {variantMetadata.baseline_snapshot.name}
+                    </th>
+                    <th className={`text-left py-3 px-4 ${textPrimary} font-semibold`}>
+                      {scenario.name}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Monthly Spending */}
+                  <tr className={`border-b ${borderColor}`}>
+                    <td className={`py-3 px-4 ${textSecondary}`}>Monthly Spending</td>
+                    <td className={`py-3 px-4 ${textPrimary}`}>
+                      {formatCurrency(variantMetadata.baseline_snapshot.monthly_spending, 0)}
+                    </td>
+                    <td className={`py-3 px-4 ${textPrimary}`}>
+                      {scenario.expenses.age_based_changes && scenario.expenses.age_based_changes.length > 0 ? (
+                        <div className="space-y-1">
+                          {scenario.expenses.age_based_changes.map((change, index) => {
+                            const phaseLabel =
+                              index === 0 ? `Ages ${change.age}-${change.age + 9}` :
+                              index === 1 ? `Ages ${change.age}-${change.age + 9}` :
+                              `Ages ${change.age}+`
+                            return (
+                              <div key={index}>
+                                {formatCurrency(change.monthly_amount, 0)}
+                                <span className={`text-xs ${textSecondary} ml-2`}>({phaseLabel})</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        formatCurrency(scenario.expenses.fixed_monthly, 0)
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Portfolio Depletion */}
+                  <tr className={`border-b ${borderColor}`}>
+                    <td className={`py-3 px-4 ${textSecondary}`}>Portfolio Depletion</td>
+                    <td className={`py-3 px-4 ${textPrimary}`}>
+                      {variantMetadata.baseline_snapshot.portfolio_depleted_age
+                        ? `Age ${variantMetadata.baseline_snapshot.portfolio_depleted_age}`
+                        : 'Never (surplus)'}
+                    </td>
+                    <td className={`py-3 px-4 ${textPrimary}`}>
+                      {results.portfolio_depleted_age
+                        ? `Age ${results.portfolio_depleted_age}`
+                        : 'Never (surplus)'}
+                    </td>
+                  </tr>
+
+                  {/* Ending Balance */}
+                  <tr className={`border-b ${borderColor}`}>
+                    <td className={`py-3 px-4 ${textSecondary}`}>Ending Balance</td>
+                    <td className={`py-3 px-4 ${textPrimary}`}>
+                      {formatCompactCurrency(variantMetadata.baseline_snapshot.ending_balance)}
+                    </td>
+                    <td className={`py-3 px-4 ${textPrimary}`}>
+                      {formatCompactCurrency(results.final_portfolio_value)}
+                      {results.final_portfolio_value > variantMetadata.baseline_snapshot.ending_balance && (
+                        <span className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-600'} ml-2`}>
+                          (+{formatCompactCurrency(results.final_portfolio_value - variantMetadata.baseline_snapshot.ending_balance)})
+                        </span>
+                      )}
+                      {results.final_portfolio_value < variantMetadata.baseline_snapshot.ending_balance && (
+                        <span className={`text-xs ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'} ml-2`}>
+                          ({formatCompactCurrency(results.final_portfolio_value - variantMetadata.baseline_snapshot.ending_balance)})
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Key Insight from AI */}
+            {variantMetadata.ai_insight && (
+              <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4 mt-6`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">💡</span>
+                  <div className="flex-1">
+                    <div className={`font-semibold ${textPrimary} mb-1`}>Key Insight</div>
+                    <div className={`text-sm ${textSecondary} prose prose-sm max-w-none prose-p:my-2 ${isDarkMode ? 'prose-invert' : ''}`}>
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="my-2">{children}</p>,
+                          strong: ({ children }) => (
+                            <strong className={`font-semibold ${isDarkMode ? '!text-orange-400' : '!text-orange-600'}`}>
+                              {children}
+                            </strong>
+                          ),
+                        }}
+                      >
+                        {variantMetadata.ai_insight}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

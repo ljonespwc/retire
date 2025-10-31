@@ -18,9 +18,10 @@ interface ResultsSummaryProps {
 interface ExtendedResultsSummaryProps extends ResultsSummaryProps {
   isDarkMode?: boolean
   variantName?: string // Optional variant name to display indicator
+  actionButtons?: React.ReactNode // Optional buttons to display between income and banner
 }
 
-export function ResultsSummary({ results, retirementAge, isDarkMode = false, variantName }: ExtendedResultsSummaryProps) {
+export function ResultsSummary({ results, retirementAge, isDarkMode = false, variantName, actionButtons }: ExtendedResultsSummaryProps) {
   const summary = formatSummary(results, retirementAge)
 
   // Calculate additional helpful metrics
@@ -76,6 +77,13 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false, var
           per month (year 1, after taxes)
         </div>
       </div>
+
+      {/* Action Buttons (Save/Share) */}
+      {actionButtons && (
+        <div className="flex justify-center">
+          {actionButtons}
+        </div>
+      )}
 
       {/* Success Indicator */}
       <div className={`${config.bg} ${config.border} border rounded-lg p-4`}>
