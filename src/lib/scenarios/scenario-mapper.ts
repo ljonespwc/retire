@@ -98,28 +98,23 @@ export function formDataToScenario(
         monthly_amount: 713.34, // 2025 max
         start_age: 65,
       },
-      other_income: [
-        ...(formData.pensionIncome
-          ? [
-              {
-                description: 'Pension',
-                annual_amount: formData.pensionIncome, // Already annual (form says "Annual")
-                start_age: formData.retirementAge || 65,
-                indexed_to_inflation: false,
-              },
-            ]
-          : []),
-        ...(formData.otherIncome
-          ? [
-              {
-                description: 'Other Income',
-                annual_amount: formData.otherIncome,
-                start_age: formData.retirementAge || 65,
-                indexed_to_inflation: false,
-              },
-            ]
-          : []),
-      ],
+      pension: formData.pensionIncome
+        ? {
+            annual_amount: formData.pensionIncome,
+            start_age: formData.retirementAge || 65,
+            indexed_to_inflation: false, // Default to false, can add UI toggle later
+          }
+        : undefined,
+      other_income: formData.otherIncome
+        ? [
+            {
+              description: 'Other Income',
+              annual_amount: formData.otherIncome,
+              start_age: formData.retirementAge || 65,
+              indexed_to_inflation: false,
+            },
+          ]
+        : [],
     },
     expenses: {
       fixed_monthly: formData.monthlySpending || 5000,
@@ -160,9 +155,10 @@ export function scenarioToFormData(scenario: Scenario): FormData {
 
     // Income & expenses
     monthlySpending: scenario.expenses.fixed_monthly,
-    pensionIncome: scenario.income_sources.other_income?.find(i => i.description === 'Pension')
-      ? scenario.income_sources.other_income.find(i => i.description === 'Pension')!.annual_amount
-      : null,
+    // Backward compatibility: Check new pension field first, then fall back to old other_income array
+    pensionIncome: scenario.income_sources.pension?.annual_amount ||
+      scenario.income_sources.other_income?.find(i => i.description === 'Pension')?.annual_amount ||
+      null,
     otherIncome: scenario.income_sources.other_income?.find(i => i.description === 'Other Income')?.annual_amount || null,
     cppStartAge: scenario.income_sources.cpp?.start_age || null,
 

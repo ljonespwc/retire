@@ -100,7 +100,20 @@ export interface EmploymentIncome {
 }
 
 /**
- * Other income sources (pensions, rental income, etc.)
+ * Pension income details
+ */
+export interface PensionDetails {
+  /** Annual pension amount */
+  annual_amount: number;
+  /** Age at which pension starts */
+  start_age?: number;
+  /** Whether pension is indexed to inflation */
+  indexed_to_inflation: boolean;
+}
+
+/**
+ * Other income sources (rental income, etc.)
+ * Note: Pensions should use PensionDetails, not other_income
  */
 export interface OtherIncome {
   /** Description of income source */
@@ -121,11 +134,13 @@ export interface OtherIncome {
 export interface IncomeSources {
   /** Employment income */
   employment?: EmploymentIncome;
+  /** Pension income */
+  pension?: PensionDetails;
   /** Canada Pension Plan */
   cpp?: CPPDetails;
   /** Old Age Security */
   oas?: OASDetails;
-  /** Other income sources (pensions, rental, etc.) */
+  /** Other income sources (rental, etc.) - excludes pensions */
   other_income?: OtherIncome[];
 }
 
@@ -203,11 +218,13 @@ export interface YearlyWithdrawals {
 export interface YearlyIncome {
   /** Employment income */
   employment: number;
+  /** Pension income */
+  pension: number;
   /** CPP income */
   cpp: number;
   /** OAS income */
   oas: number;
-  /** Other pension/income */
+  /** Other income (rental, etc.) */
   other: number;
   /** Investment income (interest, dividends, capital gains) */
   investment: number;

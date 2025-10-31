@@ -20,8 +20,10 @@ interface UserContext {
 interface YearSnapshot {
   age: number;
   totalIncome: number;
+  pension: number;
   cpp: number;
   oas: number;
+  other: number;
   rrspRrif: number;
   tfsa: number;
   nonRegistered: number;
@@ -124,8 +126,10 @@ function createYearSnapshot(year: any): YearSnapshot {
   return {
     age: year.age,
     totalIncome,
+    pension: year.income?.pension || 0,
     cpp: year.income?.cpp || 0,
     oas: year.income?.oas || 0,
+    other: year.income?.other || 0,
     rrspRrif: year.withdrawals?.rrsp_rrif || 0,
     tfsa: year.withdrawals?.tfsa || 0,
     nonRegistered: year.withdrawals?.non_registered || 0,
@@ -308,7 +312,15 @@ function buildRichContextPrompt(context: RichContext): string {
   prompt += `## Year-by-Year Snapshot (Key Years)\n`;
   yearSnapshots.forEach(year => {
     prompt += `\nAge ${year.age}:\n`;
-    prompt += `  Income: ${formatCurrency(year.totalIncome)} (CPP: ${formatCurrency(year.cpp)}, OAS: ${formatCurrency(year.oas)}, RRSP/RRIF: ${formatCurrency(year.rrspRrif)})\n`;
+    // Build income breakdown - only show non-zero sources
+    const incomeBreakdown = [];
+    if (year.pension > 0) incomeBreakdown.push(`Pension: ${formatCurrency(year.pension)}`);
+    if (year.cpp > 0) incomeBreakdown.push(`CPP: ${formatCurrency(year.cpp)}`);
+    if (year.oas > 0) incomeBreakdown.push(`OAS: ${formatCurrency(year.oas)}`);
+    if (year.other > 0) incomeBreakdown.push(`Other: ${formatCurrency(year.other)}`);
+    if (year.rrspRrif > 0) incomeBreakdown.push(`RRSP/RRIF: ${formatCurrency(year.rrspRrif)}`);
+
+    prompt += `  Income: ${formatCurrency(year.totalIncome)} (${incomeBreakdown.join(', ')})\n`;
     prompt += `  Taxes: ${formatCurrency(year.taxes)} (${formatPercent(year.effectiveTaxRate)} effective rate)\n`;
     prompt += `  After-Tax: ${formatCurrency(year.afterTaxIncome)} | Spending: ${formatCurrency(year.spending)}\n`;
     prompt += `  Portfolio: ${formatCurrency(year.portfolioTotal)} (RRSP: ${formatCurrency(year.rrspBalance)}, TFSA: ${formatCurrency(year.tfsaBalance)}, Non-Reg: ${formatCurrency(year.nonRegBalance)})\n`;

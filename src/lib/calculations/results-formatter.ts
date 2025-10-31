@@ -135,7 +135,7 @@ export function formatIncomeData(
       nonRegisteredIncome: year.withdrawals.non_registered || 0,
       cppIncome: year.income.cpp || 0,
       oasIncome: year.income.oas || 0,
-      pensionIncome: 0, // Pension is included in "other" income
+      pensionIncome: year.income.pension || 0,
       otherIncome: year.income.other || 0
     }
 

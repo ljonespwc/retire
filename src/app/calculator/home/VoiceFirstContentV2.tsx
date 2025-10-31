@@ -540,13 +540,14 @@ export function VoiceFirstContentV2() {
           } : {}),
           cpp: { start_age: cppStartAge || 65, monthly_amount_at_65: 1364.60 },
           oas: { start_age: 65, monthly_amount: 713.34 },
-          other_income: [
-            ...(pensionIncome ? [{
-              description: 'Pension',
+          ...(pensionIncome ? {
+            pension: {
               annual_amount: pensionIncome,
               start_age: retirementAge || 65,
               indexed_to_inflation: false
-            }] : []),
+            }
+          } : {}),
+          other_income: [
             ...(otherIncome ? [{
               description: 'Other Income',
               annual_amount: otherIncome,

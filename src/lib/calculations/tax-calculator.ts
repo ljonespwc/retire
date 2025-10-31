@@ -78,7 +78,9 @@ export interface TaxableIncomeBreakdown {
   oas: number;
   /** From employment */
   employment: number;
-  /** Other taxable income */
+  /** From pension (100% taxable) */
+  pension: number;
+  /** Other taxable income (rental, etc.) */
   other: number;
 }
 
@@ -94,6 +96,7 @@ export interface IncomeSources {
   cpp?: number;
   oas?: number;
   employment?: number;
+  pension?: number;
   other?: number;
 }
 
@@ -335,6 +338,7 @@ export function calculateTaxableIncome(sources: IncomeSources): TaxableIncomeBre
     cpp: sources.cpp || 0,
     oas: sources.oas || 0,
     employment: sources.employment || 0,
+    pension: sources.pension || 0,
     other: sources.other || 0,
   };
 
@@ -345,6 +349,7 @@ export function calculateTaxableIncome(sources: IncomeSources): TaxableIncomeBre
     breakdown.cpp +
     breakdown.oas +
     breakdown.employment +
+    breakdown.pension +
     breakdown.other;
 
   return breakdown;

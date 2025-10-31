@@ -36,6 +36,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
     nonRegistered: true,
     cpp: true,
     oas: true,
+    pension: true,
     other: true
   })
 
@@ -49,7 +50,8 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
     nonRegistered: '#a855f7', // Purple for Non-Registered
     cpp: '#10b981',       // Green for CPP
     oas: '#8b5cf6',       // Purple for OAS
-    other: '#f59e0b'      // Amber for pension & other (combined)
+    pension: '#f59e0b',   // Amber for pension
+    other: '#94a3b8'      // Gray for other income (rental, etc.)
   }
 
   // Theme-aware colors
@@ -92,6 +94,10 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               <linearGradient id="oasGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={colors.oas} stopOpacity={0.8} />
                 <stop offset="95%" stopColor={colors.oas} stopOpacity={0.2} />
+              </linearGradient>
+              <linearGradient id="pensionGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colors.pension} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colors.pension} stopOpacity={0.2} />
               </linearGradient>
               <linearGradient id="otherGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={colors.other} stopOpacity={0.8} />
@@ -167,6 +173,16 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
                 name="OAS"
               />
             )}
+            {visibleSources.pension && (
+              <Area
+                type="monotone"
+                dataKey="pensionIncome"
+                stackId="1"
+                stroke={colors.pension}
+                fill="url(#pensionGradient)"
+                name="Pension"
+              />
+            )}
             {visibleSources.other && (
               <Area
                 type="monotone"
@@ -174,7 +190,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
                 stackId="1"
                 stroke={colors.other}
                 fill="url(#otherGradient)"
-                name="Pension & Other"
+                name="Other"
               />
             )}
 
@@ -187,6 +203,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
                 milestone.nonRegisteredIncome +
                 milestone.cppIncome +
                 milestone.oasIncome +
+                milestone.pensionIncome +
                 milestone.otherIncome
 
               return (
@@ -213,7 +230,8 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
             { key: 'nonRegistered', name: 'Non-Registered', color: colors.nonRegistered },
             { key: 'cpp', name: 'CPP', color: colors.cpp },
             { key: 'oas', name: 'OAS', color: colors.oas },
-            { key: 'other', name: 'Pension & Other', color: colors.other }
+            { key: 'pension', name: 'Pension', color: colors.pension },
+            { key: 'other', name: 'Other', color: colors.other }
           ].map(source => (
             <button
               key={source.key}
@@ -270,6 +288,7 @@ function CustomTooltip({ active, payload, isDarkMode, visibleSources }: any) {
   if (visibleSources.nonRegistered) totalIncome += data.nonRegisteredIncome
   if (visibleSources.cpp) totalIncome += data.cppIncome
   if (visibleSources.oas) totalIncome += data.oasIncome
+  if (visibleSources.pension) totalIncome += data.pensionIncome
   if (visibleSources.other) totalIncome += data.otherIncome
 
   const tooltipBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -314,9 +333,15 @@ function CustomTooltip({ active, payload, isDarkMode, visibleSources }: any) {
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.oasIncome)}</span>
           </div>
         )}
+        {visibleSources.pension && data.pensionIncome > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className={textSecondary}>Pension:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.pensionIncome)}</span>
+          </div>
+        )}
         {visibleSources.other && data.otherIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span className={textSecondary}>Pension & Other:</span>
+            <span className={textSecondary}>Other:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.otherIncome)}</span>
           </div>
         )}

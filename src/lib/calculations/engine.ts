@@ -90,6 +90,19 @@ export async function calculateRetirementProjection(
 
   // Process other income sources (pensions, rental, etc.)
   // Store base amounts and start ages for each income source
+  // Process pension income
+  let basePensionAmount = 0
+  let pensionStartAge = retirement_age
+  let pensionIndexed = false
+
+  if (income_sources.pension) {
+    console.log(`💰 Processing pension income: $${income_sources.pension.annual_amount}/year starting at age ${income_sources.pension.start_age ?? retirement_age}`)
+    basePensionAmount = income_sources.pension.annual_amount
+    pensionStartAge = income_sources.pension.start_age ?? retirement_age
+    pensionIndexed = income_sources.pension.indexed_to_inflation
+  }
+
+  // Process other income sources (excluding pension, which is now separate)
   const otherIncomes: Array<{
     description: string;
     baseAmount: number;
@@ -175,7 +188,18 @@ export async function calculateRetirementProjection(
       oasIncome = baseOASAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
-    // Calculate other income (pensions, rental, etc.)
+    // Calculate pension income
+    let pensionIncome = 0;
+    if (basePensionAmount > 0 && age >= pensionStartAge) {
+      const yearsFromStart = age - pensionStartAge;
+      if (pensionIndexed) {
+        pensionIncome = basePensionAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
+      } else {
+        pensionIncome = basePensionAmount;
+      }
+    }
+
+    // Calculate other income (rental, etc. - excludes pension)
     let otherIncome = 0;
     for (const income of otherIncomes) {
       if (age >= income.startAge) {
@@ -188,8 +212,8 @@ export async function calculateRetirementProjection(
       }
     }
 
-    // Calculate total income from government benefits + other income
-    const totalIncome = cppIncome + oasIncome + otherIncome;
+    // Calculate total income from government benefits + pension + other income
+    const totalIncome = cppIncome + oasIncome + pensionIncome + otherIncome;
 
     // Create year result
     const yearResult: YearByYearResult = {
@@ -209,6 +233,7 @@ export async function calculateRetirementProjection(
       },
       income: {
         employment: 0,
+        pension: pensionIncome,
         cpp: cppIncome,
         oas: oasIncome,
         other: otherIncome,
@@ -277,7 +302,18 @@ export async function calculateRetirementProjection(
       oasIncome = baseOASAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
     }
 
-    // Calculate other income (pensions, rental, etc.)
+    // Calculate pension income separately
+    let pensionIncome = 0;
+    if (basePensionAmount > 0 && age >= pensionStartAge) {
+      const yearsFromStart = age - pensionStartAge;
+      if (pensionIndexed) {
+        pensionIncome = basePensionAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
+      } else {
+        pensionIncome = basePensionAmount;
+      }
+    }
+
+    // Calculate other income (rental, etc. - excludes pension)
     let otherIncome = 0;
     for (const income of otherIncomes) {
       if (age >= income.startAge) {
@@ -290,8 +326,8 @@ export async function calculateRetirementProjection(
       }
     }
 
-    // Calculate total income from benefits + other income
-    const governmentBenefits = cppIncome + oasIncome + otherIncome;
+    // Calculate total income from benefits + pension + other income
+    const governmentBenefits = cppIncome + oasIncome + pensionIncome + otherIncome;
 
     // Determine how much to withdraw from portfolio
     const targetWithdrawal = Math.max(0, annualExpenses - governmentBenefits);
@@ -320,7 +356,8 @@ export async function calculateRetirementProjection(
       capital_gains: projection.withdrawals.capital_gains,
       cpp: cppIncome,
       oas: oasIncome,
-      other: otherIncome, // Pension and other income (fully taxable)
+      pension: pensionIncome, // Pension income (fully taxable)
+      other: otherIncome, // Other income like rental (fully taxable)
     };
 
     // Calculate taxes
@@ -331,8 +368,8 @@ export async function calculateRetirementProjection(
       age
     );
 
-    // Calculate total income (including government benefits, other income, and investment income)
-    const totalIncome = cppIncome + oasIncome + otherIncome;
+    // Calculate total income (including government benefits, pension, other income, and investment income)
+    const totalIncome = cppIncome + oasIncome + pensionIncome + otherIncome;
 
     // Investment income from withdrawals (for reporting purposes)
     const investmentIncome =
@@ -361,6 +398,7 @@ export async function calculateRetirementProjection(
       },
       income: {
         employment: 0,
+        pension: pensionIncome,
         cpp: cppIncome,
         oas: oasIncome,
         other: otherIncome,
