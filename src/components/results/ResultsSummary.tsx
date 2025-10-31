@@ -70,11 +70,8 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false, var
         <div className={`text-sm ${labelColor} mb-2 font-medium`}>
           Year 1 After-Tax Income
         </div>
-        <div className={`text-5xl font-bold ${valueColor}`}>
-          {formatCurrency(summary.monthlyAfterTaxIncome)}
-        </div>
-        <div className={`text-sm ${subLabelColor} mt-1`}>
-          per month (year 1, after taxes)
+        <div className={`text-6xl font-bold ${valueColor}`}>
+          {formatCurrency(summary.monthlyAfterTaxIncome)}/mth
         </div>
       </div>
 
