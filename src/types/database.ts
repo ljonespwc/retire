@@ -283,6 +283,9 @@ export interface Database {
           results: Json | null;
           source: string | null;
           conversation_id: string | null;
+          share_token: string | null;
+          is_shared: boolean;
+          shared_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -294,6 +297,9 @@ export interface Database {
           results?: Json | null;
           source?: string | null;
           conversation_id?: string | null;
+          share_token?: string | null;
+          is_shared?: boolean;
+          shared_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -305,6 +311,9 @@ export interface Database {
           results?: Json | null;
           source?: string | null;
           conversation_id?: string | null;
+          share_token?: string | null;
+          is_shared?: boolean;
+          shared_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

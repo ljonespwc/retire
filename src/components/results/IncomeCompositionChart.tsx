@@ -33,6 +33,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
   const [visibleSources, setVisibleSources] = useState({
     rrsp: true,
     tfsa: true,
+    nonRegistered: true,
     cpp: true,
     oas: true,
     other: true
@@ -45,6 +46,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
   const colors = {
     rrsp: '#f97316',      // Orange for RRSP
     tfsa: '#3b82f6',      // Blue for TFSA
+    nonRegistered: '#a855f7', // Purple for Non-Registered
     cpp: '#10b981',       // Green for CPP
     oas: '#8b5cf6',       // Purple for OAS
     other: '#f59e0b'      // Amber for pension & other (combined)
@@ -78,6 +80,10 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               <linearGradient id="tfsaGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={colors.tfsa} stopOpacity={0.8} />
                 <stop offset="95%" stopColor={colors.tfsa} stopOpacity={0.2} />
+              </linearGradient>
+              <linearGradient id="nonRegisteredGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colors.nonRegistered} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colors.nonRegistered} stopOpacity={0.2} />
               </linearGradient>
               <linearGradient id="cppGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={colors.cpp} stopOpacity={0.8} />
@@ -131,6 +137,16 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
                 name="TFSA"
               />
             )}
+            {visibleSources.nonRegistered && (
+              <Area
+                type="monotone"
+                dataKey="nonRegisteredIncome"
+                stackId="1"
+                stroke={colors.nonRegistered}
+                fill="url(#nonRegisteredGradient)"
+                name="Non-Registered"
+              />
+            )}
             {visibleSources.cpp && (
               <Area
                 type="monotone"
@@ -168,6 +184,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               const totalIncome =
                 milestone.rrspIncome +
                 milestone.tfsaIncome +
+                milestone.nonRegisteredIncome +
                 milestone.cppIncome +
                 milestone.oasIncome +
                 milestone.otherIncome
@@ -193,6 +210,7 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
           {[
             { key: 'rrsp', name: 'RRSP/RRIF', color: colors.rrsp },
             { key: 'tfsa', name: 'TFSA', color: colors.tfsa },
+            { key: 'nonRegistered', name: 'Non-Registered', color: colors.nonRegistered },
             { key: 'cpp', name: 'CPP', color: colors.cpp },
             { key: 'oas', name: 'OAS', color: colors.oas },
             { key: 'other', name: 'Pension & Other', color: colors.other }
@@ -249,6 +267,7 @@ function CustomTooltip({ active, payload, isDarkMode, visibleSources }: any) {
   let totalIncome = 0
   if (visibleSources.rrsp) totalIncome += data.rrspIncome
   if (visibleSources.tfsa) totalIncome += data.tfsaIncome
+  if (visibleSources.nonRegistered) totalIncome += data.nonRegisteredIncome
   if (visibleSources.cpp) totalIncome += data.cppIncome
   if (visibleSources.oas) totalIncome += data.oasIncome
   if (visibleSources.other) totalIncome += data.otherIncome
@@ -275,6 +294,12 @@ function CustomTooltip({ active, payload, isDarkMode, visibleSources }: any) {
           <div className="flex justify-between gap-4">
             <span className={textSecondary}>TFSA:</span>
             <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.tfsaIncome)}</span>
+          </div>
+        )}
+        {visibleSources.nonRegistered && data.nonRegisteredIncome > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className={textSecondary}>Non-Registered:</span>
+            <span className={`font-medium ${textPrimary}`}>{formatCompactCurrency(data.nonRegisteredIncome)}</span>
           </div>
         )}
         {visibleSources.cpp && data.cppIncome > 0 && (

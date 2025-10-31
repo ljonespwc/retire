@@ -15,7 +15,7 @@ import { getVariantMetadata, type VariantMetadata } from '@/lib/scenarios/varian
 import { useAuth } from '@/contexts/AuthContext'
 
 interface LoadScenarioDropdownProps {
-  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string) => void
+  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string, shareToken?: string | null, isShared?: boolean) => void
   isDarkMode?: boolean
 }
 
@@ -25,6 +25,8 @@ interface SavedScenario {
   inputs: any
   created_at: string
   updated_at: string
+  share_token?: string | null
+  is_shared?: boolean
 }
 
 export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenarioDropdownProps) {
@@ -113,7 +115,15 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       // Extract variant metadata if present
       const variantMetadata = getVariantMetadata(scenario.inputs)
 
-      onLoad(formData, scenario.name, variantMetadata || undefined, scenario.id)
+      // Pass sharing state along with other scenario data
+      onLoad(
+        formData,
+        scenario.name,
+        variantMetadata || undefined,
+        scenario.id,
+        scenario.share_token,
+        scenario.is_shared
+      )
       setIsOpen(false)
     } catch (err) {
       console.error('Error loading scenario:', err)

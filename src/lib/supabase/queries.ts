@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, ScenarioRow, ScenarioRowInsert, ScenarioRowUpdate } from '@/types/database';
+import { generateShareToken } from '@/lib/utils/share-token';
 
 type TypedSupabaseClient = SupabaseClient<Database>;
 
@@ -176,4 +177,113 @@ export async function countScenarios(client: TypedSupabaseClient) {
     .eq('user_id', user.id);
 
   return { data: count, error };
+}
+
+/**
+ * Enable sharing for a scenario (generate share token)
+ * @param client - Supabase client instance
+ * @param scenarioId - Scenario ID to enable sharing for
+ * @returns Updated scenario with share_token or error
+ */
+export async function enableScenarioSharing(
+  client: TypedSupabaseClient,
+  scenarioId: string
+) {
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('User not authenticated') };
+  }
+
+  // First verify user owns this scenario
+  const { data: existing, error: fetchError } = await client
+    .from('scenarios')
+    .select('id, share_token')
+    .eq('id', scenarioId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (fetchError || !existing) {
+    return { data: null, error: fetchError || new Error('Scenario not found') };
+  }
+
+  // If already has a token, just enable sharing (don't regenerate token)
+  if (existing.share_token) {
+    const { data, error } = await client
+      .from('scenarios')
+      .update({ is_shared: true })
+      .eq('id', scenarioId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  // Generate new token and enable sharing
+  const shareToken = generateShareToken();
+  const { data, error } = await client
+    .from('scenarios')
+    .update({
+      share_token: shareToken,
+      is_shared: true,
+      shared_at: new Date().toISOString(),
+    })
+    .eq('id', scenarioId)
+    .eq('user_id', user.id)
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Disable sharing for a scenario
+ * @param client - Supabase client instance
+ * @param scenarioId - Scenario ID to disable sharing for
+ * @returns Updated scenario or error
+ */
+export async function disableScenarioSharing(
+  client: TypedSupabaseClient,
+  scenarioId: string
+) {
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('User not authenticated') };
+  }
+
+  const { data, error } = await client
+    .from('scenarios')
+    .update({ is_shared: false })
+    .eq('id', scenarioId)
+    .eq('user_id', user.id)
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Get a shared scenario by token (public access, no auth required)
+ * @param client - Supabase client instance
+ * @param token - Share token
+ * @returns Scenario data or error
+ */
+export async function getSharedScenario(
+  client: TypedSupabaseClient,
+  token: string
+) {
+  const { data, error } = await client
+    .from('scenarios')
+    .select('*')
+    .eq('share_token', token)
+    .eq('is_shared', true)
+    .single();
+
+  return { data, error };
 }

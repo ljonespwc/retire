@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb } from 'lucide-react'
+import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb, Share2 } from 'lucide-react'
 import { HELP_TIPS, DEFAULT_TIP } from '@/lib/calculator/help-tips'
 import { MobileHelpBanner } from '@/components/help/MobileHelpBanner'
 import { parseInteger, parsePercentage, roundPercentage } from '@/lib/utils/number-utils'
@@ -24,6 +24,7 @@ import { CalculationDisclosure } from '@/components/results/CalculationDisclosur
 import { RetirementNarrative } from '@/components/results/RetirementNarrative'
 import { VariantDetailsBanner } from '@/components/results/VariantDetailsBanner'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
+import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
@@ -295,12 +296,19 @@ export function VoiceFirstContentV2() {
   const [variantNarratives, setVariantNarratives] = useState<string[]>([])
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | null>(null)
+  const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [loadedVariantMetadata, setLoadedVariantMetadata] = useState<VariantMetadata | null>(null)
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareToken, setShareToken] = useState<string | null>(null)
+  const [isScenarioShared, setIsScenarioShared] = useState(false)
+  const [variantShareTokens, setVariantShareTokens] = useState<(string | null)[]>([])
+  const [variantIsShared, setVariantIsShared] = useState<boolean[]>([])
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [showRecalculateConfirmModal, setShowRecalculateConfirmModal] = useState(false)
@@ -437,6 +445,8 @@ export function VoiceFirstContentV2() {
     setLoadedScenarioName(null)
     setLoadedVariantMetadata(null)
     setFocusedField(null)
+    setShareToken(null)
+    setIsScenarioShared(false)
 
     // Clear calculation results
     setJustCalculated(false)
@@ -615,7 +625,14 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle loading a saved scenario
-  const handleLoadScenario = (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string) => {
+  const handleLoadScenario = (
+    formData: FormData,
+    scenarioName: string,
+    variantMetadata?: VariantMetadata,
+    scenarioId?: string,
+    shareToken?: string | null,
+    isShared?: boolean
+  ) => {
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
     setLongevityAge(formData.longevityAge)
@@ -657,6 +674,16 @@ export function VoiceFirstContentV2() {
     if (scenarioId) {
       setScenarioId(scenarioId)
       console.log(`✅ Loaded scenario ID: ${scenarioId}`)
+    }
+
+    // Store sharing state if present
+    if (shareToken || isShared !== undefined) {
+      setShareToken(shareToken || null)
+      setIsScenarioShared(isShared || false)
+      console.log(`✅ Loaded sharing state: shared=${isShared}, token=${shareToken ? 'present' : 'none'}`)
+    } else {
+      setShareToken(null)
+      setIsScenarioShared(false)
     }
 
     // Store variant metadata if present
@@ -827,6 +854,7 @@ export function VoiceFirstContentV2() {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits')
     try {
       const baseScenario = createScenarioFromFormData()
 
@@ -928,17 +956,25 @@ export function VoiceFirstContentV2() {
         const newNarratives = [...variantNarratives]
         newNarratives[existingIndex] = narrative || ''
         setVariantNarratives(newNarratives)
+
+        // Focus on the replaced variant tab
+        setActiveVariantTab(existingIndex)
       } else {
         // Append new variant
+        const newIndex = variantScenarios.length
         setVariantScenarios([...variantScenarios, variant])
         setVariantResultsArray([...variantResultsArray, results])
         setVariantInsights([...variantInsights, insight || ''])
         setVariantNarratives([...variantNarratives, narrative || ''])
+
+        // Focus on the newly created variant tab
+        setActiveVariantTab(newIndex)
       }
     } catch (error) {
       console.error('Variant calculation failed:', error)
     } finally {
       setIsCalculatingVariant(false)
+      setGeneratingVariantType(null)
     }
   }
 
@@ -949,12 +985,25 @@ export function VoiceFirstContentV2() {
       setVariantResultsArray(variantResultsArray.filter((_, i) => i !== index))
       setVariantInsights(variantInsights.filter((_, i) => i !== index))
       setVariantNarratives(variantNarratives.filter((_, i) => i !== index))
+      setVariantScenarioIds(variantScenarioIds.filter((_, i) => i !== index))
+
+      // Adjust active tab after removal
+      if (activeVariantTab === index) {
+        // If removing the active tab, switch to first variant
+        setActiveVariantTab(0)
+      } else if (activeVariantTab > index) {
+        // If active tab is after the removed tab, decrement index
+        setActiveVariantTab(activeVariantTab - 1)
+      }
+      // Otherwise keep activeVariantTab the same
     } else {
       // Clear all variants
       setVariantScenarios([])
       setVariantResultsArray([])
       setVariantInsights([])
       setVariantNarratives([])
+      setVariantScenarioIds([])
+      setActiveVariantTab(0)
     }
   }
 
@@ -989,6 +1038,26 @@ export function VoiceFirstContentV2() {
     if (index < 0 || index >= variantScenarios.length) return
     setSavingVariantIndex(index)
     setShowScenarioSaveModal(true)
+  }
+
+  const handleShareChange = (index: number, shareToken: string | null, isShared: boolean) => {
+    if (index === -1) {
+      // Baseline sharing
+      setShareToken(shareToken)
+      setIsScenarioShared(isShared)
+    } else {
+      // Variant sharing
+      setVariantShareTokens(prev => {
+        const updated = [...prev]
+        updated[index] = shareToken
+        return updated
+      })
+      setVariantIsShared(prev => {
+        const updated = [...prev]
+        updated[index] = isShared
+        return updated
+      })
+    }
   }
 
   return (
@@ -1323,20 +1392,28 @@ export function VoiceFirstContentV2() {
                     className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
                       loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')
                         ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : generatingVariantType === 'front_load'
+                        ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
                         : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl">🎯</span>
+                      {generatingVariantType === 'front_load' ? (
+                        <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
+                      ) : (
+                        <span className="text-2xl">🎯</span>
+                      )}
                       <div className="flex-1">
                         <div className={`font-semibold ${theme.text.primary} mb-1`}>
                           Front-Load the Fun
                         </div>
                         <p className={`text-sm ${theme.text.secondary}`}>
-                          Spend more early, scale back later
+                          {generatingVariantType === 'front_load'
+                            ? 'Generating scenario...'
+                            : 'Spend more early, scale back later'}
                         </p>
                       </div>
-                      {variantScenarios.some(v => v.name === 'Front-Load the Fun') && (
+                      {variantScenarios.some(v => v.name === 'Front-Load the Fun') && !generatingVariantType && (
                         <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
                       )}
                     </div>
@@ -1348,20 +1425,28 @@ export function VoiceFirstContentV2() {
                     className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
                       loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')
                         ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : generatingVariantType === 'delay_benefits'
+                        ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
                         : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl">⏰</span>
+                      {generatingVariantType === 'delay_benefits' ? (
+                        <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
+                      ) : (
+                        <span className="text-2xl">⏰</span>
+                      )}
                       <div className="flex-1">
                         <div className={`font-semibold ${theme.text.primary} mb-1`}>
                           Delay CPP/OAS to 70
                         </div>
                         <p className={`text-sm ${theme.text.secondary}`}>
-                          Maximize government benefits
+                          {generatingVariantType === 'delay_benefits'
+                            ? 'Generating scenario...'
+                            : 'Maximize government benefits'}
                         </p>
                       </div>
-                      {variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70') && (
+                      {variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70') && !generatingVariantType && (
                         <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
                       )}
                     </div>
@@ -1399,8 +1484,8 @@ export function VoiceFirstContentV2() {
 
                 <RetirementNarrative narrative={baselineNarrative} isDarkMode={isDarkMode} />
 
-                {/* Save Button */}
-                <div className="flex justify-center pt-2 pb-2">
+                {/* Save and Share Buttons */}
+                <div className="flex justify-center items-center gap-3 pt-2 pb-2">
                   <button
                     onClick={() => {
                       console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
@@ -1422,6 +1507,21 @@ export function VoiceFirstContentV2() {
                       ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
                       : 'SAVE THIS SCENARIO'}
                   </button>
+
+                  {/* Share Button (only visible if scenario is saved) */}
+                  {scenarioId && loadedScenarioName && (
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${
+                        isDarkMode
+                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      <Share2 className="w-4 h-4 inline mr-2" />
+                      SHARE
+                    </button>
+                  )}
                 </div>
 
                 <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
@@ -1438,13 +1538,20 @@ export function VoiceFirstContentV2() {
                 baselineNarrative={baselineNarrative}
                 baselineScenarioId={scenarioId}
                 baselineScenarioName={loadedScenarioName || undefined}
+                baselineShareToken={shareToken}
+                baselineIsShared={isScenarioShared}
                 variantScenarios={variantScenarios}
                 variantResults={variantResultsArray}
                 variantInsights={variantInsights}
                 variantNarratives={variantNarratives}
                 variantScenarioIds={variantScenarioIds}
+                variantShareTokens={variantShareTokens}
+                variantIsShared={variantIsShared}
                 isDarkMode={isDarkMode}
+                activeTab={activeVariantTab}
+                onTabChange={setActiveVariantTab}
                 onSave={handleSaveVariant}
+                onShareChange={handleShareChange}
                 onReset={handleResetVariant}
               />
             )}
@@ -1480,6 +1587,20 @@ export function VoiceFirstContentV2() {
         aiInsight={savingVariantIndex !== null && variantInsights[savingVariantIndex] ? variantInsights[savingVariantIndex] : loadedVariantMetadata?.ai_insight}
         aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : loadedVariantMetadata?.ai_narrative}
         onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}
+      />
+
+      <ShareScenarioModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        scenarioId={scenarioId || ''}
+        scenarioName={loadedScenarioName || 'Unnamed Scenario'}
+        existingShareToken={shareToken}
+        isCurrentlyShared={isScenarioShared}
+        isDarkMode={isDarkMode}
+        onSharingChange={(token, shared) => {
+          setShareToken(token)
+          setIsScenarioShared(shared)
+        }}
       />
 
       <LoginModal

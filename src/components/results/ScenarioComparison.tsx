@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Share2 } from 'lucide-react'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
 import { ResultsSummary } from './ResultsSummary'
@@ -16,6 +16,7 @@ import { BalanceOverTimeChart } from './BalanceOverTimeChart'
 import { IncomeCompositionChart } from './IncomeCompositionChart'
 import { TaxSummaryCard } from './TaxSummaryCard'
 import { RetirementNarrative } from './RetirementNarrative'
+import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 
 interface ScenarioComparisonProps {
   baselineScenario: Scenario
@@ -23,13 +24,20 @@ interface ScenarioComparisonProps {
   baselineNarrative?: string | null
   baselineScenarioId?: string
   baselineScenarioName?: string
+  baselineShareToken?: string | null
+  baselineIsShared?: boolean
   variantScenarios: Scenario[]
   variantResults: CalculationResults[]
   variantInsights?: string[]
   variantNarratives?: string[]
   variantScenarioIds?: (string | undefined)[]
+  variantShareTokens?: (string | null)[]
+  variantIsShared?: boolean[]
   isDarkMode?: boolean
+  activeTab?: number // Control active tab from parent
+  onTabChange?: (index: number) => void // Notify parent of tab changes
   onSave?: (index: number) => void
+  onShareChange?: (index: number, shareToken: string | null, isShared: boolean) => void // Notify parent of share changes
   onTryAnother?: () => void
   onReset: (index: number) => void
 }
@@ -40,17 +48,68 @@ export function ScenarioComparison({
   baselineNarrative,
   baselineScenarioId,
   baselineScenarioName,
+  baselineShareToken,
+  baselineIsShared,
   variantScenarios,
   variantResults,
   variantInsights = [],
   variantNarratives = [],
   variantScenarioIds = [],
+  variantShareTokens = [],
+  variantIsShared = [],
   isDarkMode = false,
+  activeTab: controlledActiveTab,
+  onTabChange,
   onSave,
+  onShareChange,
   onTryAnother,
   onReset
 }: ScenarioComparisonProps) {
-  const [activeTab, setActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
+  const [internalActiveTab, setInternalActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [shareModalScenarioId, setShareModalScenarioId] = useState<string>('')
+  const [shareModalScenarioName, setShareModalScenarioName] = useState<string>('')
+  const [shareModalToken, setShareModalToken] = useState<string | null>(null)
+  const [shareModalIsShared, setShareModalIsShared] = useState<boolean>(false)
+  const [shareModalIndex, setShareModalIndex] = useState<number>(-1) // -1 for baseline, >= 0 for variants
+
+  // Use controlled activeTab if provided, otherwise use internal state
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab
+  const setActiveTab = (index: number) => {
+    if (controlledActiveTab === undefined) {
+      setInternalActiveTab(index)
+    }
+    onTabChange?.(index)
+  }
+
+  // Handle share button clicks
+  const handleShareBaseline = () => {
+    if (baselineScenarioId && baselineScenarioName) {
+      setShareModalScenarioId(baselineScenarioId)
+      setShareModalScenarioName(baselineScenarioName)
+      setShareModalToken(baselineShareToken || null)
+      setShareModalIsShared(baselineIsShared || false)
+      setShareModalIndex(-1) // -1 for baseline
+      setShareModalOpen(true)
+    }
+  }
+
+  const handleShareVariant = (index: number) => {
+    const scenarioId = variantScenarioIds[index]
+    const scenarioName = variantScenarios[index]?.name
+    if (scenarioId && scenarioName) {
+      setShareModalScenarioId(scenarioId)
+      setShareModalScenarioName(scenarioName)
+      setShareModalToken(variantShareTokens[index] || null)
+      setShareModalIsShared(variantIsShared[index] || false)
+      setShareModalIndex(index)
+      setShareModalOpen(true)
+    }
+  }
+
+  const handleSharingChange = (token: string | null, shared: boolean) => {
+    onShareChange?.(shareModalIndex, token, shared)
+  }
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -121,6 +180,7 @@ export function ScenarioComparison({
             narrative={baselineNarrative}
             isDarkMode={isDarkMode}
             onSave={onSave ? () => onSave(-1) : undefined}
+            onShare={baselineScenarioId && baselineScenarioName ? handleShareBaseline : undefined}
             onTryAnother={onTryAnother}
             scenarioId={baselineScenarioId}
             scenarioName={baselineScenarioName}
@@ -133,6 +193,7 @@ export function ScenarioComparison({
             variantResults={variantResults[activeTab]}
             isDarkMode={isDarkMode}
             onSave={onSave ? () => onSave(activeTab) : undefined}
+            onShare={variantScenarioIds[activeTab] ? () => handleShareVariant(activeTab) : undefined}
             baselineMonthly={baselineMonthly}
             baselineDepletion={baselineDepletion}
             baselineEndBalance={baselineEndBalance}
@@ -160,6 +221,18 @@ export function ScenarioComparison({
           />
         )}
       </div>
+
+      {/* Share Modal */}
+      <ShareScenarioModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        scenarioId={shareModalScenarioId}
+        scenarioName={shareModalScenarioName}
+        existingShareToken={shareModalToken}
+        isCurrentlyShared={shareModalIsShared}
+        isDarkMode={isDarkMode}
+        onSharingChange={handleSharingChange}
+      />
     </div>
   )
 }
@@ -173,6 +246,7 @@ function BaselineTab({
   narrative,
   isDarkMode,
   onSave,
+  onShare,
   onTryAnother,
   scenarioId,
   scenarioName
@@ -182,10 +256,16 @@ function BaselineTab({
   narrative?: string | null
   isDarkMode: boolean
   onSave?: () => void
+  onShare?: () => void
   onTryAnother?: () => void
   scenarioId?: string
   scenarioName?: string
 }) {
+  // Theme colors for share button
+  const buttonSecondary = isDarkMode
+    ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+
   return (
     <div className="space-y-6">
       {/* Summary */}
@@ -198,9 +278,9 @@ function BaselineTab({
       {/* AI Narrative */}
       <RetirementNarrative narrative={narrative} isDarkMode={isDarkMode} />
 
-      {/* Save Button */}
+      {/* Save and Share Buttons */}
       {onSave && (
-        <div className="flex justify-center pt-2 pb-2">
+        <div className="flex justify-center items-center gap-3 pt-2 pb-2">
           <button
             onClick={onSave}
             className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
@@ -213,6 +293,17 @@ function BaselineTab({
               ? `UPDATE THIS SCENARIO: ${scenarioName}`
               : 'SAVE THIS SCENARIO: Baseline'}
           </button>
+
+          {/* Share Button (only visible if scenario is saved) */}
+          {scenarioId && scenarioName && onShare && (
+            <button
+              onClick={onShare}
+              className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+            >
+              <Share2 className="w-4 h-4 inline mr-2" />
+              SHARE
+            </button>
+          )}
         </div>
       )}
 
@@ -242,6 +333,7 @@ function VariantTab({
   variantResults,
   isDarkMode,
   onSave,
+  onShare,
   baselineMonthly,
   baselineDepletion,
   baselineEndBalance,
@@ -267,6 +359,7 @@ function VariantTab({
   variantResults: CalculationResults
   isDarkMode: boolean
   onSave?: () => void
+  onShare?: () => void
   scenarioId?: string
   scenarioName?: string
   baselineMonthly: number
@@ -286,6 +379,11 @@ function VariantTab({
   variantInsight?: string
   variantNarrative?: string
 }) {
+  // Theme colors for share button
+  const buttonSecondary = isDarkMode
+    ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+
   return (
     <div className="space-y-6">
       {/* Comparison Table */}
@@ -408,9 +506,9 @@ function VariantTab({
       {/* AI Narrative */}
       <RetirementNarrative narrative={variantNarrative} isDarkMode={isDarkMode} />
 
-      {/* Save Button */}
+      {/* Save and Share Buttons */}
       {onSave && (
-        <div className="flex justify-center pt-2 pb-2">
+        <div className="flex justify-center items-center gap-3 pt-2 pb-2">
           <button
             onClick={onSave}
             className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
@@ -423,6 +521,17 @@ function VariantTab({
               ? `UPDATE THIS SCENARIO: ${scenarioName}`
               : `SAVE THIS SCENARIO: ${variantScenario.name}`}
           </button>
+
+          {/* Share Button (only visible if scenario is saved) */}
+          {scenarioId && scenarioName && onShare && (
+            <button
+              onClick={onShare}
+              className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+            >
+              <Share2 className="w-4 h-4 inline mr-2" />
+              SHARE
+            </button>
+          )}
         </div>
       )}
 

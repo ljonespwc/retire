@@ -36,6 +36,7 @@ export interface IncomeDataPoint {
   age: number
   rrspIncome: number
   tfsaIncome: number
+  nonRegisteredIncome: number
   cppIncome: number
   oasIncome: number
   pensionIncome: number
@@ -131,6 +132,7 @@ export function formatIncomeData(
       age: year.age,
       rrspIncome: year.withdrawals.rrsp_rrif || 0,
       tfsaIncome: year.withdrawals.tfsa || 0,
+      nonRegisteredIncome: year.withdrawals.non_registered || 0,
       cppIncome: year.income.cpp || 0,
       oasIncome: year.income.oas || 0,
       pensionIncome: 0, // Pension is included in "other" income
