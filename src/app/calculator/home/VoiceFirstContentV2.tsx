@@ -900,38 +900,27 @@ export function VoiceFirstContentV2() {
 
       try {
         if (calculationResults) {
-          // Generate both in parallel via API routes
-          const [insightResult, narrativeResult] = await Promise.all([
-            fetch('/api/generate-insight', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                baselineResults: calculationResults,
-                variantResults: results,
-                variantName: variant.name
-              })
+          // Only generate comparison insight (cheap, useful)
+          // Skip full narrative for temporary variants (expensive, repetitive)
+          // Narratives only shown for baseline and saved variants
+          const insightResult = await fetch('/api/generate-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              baselineResults: calculationResults,
+              variantResults: results,
+              variantName: variant.name
             })
-              .then(res => res.json())
-              .then(data => data.insight)
-              .catch(err => {
-                console.error('⚠️  Failed to generate variant insight (non-critical):', err)
-                return undefined
-              }),
-            fetch('/api/generate-narrative', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ results })
+          })
+            .then(res => res.json())
+            .then(data => data.insight)
+            .catch(err => {
+              console.error('⚠️  Failed to generate variant insight (non-critical):', err)
+              return undefined
             })
-              .then(res => res.json())
-              .then(data => data.narrative)
-              .catch(err => {
-                console.error('⚠️  Failed to generate variant narrative (non-critical):', err)
-                return undefined
-              })
-          ])
 
           insight = insightResult
-          narrative = narrativeResult
+          narrative = undefined  // No narrative for temporary variants
         }
       } catch (error) {
         console.error('⚠️  Failed to generate variant AI content (non-critical):', error)

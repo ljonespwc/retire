@@ -503,7 +503,7 @@ function VariantTab({
         isDarkMode={isDarkMode}
       />
 
-      {/* AI Narrative */}
+      {/* AI Narrative - Only shown for saved variants, undefined for temporary what-if variants (saves tokens) */}
       <RetirementNarrative narrative={variantNarrative} isDarkMode={isDarkMode} />
 
       {/* Save and Share Buttons */}
