@@ -15,7 +15,7 @@ import { getVariantMetadata, type VariantMetadata } from '@/lib/scenarios/varian
 import { useAuth } from '@/contexts/AuthContext'
 
 interface LoadScenarioDropdownProps {
-  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string, shareToken?: string | null, isShared?: boolean) => void
+  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string, shareToken?: string | null, isShared?: boolean, results?: any | null, narrative?: string | null) => void
   isDarkMode?: boolean
 }
 
@@ -23,6 +23,7 @@ interface SavedScenario {
   id: string
   name: string
   inputs: any
+  results: any | null
   created_at: string
   updated_at: string
   share_token?: string | null
@@ -115,14 +116,24 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       // Extract variant metadata if present
       const variantMetadata = getVariantMetadata(scenario.inputs)
 
-      // Pass sharing state along with other scenario data
+      // Extract baseline narrative if present (for baselines) or from metadata (for variants)
+      let narrative: string | null = null
+      if (variantMetadata?.ai_narrative) {
+        narrative = variantMetadata.ai_narrative
+      } else if (scenario.inputs.__baseline_narrative) {
+        narrative = scenario.inputs.__baseline_narrative
+      }
+
+      // Pass sharing state along with other scenario data, plus results and narrative
       onLoad(
         formData,
         scenario.name,
         variantMetadata || undefined,
         scenario.id,
         scenario.share_token,
-        scenario.is_shared
+        scenario.is_shared,
+        scenario.results,
+        narrative
       )
       setIsOpen(false)
     } catch (err) {

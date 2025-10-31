@@ -631,7 +631,9 @@ export function VoiceFirstContentV2() {
     variantMetadata?: VariantMetadata,
     scenarioId?: string,
     shareToken?: string | null,
-    isShared?: boolean
+    isShared?: boolean,
+    results?: any | null,
+    narrative?: string | null
   ) => {
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
@@ -657,13 +659,7 @@ export function VoiceFirstContentV2() {
     setPlanningStarted(true)
     setEditMode(false)
 
-    // Reset calculation state to enable Calculate button
-    setJustCalculated(false)
-    setShowResults(false)
-    setCalculationResults(null)
-    setBaselineNarrative(null)
-
-    // Clear any variant scenarios
+    // Clear any variant scenarios (when loading a baseline)
     setVariantScenarios([])
     setVariantResultsArray([])
     setVariantScenarioIds([])
@@ -693,6 +689,27 @@ export function VoiceFirstContentV2() {
     } else {
       setLoadedVariantMetadata(null)
       console.log(`✅ Loaded scenario: ${scenarioName}`)
+    }
+
+    // Load stored results and narrative directly from database (no recalculation needed)
+    if (results) {
+      setCalculationResults(results)
+      setShowResults(true)
+      setJustCalculated(true)
+      console.log(`✅ Loaded stored calculation results`)
+    } else {
+      // If no results stored, reset to allow calculation
+      setCalculationResults(null)
+      setShowResults(false)
+      setJustCalculated(false)
+    }
+
+    // Load stored narrative if present
+    if (narrative) {
+      setBaselineNarrative(narrative)
+      console.log(`✅ Loaded stored narrative`)
+    } else {
+      setBaselineNarrative(null)
     }
   }
 

@@ -116,6 +116,9 @@ export function SaveScenarioModal({
         }
 
         inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId, baselineSnapshot, aiInsight, aiNarrative)
+      } else if (aiNarrative) {
+        // Save baseline narrative for instant loading later
+        inputs.__baseline_narrative = aiNarrative
       }
 
       if (scenarioId) {
