@@ -84,6 +84,11 @@ export function ScenarioModal({
 
         {/* Content */}
         <div className="p-6 space-y-4">
+          {/* Preview Note */}
+          <div className={`text-xs ${textSecondary} italic px-3 py-2 rounded-md ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+            Preview shows typical values. Actual results calculated when you run scenario.
+          </div>
+
           {/* Description */}
           <div>
             <h3 className={`text-sm font-semibold ${textPrimary} mb-2`}>What This Does:</h3>
