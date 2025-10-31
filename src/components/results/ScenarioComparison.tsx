@@ -17,6 +17,7 @@ import { IncomeCompositionChart } from './IncomeCompositionChart'
 import { TaxSummaryCard } from './TaxSummaryCard'
 import { RetirementNarrative } from './RetirementNarrative'
 import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
+import { getVariantMetadata } from '@/lib/scenarios/variant-metadata'
 
 interface ScenarioComparisonProps {
   baselineScenario: Scenario
@@ -384,12 +385,17 @@ function VariantTab({
     ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
 
+  // Extract baseline name from variant metadata (for standalone saved variants)
+  // or use current baseline scenario name (for active comparisons)
+  const variantMetadata = getVariantMetadata(variantScenario)
+  const baselineName = variantMetadata?.baseline_snapshot?.name || baselineScenario.name || 'Your Baseline'
+
   return (
     <div className="space-y-6">
       {/* Comparison Table */}
       <div className="overflow-x-auto">
         <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
-          Comparison: Your Baseline vs {variantScenario.name}
+          Comparison: {baselineName} vs {variantScenario.name}
         </h3>
         <table className="w-full">
           <thead>
@@ -398,7 +404,7 @@ function VariantTab({
                 Metric
               </th>
               <th className={`text-left py-3 px-4 ${headerBg} ${textPrimary} font-semibold`}>
-                Your Baseline
+                {baselineName}
               </th>
               <th className={`text-left py-3 px-4 ${headerBg} ${textPrimary} font-semibold`}>
                 {variantScenario.name}

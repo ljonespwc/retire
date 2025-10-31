@@ -22,12 +22,26 @@ export type VariantType =
   | 'retire-early'
 
 /**
+ * Baseline snapshot stored with variants for standalone comparison context
+ */
+export interface BaselineSnapshot {
+  name: string // Baseline scenario name
+  ending_balance: number // Final portfolio value
+  monthly_spending: number // Monthly spending amount
+  retirement_age: number // Retirement age
+  cpp_start_age: number // CPP start age
+  oas_start_age: number // OAS start age
+  portfolio_depleted_age?: number // Age when portfolio depletes (if applicable)
+}
+
+/**
  * Variant metadata structure stored in scenario inputs
  */
 export interface VariantMetadata {
   variant_type: VariantType
   variant_config?: Record<string, any> // Optional config for parameterized variants
   created_from_baseline_id?: string // Optional reference to original baseline
+  baseline_snapshot?: BaselineSnapshot // Snapshot of baseline scenario for standalone context
   created_at?: string // ISO timestamp when variant was created
   ai_insight?: string // AI-generated comparison insight (snapshot from creation)
   ai_narrative?: string // AI-generated retirement summary (snapshot from creation)
@@ -58,6 +72,7 @@ export function addVariantMetadata(
   variantType: VariantType,
   config?: Record<string, any>,
   baselineId?: string,
+  baselineSnapshot?: BaselineSnapshot,
   aiInsight?: string,
   aiNarrative?: string
 ): any {
@@ -67,6 +82,7 @@ export function addVariantMetadata(
       variant_type: variantType,
       variant_config: config,
       created_from_baseline_id: baselineId,
+      baseline_snapshot: baselineSnapshot,
       created_at: new Date().toISOString(),
       ai_insight: aiInsight,
       ai_narrative: aiNarrative
@@ -162,16 +178,23 @@ export interface VariantDetails {
  *
  * @param variantType - Type of variant
  * @param scenario - The scenario with variant applied (optional, for specific values)
+ * @param baselineSnapshot - Optional baseline snapshot for contextual comparison labels
  * @returns Structured details for UI display
  */
 export function getVariantDetails(
   variantType: VariantType,
-  scenario?: Scenario
+  scenario?: Scenario,
+  baselineSnapshot?: BaselineSnapshot
 ): VariantDetails {
   switch (variantType) {
     case 'front-load': {
       const baseline = scenario?.expenses.fixed_monthly || 0
       const retirementAge = scenario?.basic_inputs.retirement_age || 65
+
+      // Format baseline spending reference
+      const baselineSpendingLabel = baselineSnapshot?.name
+        ? `${baselineSnapshot.name} Spending`
+        : 'Baseline Spending'
 
       return {
         title: 'Front-Load the Fun (Go-Go, Slow-Go, No-Go)',
@@ -189,7 +212,7 @@ export function getVariantDetails(
             value: `$${Math.round(baseline * 0.75).toLocaleString()}/month (-25%)`
           },
           {
-            label: 'Baseline Spending',
+            label: baselineSpendingLabel,
             value: `$${Math.round(baseline).toLocaleString()}/month (for comparison)`
           }
         ]
@@ -206,12 +229,21 @@ export function getVariantDetails(
       const cppAt70 = cppMonthlyAt65 * 1.42 // 42% increase for delaying to 70
       const oasAt70 = oasMonthlyAt65 * 1.36 // 36% increase for delaying to 70
 
+      // Format baseline references
+      const cppBaselineRef = baselineSnapshot?.name
+        ? `(vs ${baselineSnapshot.name}: Age ${baselineSnapshot.cpp_start_age})`
+        : '(vs 65 baseline)'
+
+      const oasBaselineRef = baselineSnapshot?.name
+        ? `(vs ${baselineSnapshot.name}: Age ${baselineSnapshot.oas_start_age})`
+        : '(vs 65 baseline)'
+
       return {
         title: 'Delay Government Benefits to Age 70',
         items: [
           {
             label: 'CPP Start Age',
-            value: `Age ${cppStartAge} (vs 65 baseline)`
+            value: `Age ${cppStartAge} ${cppBaselineRef}`
           },
           {
             label: 'CPP Monthly at 70',
@@ -219,7 +251,7 @@ export function getVariantDetails(
           },
           {
             label: 'OAS Start Age',
-            value: `Age ${oasStartAge} (vs 65 baseline)`
+            value: `Age ${oasStartAge} ${oasBaselineRef}`
           },
           {
             label: 'OAS Monthly at 70',
@@ -235,15 +267,20 @@ export function getVariantDetails(
 
     case 'retire-early': {
       const newRetirementAge = scenario?.basic_inputs.retirement_age || 62
-      const baselineRetirementAge = newRetirementAge + (scenario?.id ? 3 : 3) // Estimate baseline
+      const baselineRetirementAge = baselineSnapshot?.retirement_age || (newRetirementAge + 3) // Use snapshot or estimate
       const yearsEarlier = baselineRetirementAge - newRetirementAge
+
+      // Format baseline reference
+      const retirementBaselineRef = baselineSnapshot?.name
+        ? `(vs ${baselineSnapshot.name}: Age ${baselineRetirementAge})`
+        : `(vs ${baselineRetirementAge} baseline)`
 
       return {
         title: `Retire ${yearsEarlier} Years Earlier`,
         items: [
           {
             label: 'New Retirement Age',
-            value: `Age ${newRetirementAge} (vs ${baselineRetirementAge} baseline)`
+            value: `Age ${newRetirementAge} ${retirementBaselineRef}`
           },
           {
             label: 'Extra Years in Retirement',

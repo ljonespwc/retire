@@ -10,6 +10,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Info } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { VariantMetadata, getVariantDetails } from '@/lib/scenarios/variant-metadata'
 import { Scenario } from '@/types/calculator'
 
@@ -28,8 +29,12 @@ export function VariantDetailsBanner({
 }: VariantDetailsBannerProps) {
   const [isExpanded, setIsExpanded] = useState(true)
 
-  // Get variant details
-  const details = getVariantDetails(variantMetadata.variant_type, scenario)
+  // Get variant details (with baseline snapshot for contextual labels)
+  const details = getVariantDetails(
+    variantMetadata.variant_type,
+    scenario,
+    variantMetadata.baseline_snapshot
+  )
 
   // Theme-aware colors
   const bannerBg = isDarkMode
@@ -83,9 +88,24 @@ export function VariantDetailsBanner({
                 <span className="text-xl">💡</span>
                 <h4 className={`text-sm font-bold ${textPrimary}`}>Key Insight</h4>
               </div>
-              <p className={`text-sm ${textSecondary} leading-relaxed`}>
-                {variantMetadata.ai_insight}
-              </p>
+              <div className={`text-sm ${textSecondary} leading-relaxed prose prose-sm max-w-none
+                prose-strong:font-semibold prose-strong:text-orange-600 dark:prose-strong:text-orange-400
+                prose-p:my-2
+                ${isDarkMode ? 'prose-invert' : ''}`}
+              >
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="my-2">{children}</p>,
+                    strong: ({ children }) => (
+                      <strong className={`font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                        {children}
+                      </strong>
+                    ),
+                  }}
+                >
+                  {variantMetadata.ai_insight}
+                </ReactMarkdown>
+              </div>
             </div>
           )}
 

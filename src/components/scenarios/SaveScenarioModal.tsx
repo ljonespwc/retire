@@ -11,7 +11,7 @@ import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { saveScenario, updateScenario } from '@/lib/supabase/queries'
 import { formDataToScenario, getDefaultScenarioName, type FormData } from '@/lib/scenarios/scenario-mapper'
-import { addVariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
+import { addVariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { CalculationResults } from '@/types/calculator'
 
 interface SaveScenarioModalProps {
@@ -24,6 +24,8 @@ interface SaveScenarioModalProps {
   variantType?: VariantType // Optional variant metadata
   variantConfig?: Record<string, any> // Optional variant config
   baselineId?: string // Optional baseline scenario ID
+  baselineScenarioName?: string // Optional baseline scenario name (for variants)
+  baselineResults?: CalculationResults // Optional baseline results (for variants)
   scenarioId?: string // Optional scenario ID (for updates)
   aiInsight?: string // Optional AI-generated insight (for variants)
   aiNarrative?: string // Optional AI-generated narrative (for variants)
@@ -40,6 +42,8 @@ export function SaveScenarioModal({
   variantType,
   variantConfig,
   baselineId,
+  baselineScenarioName,
+  baselineResults,
   scenarioId,
   aiInsight,
   aiNarrative,
@@ -97,7 +101,21 @@ export function SaveScenarioModal({
 
       // Add variant metadata if this is a variant scenario
       if (variantType) {
-        inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId, aiInsight, aiNarrative)
+        // Create baseline snapshot if baseline data is available
+        let baselineSnapshot: BaselineSnapshot | undefined
+        if (baselineScenarioName && baselineResults && formData) {
+          baselineSnapshot = {
+            name: baselineScenarioName,
+            ending_balance: baselineResults.final_portfolio_value,
+            monthly_spending: formData.monthlySpending || 0,
+            retirement_age: formData.retirementAge || 65,
+            cpp_start_age: formData.cppStartAge || 65,
+            oas_start_age: 65, // OAS typically starts at 65
+            portfolio_depleted_age: baselineResults.portfolio_depleted_age,
+          }
+        }
+
+        inputs = addVariantMetadata(inputs, variantType, variantConfig, baselineId, baselineSnapshot, aiInsight, aiNarrative)
       }
 
       if (scenarioId) {

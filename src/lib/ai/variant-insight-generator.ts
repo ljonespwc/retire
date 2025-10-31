@@ -81,37 +81,50 @@ function formatCurrency(amount: number): string {
 export async function generateVariantInsight(
   baselineResults: CalculationResults,
   variantResults: CalculationResults,
-  variantName: string
+  variantName: string,
+  baselineScenarioName?: string
 ): Promise<string> {
   try {
     const metrics = extractComparison(baselineResults, variantResults);
 
-    // Build context for LLM
+    // Build context for LLM with baseline reference
+    const baselineName = baselineScenarioName || 'your baseline plan';
     const context = `
+Baseline: ${baselineScenarioName || 'Your baseline plan'}
+  - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}
+  - First year income: ${formatCurrency(baselineResults.first_year_retirement_income)}
+  - Total CPP: ${formatCurrency(baselineResults.total_cpp_received)}
+  - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}
+
 Variant: ${variantName}
-Portfolio impact: ${formatCurrency(metrics.portfolioDiff)} (${metrics.portfolioPercent.toFixed(1)}%)
-CPP difference: ${formatCurrency(metrics.cppDiff)}
-OAS difference: ${formatCurrency(metrics.oasDiff)}
-Tax difference: ${formatCurrency(metrics.taxDiff)}
-First year income: ${formatCurrency(metrics.firstYearIncomeDiff)}
-${metrics.depletionDiff !== undefined ? `Depletion impact: ${metrics.depletionDiff > 0 ? 'Lasts ' + Math.abs(metrics.depletionDiff) + ' years longer' : 'Depletes ' + Math.abs(metrics.depletionDiff) + ' years earlier'}` : ''}
+  - Ending balance: ${formatCurrency(variantResults.final_portfolio_value)} (${formatCurrency(metrics.portfolioDiff)} / ${metrics.portfolioPercent.toFixed(1)}%)
+  - First year income: ${formatCurrency(variantResults.first_year_retirement_income)} (${formatCurrency(metrics.firstYearIncomeDiff)})
+  - CPP difference: ${formatCurrency(metrics.cppDiff)}
+  - OAS difference: ${formatCurrency(metrics.oasDiff)}
+  - Tax difference: ${formatCurrency(metrics.taxDiff)}
+${metrics.depletionDiff !== undefined ? `  - Depletion impact: ${metrics.depletionDiff > 0 ? 'Lasts ' + Math.abs(metrics.depletionDiff) + ' years longer' : 'Depletes ' + Math.abs(metrics.depletionDiff) + ' years earlier'}` : ''}
     `.trim();
 
-    const systemPrompt = `You are a retirement planning analyst who explains what-if scenario impacts in clear, actionable language. Your job is to summarize the KEY tradeoff in 1-2 sentences.
+    const systemPrompt = `You are a retirement planning analyst who explains what-if scenario impacts in clear, actionable language. Create a comprehensive 3-4 sentence analysis using markdown formatting.
+
+Structure:
+- Sentence 1: Bottom-line comparison referencing baseline by name (e.g., "Compared to **${baselineName}**, this strategy...")
+- Sentence 2-3: Explain key tradeoffs with specific numbers (use **bold** for dollar amounts and percentages)
+- Sentence 4: Summarize the practical implication or decision point
 
 Guidelines:
-- Start with the bottom-line impact (better/worse/similar)
-- Explain WHY using specific numbers from the data
-- Focus on the MOST IMPORTANT metric (portfolio balance, depletion, or income)
+- Use **bold** for key numbers (e.g., "ending balance drops by **$614K (3.5%)**")
+- Reference the baseline scenario by name in the opening
+- Explain WHY the outcome differs using specific metrics
+- Focus on portfolio balance, income, and taxes as primary metrics
 - Use plain English (no jargon)
-- Be concise: 30-50 words max
-- Write in second person ("This strategy...")`;
+- Target: 60-100 words (3-4 sentences)`;
 
     const userPrompt = `Summarize the key insight for this scenario comparison:
 
 ${context}
 
-What's the one thing the user needs to know about this variant?`;
+What's the one thing the user needs to know about this variant compared to the baseline?`;
 
     const provider = process.env.AI_PROVIDER || 'openai';
     let insight = '';
@@ -134,8 +147,8 @@ What's the one thing the user needs to know about this variant?`;
               }
             ],
             generationConfig: {
-              temperature: 0.5,
-              maxOutputTokens: 100,
+              temperature: 0.6,
+              maxOutputTokens: 200,
             },
           }),
         }
@@ -161,8 +174,8 @@ What's the one thing the user needs to know about this variant?`;
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          temperature: 0.5,
-          max_tokens: 100,
+          temperature: 0.6,
+          max_tokens: 200,
         }),
       });
 
