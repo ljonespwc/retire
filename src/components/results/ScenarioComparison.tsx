@@ -446,13 +446,13 @@ function VariantTab({
             <tr className={`border-b ${tableBorder}`}>
               <td className={`py-3 px-4 ${textSecondary}`}>Portfolio Depletion</td>
               <td className={`py-3 px-4 ${textPrimary}`}>
-                {baselineDepletion ? `Age ${baselineDepletion}` : 'Never (surplus)'}
+                {baselineDepletion ? `Age ${Math.round(Number(baselineDepletion))}` : 'Never (surplus)'}
               </td>
               <td className={`py-3 px-4 ${textPrimary}`}>
                 {variantDepletion ? (
                   <>
-                    Age {variantDepletion}
-                    {depletionDiff && depletionDiff < 0 && (
+                    Age {Math.round(Number(variantDepletion))}
+                    {depletionDiff !== null && depletionDiff < 0 && (
                       <span className={`text-xs ${highlightYellow} ml-2`}>
                         ({depletionDiff} years)
                       </span>
