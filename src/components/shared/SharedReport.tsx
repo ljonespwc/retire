@@ -180,32 +180,6 @@ export function SharedReport({
                 </tbody>
               </table>
             </div>
-
-            {/* Key Insight from AI */}
-            {variantMetadata.ai_insight && (
-              <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4 mt-6`}>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">💡</span>
-                  <div className="flex-1">
-                    <div className={`font-semibold ${textPrimary} mb-1`}>Key Insight</div>
-                    <div className={`text-sm ${textSecondary} prose prose-sm max-w-none prose-p:my-2 ${isDarkMode ? 'prose-invert' : ''}`}>
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p className="my-2">{children}</p>,
-                          strong: ({ children }) => (
-                            <strong className={`font-semibold ${isDarkMode ? '!text-orange-400' : '!text-orange-600'}`}>
-                              {children}
-                            </strong>
-                          ),
-                        }}
-                      >
-                        {variantMetadata.ai_insight}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

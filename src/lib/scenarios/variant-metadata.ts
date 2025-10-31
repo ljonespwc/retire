@@ -12,6 +12,7 @@ import {
   createDelayCppOasVariant,
   createRetireEarlyVariant
 } from '@/lib/calculations/scenario-variants'
+import { calculateCPPAdjustmentFactor, calculateOASAdjustmentFactor } from '@/lib/calculations/government-benefits'
 
 /**
  * Supported variant types
@@ -220,22 +221,38 @@ export function getVariantDetails(
     }
 
     case 'delay-cpp-oas': {
-      const cppStartAge = scenario?.income_sources.cpp?.start_age || 70
-      const oasStartAge = scenario?.income_sources.oas?.start_age || 70
+      // Variant always sets to age 70
+      const variantCppAge = 70
+      const variantOasAge = 70
+
       const cppMonthlyAt65 = scenario?.income_sources.cpp?.monthly_amount_at_65 || 1364.60
       const oasMonthlyAt65 = scenario?.income_sources.oas?.monthly_amount || 713.34
 
-      // Calculate amounts at age 70
-      const cppAt70 = cppMonthlyAt65 * 1.42 // 42% increase for delaying to 70
-      const oasAt70 = oasMonthlyAt65 * 1.36 // 36% increase for delaying to 70
+      // Get baseline ages (from snapshot or default to 65)
+      const baselineCppAge = baselineSnapshot?.cpp_start_age || 65
+      const baselineOasAge = baselineSnapshot?.oas_start_age || 65
 
-      // Format baseline references (simplified since insight already mentions name)
+      // Calculate adjustment factors
+      const cppBaselineFactor = calculateCPPAdjustmentFactor(baselineCppAge).factor
+      const cppVariantFactor = calculateCPPAdjustmentFactor(variantCppAge).factor
+      const oasBaselineFactor = calculateOASAdjustmentFactor(baselineOasAge).factor
+      const oasVariantFactor = calculateOASAdjustmentFactor(variantOasAge).factor
+
+      // Calculate amounts at age 70
+      const cppAt70 = cppMonthlyAt65 * cppVariantFactor
+      const oasAt70 = oasMonthlyAt65 * oasVariantFactor
+
+      // Calculate percentage increases from baseline
+      const cppPercentIncrease = Math.round((cppVariantFactor / cppBaselineFactor - 1) * 100)
+      const oasPercentIncrease = Math.round((oasVariantFactor / oasBaselineFactor - 1) * 100)
+
+      // Format baseline references
       const cppBaselineRef = baselineSnapshot
-        ? `(vs baseline plan: Age ${baselineSnapshot.cpp_start_age})`
+        ? `(vs baseline plan: Age ${baselineCppAge})`
         : '(vs 65 baseline)'
 
       const oasBaselineRef = baselineSnapshot
-        ? `(vs baseline plan: Age ${baselineSnapshot.oas_start_age})`
+        ? `(vs baseline plan: Age ${baselineOasAge})`
         : '(vs 65 baseline)'
 
       return {
@@ -243,19 +260,19 @@ export function getVariantDetails(
         items: [
           {
             label: 'CPP Start Age',
-            value: `Age ${cppStartAge} ${cppBaselineRef}`
+            value: `Age ${variantCppAge} ${cppBaselineRef}`
           },
           {
             label: 'CPP Monthly at 70',
-            value: `$${Math.round(cppAt70).toLocaleString()}/month (+42% vs age 65)`
+            value: `$${Math.round(cppAt70).toLocaleString()}/month (+${cppPercentIncrease}% vs age ${baselineCppAge})`
           },
           {
             label: 'OAS Start Age',
-            value: `Age ${oasStartAge} ${oasBaselineRef}`
+            value: `Age ${variantOasAge} ${oasBaselineRef}`
           },
           {
             label: 'OAS Monthly at 70',
-            value: `$${Math.round(oasAt70).toLocaleString()}/month (+36% vs age 65)`
+            value: `$${Math.round(oasAt70).toLocaleString()}/month (+${oasPercentIncrease}% vs age ${baselineOasAge})`
           },
           {
             label: 'Total Monthly at 70',
