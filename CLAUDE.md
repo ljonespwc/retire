@@ -338,7 +338,7 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
   - Now includes: year-by-year snapshots (first 5 + every 5th + last 5 years), tax analysis (lifetime tax, efficiency score, OAS clawback), income strategy breakdowns (CPP/OAS/RRIF timing), user context
   - Markdown support with **bold** formatting for key numbers, embedded bullet lists
   - Prompt engineering for structured narrative flow (outcome → transitions → insights)
-- **Optimization**: Narratives only shown for baseline and saved variants (not temporary what-if variants)
+- **Optimization**: Narratives generated only for new baselines and saved variants (not temporary what-if variants)
   - Saves ~$432/year at scale (10K users × 3 variants/month)
   - Temporary variants still show comparison insights (cheap, useful)
 - **Files Modified**:

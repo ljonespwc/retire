@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Generate AI narrative (non-blocking - if it fails, still return results)
     let narrative: string | undefined
     try {
-      narrative = await generateRetirementNarrative(results)
+      narrative = await generateRetirementNarrative(results, scenario)
     } catch (error) {
       console.error('⚠️  Failed to generate narrative (non-critical):', error)
       // Continue without narrative - graceful degradation

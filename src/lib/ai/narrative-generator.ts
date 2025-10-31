@@ -67,21 +67,21 @@ interface RichContext {
 }
 
 /**
- * Helper: Extract user context and assumptions
+ * Helper: Extract user context and assumptions from scenario
  */
-function extractUserContext(results: CalculationResults): UserContext {
+function extractUserContext(results: CalculationResults, scenario: Scenario): UserContext {
   const firstYear = results.year_by_year[0];
   const retirementYear = results.year_by_year.find(y => y.expenses > 0);
   const lastYear = results.year_by_year[results.year_by_year.length - 1];
 
   return {
-    currentAge: firstYear?.age || 30,
-    retirementAge: retirementYear?.age || 65,
-    longevityAge: lastYear?.age || 95,
-    province: 'ON', // TODO: Pass from scenario if available
-    preRetirementReturn: 0.06, // TODO: Pass from scenario
-    postRetirementReturn: 0.05, // TODO: Pass from scenario
-    inflationRate: 0.02, // TODO: Pass from scenario
+    currentAge: firstYear?.age || scenario.basic_inputs.current_age,
+    retirementAge: retirementYear?.age || scenario.basic_inputs.retirement_age,
+    longevityAge: lastYear?.age || scenario.basic_inputs.longevity_age,
+    province: scenario.basic_inputs.province,
+    preRetirementReturn: scenario.assumptions.pre_retirement_return,
+    postRetirementReturn: scenario.assumptions.post_retirement_return,
+    inflationRate: scenario.assumptions.inflation_rate,
   };
 }
 
@@ -218,7 +218,7 @@ function extractIncomeStrategy(results: CalculationResults): IncomeStrategy {
 /**
  * Main extraction function: Gather all rich context
  */
-function extractRichContext(results: CalculationResults): RichContext {
+function extractRichContext(results: CalculationResults, scenario: Scenario): RichContext {
   // Find peak balance
   let peakBalance = 0;
   let peakAge = 0;
@@ -232,7 +232,7 @@ function extractRichContext(results: CalculationResults): RichContext {
   const lastYear = results.year_by_year[results.year_by_year.length - 1];
 
   return {
-    userContext: extractUserContext(results),
+    userContext: extractUserContext(results, scenario),
     yearSnapshots: extractYearByYearSample(results),
     taxAnalysis: extractTaxAnalysis(results),
     incomeStrategy: extractIncomeStrategy(results),
@@ -321,11 +321,12 @@ function buildRichContextPrompt(context: RichContext): string {
  * Generate retirement narrative using LLM
  */
 export async function generateRetirementNarrative(
-  results: CalculationResults
+  results: CalculationResults,
+  scenario: Scenario
 ): Promise<string> {
   try {
     // Extract rich context
-    const context = extractRichContext(results);
+    const context = extractRichContext(results, scenario);
     const contextPrompt = buildRichContextPrompt(context);
 
     // Enhanced system prompt for 150-250 word narratives
@@ -344,7 +345,12 @@ Style Guidelines:
 • Be analytical but accessible (explain WHY things happen)
 • Avoid jargon (say "retirement savings" not "portfolio")
 • Be reassuring if healthy, honest if concerning
-• Target 150-250 words total`;
+
+CRITICAL WORD LIMIT:
+• Target 150-250 words total
+• Do not exceed 250 words under any circumstances
+• Stop writing after completing paragraph 3
+• End with a complete sentence - no cut-offs`;
 
     const userPrompt = `Analyze this Canadian retirement projection and create a detailed narrative:
 
@@ -374,7 +380,7 @@ Write a 2-3 paragraph analysis highlighting the financial story, key transitions
             ],
             generationConfig: {
               temperature: 0.75,  // Slightly higher for richer narratives
-              maxOutputTokens: 400,  // Allow up to ~300 words with buffer
+              maxOutputTokens: 500,  // Safety buffer for 250 words (~375 tokens)
             },
           }),
         }
@@ -401,7 +407,7 @@ Write a 2-3 paragraph analysis highlighting the financial story, key transitions
             { role: 'user', content: userPrompt },
           ],
           temperature: 0.75,  // Slightly higher for richer narratives
-          max_tokens: 400,  // Allow up to ~300 words with buffer
+          max_tokens: 500,  // Safety buffer for 250 words (~375 tokens)
         }),
       });
 
