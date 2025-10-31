@@ -1213,8 +1213,8 @@ export function VoiceFirstContentV2() {
                         if (!editMode) {
                           // Entering edit mode - hide results display to avoid stale data errors
                           setShowResults(false)
-                          // Clear loaded variant metadata when editing (user is now modifying baseline)
-                          setLoadedVariantMetadata(null)
+                          // Don't clear loadedVariantMetadata here - let it persist until recalculation
+                          // This allows users to edit/review without losing variant context
                         } else {
                           // Exiting edit mode - clear focused field to show contextual help
                           setFocusedField(null)
@@ -1594,7 +1594,7 @@ export function VoiceFirstContentV2() {
         baselineScenarioName={savingVariantIndex !== null ? (loadedScenarioName || 'Your Baseline') : undefined}
         baselineResults={savingVariantIndex !== null ? (calculationResults ?? undefined) : undefined}
         aiInsight={savingVariantIndex !== null && variantInsights[savingVariantIndex] ? variantInsights[savingVariantIndex] : loadedVariantMetadata?.ai_insight}
-        aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : loadedVariantMetadata?.ai_narrative}
+        aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : baselineNarrative || undefined}
         onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}
       />
 
