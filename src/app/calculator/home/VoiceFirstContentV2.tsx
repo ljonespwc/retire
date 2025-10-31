@@ -1606,6 +1606,7 @@ export function VoiceFirstContentV2() {
         scenarioId={savingVariantIndex !== null ? variantScenarioIds[savingVariantIndex] : scenarioId}
         baselineScenarioName={savingVariantIndex !== null ? (loadedScenarioName || 'Your Baseline') : undefined}
         baselineResults={savingVariantIndex !== null ? (calculationResults ?? undefined) : undefined}
+        baselineFormData={savingVariantIndex !== null ? getCurrentFormData() : undefined}
         aiInsight={savingVariantIndex !== null && variantInsights[savingVariantIndex] ? variantInsights[savingVariantIndex] : loadedVariantMetadata?.ai_insight}
         aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : baselineNarrative || undefined}
         onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}

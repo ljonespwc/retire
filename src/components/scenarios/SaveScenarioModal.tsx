@@ -26,6 +26,7 @@ interface SaveScenarioModalProps {
   baselineId?: string // Optional baseline scenario ID
   baselineScenarioName?: string // Optional baseline scenario name (for variants)
   baselineResults?: CalculationResults // Optional baseline results (for variants)
+  baselineFormData?: FormData // Optional baseline form data (for variant snapshots)
   scenarioId?: string // Optional scenario ID (for updates)
   aiInsight?: string // Optional AI-generated insight (for variants)
   aiNarrative?: string // Optional AI-generated narrative (for variants)
@@ -44,6 +45,7 @@ export function SaveScenarioModal({
   baselineId,
   baselineScenarioName,
   baselineResults,
+  baselineFormData,
   scenarioId,
   aiInsight,
   aiNarrative,
@@ -103,13 +105,13 @@ export function SaveScenarioModal({
       if (variantType) {
         // Create baseline snapshot if baseline data is available
         let baselineSnapshot: BaselineSnapshot | undefined
-        if (baselineScenarioName && baselineResults && formData) {
+        if (baselineScenarioName && baselineResults && baselineFormData) {
           baselineSnapshot = {
             name: baselineScenarioName,
             ending_balance: baselineResults.final_portfolio_value,
-            monthly_spending: formData.monthlySpending || 0,
-            retirement_age: formData.retirementAge || 65,
-            cpp_start_age: formData.cppStartAge || 65,
+            monthly_spending: baselineFormData.monthlySpending || 0,
+            retirement_age: baselineFormData.retirementAge || 65,
+            cpp_start_age: baselineFormData.cppStartAge || 65,
             oas_start_age: 65, // OAS typically starts at 65
             portfolio_depleted_age: baselineResults.portfolio_depleted_age,
           }
