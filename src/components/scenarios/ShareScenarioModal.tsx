@@ -37,6 +37,8 @@ export function ShareScenarioModal({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // Reset state when modal opens
   useEffect(() => {
@@ -45,6 +47,8 @@ export function ShareScenarioModal({
       setIsShared(isCurrentlyShared)
       setError(null)
       setCopied(false)
+      setShowDisableConfirm(false)
+      setSuccessMessage(null)
     }
   }, [isOpen, existingShareToken, isCurrentlyShared])
 
@@ -74,6 +78,7 @@ export function ShareScenarioModal({
   const handleEnableSharing = async () => {
     setIsLoading(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       const client = createClient()
@@ -85,7 +90,11 @@ export function ShareScenarioModal({
 
       setShareToken(data.share_token)
       setIsShared(true)
+      setSuccessMessage('Share link created successfully!')
       onSharingChange?.(data.share_token, true)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to enable sharing')
     } finally {
@@ -96,6 +105,7 @@ export function ShareScenarioModal({
   const handleDisableSharing = async () => {
     setIsLoading(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       const client = createClient()
@@ -106,7 +116,12 @@ export function ShareScenarioModal({
       }
 
       setIsShared(false)
+      setShowDisableConfirm(false)
+      setSuccessMessage('Sharing disabled. The link is no longer accessible.')
       onSharingChange?.(shareToken, false)
+
+      // Clear success message after 4 seconds
+      setTimeout(() => setSuccessMessage(null), 4000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to disable sharing')
     } finally {
@@ -150,6 +165,14 @@ export function ShareScenarioModal({
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* Success Message */}
+          {successMessage && (
+            <div className={`${isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-300'} border rounded-lg p-4 flex items-start gap-3`}>
+              <Check className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'} flex-shrink-0 mt-0.5`} />
+              <p className={`text-sm ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>{successMessage}</p>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className={`${isDarkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-300'} border rounded-lg p-4 flex items-start gap-3`}>
@@ -223,15 +246,47 @@ export function ShareScenarioModal({
                 </div>
               </div>
 
-              {/* Disable Sharing Button */}
-              <button
-                onClick={handleDisableSharing}
-                disabled={isLoading}
-                className={`${buttonDanger} px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
-              >
-                <XCircle className="w-4 h-4" />
-                {isLoading ? 'Disabling...' : 'Disable Sharing'}
-              </button>
+              {/* Disable Sharing Section */}
+              {!showDisableConfirm ? (
+                <div className="pt-2">
+                  <button
+                    onClick={() => setShowDisableConfirm(true)}
+                    disabled={isLoading}
+                    className={`${buttonDanger} px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Disable Sharing
+                  </button>
+                </div>
+              ) : (
+                <div className={`${isDarkMode ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} border rounded-lg p-4 space-y-3`}>
+                  <div>
+                    <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-red-300' : 'text-red-700'} mb-1`}>
+                      Disable sharing?
+                    </h4>
+                    <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                      This will make the link inaccessible to anyone. People who currently have the link won't be able to view this scenario anymore.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDisableSharing}
+                      disabled={isLoading}
+                      className={`${buttonDanger} px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {isLoading ? 'Disabling...' : 'Yes, Disable'}
+                    </button>
+                    <button
+                      onClick={() => setShowDisableConfirm(false)}
+                      disabled={isLoading}
+                      className={`${buttonSecondary} px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
