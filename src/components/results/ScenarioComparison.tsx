@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { X, Share2 } from 'lucide-react'
+import { X, Share2, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -42,6 +42,7 @@ interface ScenarioComparisonProps {
   onShareChange?: (index: number, shareToken: string | null, isShared: boolean) => void // Notify parent of share changes
   onTryAnother?: () => void
   onReset: (index: number) => void
+  isSavingNarrative?: boolean // Loading state while generating AI narrative for save
 }
 
 export function ScenarioComparison({
@@ -65,7 +66,8 @@ export function ScenarioComparison({
   onSave,
   onShareChange,
   onTryAnother,
-  onReset
+  onReset,
+  isSavingNarrative = false
 }: ScenarioComparisonProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
   const [shareModalOpen, setShareModalOpen] = useState(false)
@@ -196,6 +198,7 @@ export function ScenarioComparison({
             isDarkMode={isDarkMode}
             onSave={onSave ? () => onSave(activeTab) : undefined}
             onShare={variantScenarioIds[activeTab] ? () => handleShareVariant(activeTab) : undefined}
+            isSavingNarrative={isSavingNarrative}
             baselineMonthly={baselineMonthly}
             baselineDepletion={baselineDepletion}
             baselineEndBalance={baselineEndBalance}
@@ -336,6 +339,7 @@ function VariantTab({
   isDarkMode,
   onSave,
   onShare,
+  isSavingNarrative,
   baselineMonthly,
   baselineDepletion,
   baselineEndBalance,
@@ -362,6 +366,7 @@ function VariantTab({
   isDarkMode: boolean
   onSave?: () => void
   onShare?: () => void
+  isSavingNarrative?: boolean
   scenarioId?: string
   scenarioName?: string
   baselineMonthly: number
@@ -524,15 +529,25 @@ function VariantTab({
             <div className="flex items-center gap-3">
               <button
                 onClick={onSave}
+                disabled={isSavingNarrative}
                 className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-                  isDarkMode
+                  isSavingNarrative
+                    ? 'opacity-50 cursor-not-allowed bg-gradient-to-r from-gray-500 to-gray-600'
+                    : isDarkMode
                     ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
                     : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                 }`}
               >
-                {scenarioId && scenarioName
-                  ? `UPDATE THIS SCENARIO: ${scenarioName}`
-                  : `SAVE THIS SCENARIO: ${variantScenario.name}`}
+                {isSavingNarrative ? (
+                  <>
+                    <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
+                    Generating AI Analysis...
+                  </>
+                ) : scenarioId && scenarioName ? (
+                  `UPDATE THIS SCENARIO: ${scenarioName}`
+                ) : (
+                  `SAVE THIS SCENARIO: ${variantScenario.name}`
+                )}
               </button>
 
               {/* Share Button (only visible if scenario is saved) */}

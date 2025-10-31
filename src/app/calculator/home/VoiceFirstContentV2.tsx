@@ -299,6 +299,7 @@ export function VoiceFirstContentV2() {
   const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
+  const [isSavingVariantNarrative, setIsSavingVariantNarrative] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [loadedVariantMetadata, setLoadedVariantMetadata] = useState<VariantMetadata | null>(null)
@@ -1073,10 +1074,51 @@ export function VoiceFirstContentV2() {
     }
   }
 
-  const handleSaveVariant = (index: number) => {
+  const handleSaveVariant = async (index: number) => {
     if (index < 0 || index >= variantScenarios.length) return
+
+    // Set loading state and index
     setSavingVariantIndex(index)
-    setShowScenarioSaveModal(true)
+    setIsSavingVariantNarrative(true)
+
+    try {
+      // Generate narrative for this variant if not already exists
+      if (!variantNarratives[index]) {
+        console.log(`📝 Generating AI narrative for variant: ${variantScenarios[index].name}`)
+
+        const narrativeResponse = await fetch('/api/generate-narrative', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenario: variantScenarios[index],
+            results: variantResultsArray[index]
+          })
+        })
+
+        if (narrativeResponse.ok) {
+          const data = await narrativeResponse.json()
+          const narrative = data.narrative
+
+          // Update variantNarratives array with the new narrative
+          const newNarratives = [...variantNarratives]
+          newNarratives[index] = narrative || ''
+          setVariantNarratives(newNarratives)
+
+          console.log(`✅ AI narrative generated for variant: ${variantScenarios[index].name}`)
+        } else {
+          console.error('⚠️  Failed to generate variant narrative (non-critical):', await narrativeResponse.text())
+          // Continue to save modal anyway - narrative is optional
+        }
+      } else {
+        console.log(`✅ Using existing narrative for variant: ${variantScenarios[index].name}`)
+      }
+    } catch (error) {
+      console.error('⚠️  Failed to generate variant narrative (non-critical):', error)
+      // Continue to save modal anyway - narrative is optional
+    } finally {
+      setIsSavingVariantNarrative(false)
+      setShowScenarioSaveModal(true)
+    }
   }
 
   const handleShareChange = (index: number, shareToken: string | null, isShared: boolean) => {
@@ -1625,6 +1667,7 @@ export function VoiceFirstContentV2() {
                 onSave={handleSaveVariant}
                 onShareChange={handleShareChange}
                 onReset={handleResetVariant}
+                isSavingNarrative={isSavingVariantNarrative}
               />
             )}
 
