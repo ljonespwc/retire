@@ -1,8 +1,15 @@
 # What-If Scenario Buttons - Implementation Plan
 
-**Status**: Planning Phase
+**Status**: ✅ Phase 2 Partially Complete (3/5 scenarios implemented)
 **Target Implementation**: Phase 4 (Post-MVP)
 **Estimated Total Effort**: 12-16 hours
+
+**Implementation Log**:
+- ✅ **Front-Load the Fun** - Implemented (Phase 1)
+- ✅ **Delay CPP/OAS to 70** - Implemented (Phase 1)
+- ✅ **Exhaust Your Portfolio** - Implemented 2025-10-31 (Phase 2) - Binary search optimizer with 8-15 iterations, edge case handling for overspending, stores optimizedSpending in variant metadata
+- 🔜 **Leave a Legacy** - Pending (Phase 2)
+- 🔜 **Retire Earlier** - Pending (Phase 3)
 
 ---
 

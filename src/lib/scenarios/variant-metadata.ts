@@ -10,7 +10,8 @@ import { Scenario } from '@/types/calculator'
 import {
   createFrontLoadVariant,
   createDelayCppOasVariant,
-  createRetireEarlyVariant
+  createRetireEarlyVariant,
+  createExhaustPortfolioVariant
 } from '@/lib/calculations/scenario-variants'
 import { calculateCPPAdjustmentFactor, calculateOASAdjustmentFactor } from '@/lib/calculations/government-benefits'
 
@@ -21,6 +22,7 @@ export type VariantType =
   | 'front-load'
   | 'delay-cpp-oas'
   | 'retire-early'
+  | 'exhaust-portfolio'
 
 /**
  * Baseline snapshot stored with variants for standalone comparison context
@@ -119,6 +121,10 @@ export function regenerateVariant(
       // Check if config has yearsEarlier parameter
       const yearsEarlier = config?.yearsEarlier || 3
       return createRetireEarlyVariant(baseScenario, yearsEarlier)
+    case 'exhaust-portfolio':
+      // Use stored optimized spending from config (calculated during original optimization)
+      const optimizedSpending = config?.optimizedSpending || baseScenario.expenses.fixed_monthly
+      return createExhaustPortfolioVariant(baseScenario, optimizedSpending)
     default:
       // Unknown variant type - return base scenario unchanged
       console.warn(`Unknown variant type: ${variantType}`)
@@ -133,7 +139,8 @@ export function getVariantDisplayName(variantType: VariantType): string {
   const names: Record<VariantType, string> = {
     'front-load': 'Front-Load the Fun',
     'delay-cpp-oas': 'Delay CPP/OAS to Age 70',
-    'retire-early': 'Retire Early'
+    'retire-early': 'Retire Early',
+    'exhaust-portfolio': 'Exhaust Your Portfolio'
   }
   const baseName = names[variantType] || variantType
   return `What-If Variant: ${baseName}`
@@ -153,6 +160,9 @@ export function detectVariantTypeFromName(name: string): VariantType | null {
   }
   if (lowercaseName.includes('retire early') || lowercaseName.includes('retire-early') || lowercaseName.includes('earlier')) {
     return 'retire-early'
+  }
+  if (lowercaseName.includes('exhaust') || lowercaseName.includes('maximize') || lowercaseName.includes('maximum')) {
+    return 'exhaust-portfolio'
   }
 
   return null
@@ -306,6 +316,50 @@ export function getVariantDetails(
           {
             label: 'Impact',
             value: 'Portfolio must support longer retirement period'
+          }
+        ]
+      }
+    }
+
+    case 'exhaust-portfolio': {
+      const optimizedSpending = scenario?.expenses.fixed_monthly || 0
+      const baselineSpending = baselineSnapshot?.monthly_spending || optimizedSpending
+
+      const monthlyDifference = optimizedSpending - baselineSpending
+      const annualDifference = monthlyDifference * 12
+      const percentChange = baselineSpending > 0 ? Math.round((monthlyDifference / baselineSpending) * 100) : 0
+
+      // Format baseline reference
+      const baselineSpendingLabel = baselineSnapshot
+        ? 'Baseline Plan Spending'
+        : 'Previous Spending'
+
+      return {
+        title: 'Maximize Your Lifestyle (Exhaust Portfolio)',
+        items: [
+          {
+            label: 'Optimized Monthly Spending',
+            value: `$${Math.round(optimizedSpending).toLocaleString()}/month`
+          },
+          {
+            label: baselineSpendingLabel,
+            value: `$${Math.round(baselineSpending).toLocaleString()}/month (for comparison)`
+          },
+          {
+            label: 'Monthly Difference',
+            value: monthlyDifference >= 0
+              ? `+$${Math.round(Math.abs(monthlyDifference)).toLocaleString()}/month (+${percentChange}%)`
+              : `-$${Math.round(Math.abs(monthlyDifference)).toLocaleString()}/month (${percentChange}%)`
+          },
+          {
+            label: 'Annual Difference',
+            value: annualDifference >= 0
+              ? `+$${Math.round(Math.abs(annualDifference)).toLocaleString()}/year`
+              : `-$${Math.round(Math.abs(annualDifference)).toLocaleString()}/year`
+          },
+          {
+            label: 'Strategy',
+            value: 'Portfolio depletes to ~$0 at your longevity age'
           }
         ]
       }

@@ -104,6 +104,27 @@ export function createRetireEarlyVariant(
 }
 
 /**
+ * Create "Exhaust Portfolio" variant
+ * Uses optimized spending amount to deplete portfolio at longevity age
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param optimizedSpending - Monthly spending calculated by binary search optimization
+ */
+export function createExhaustPortfolioVariant(
+  baseScenario: Scenario,
+  optimizedSpending: number
+): Scenario {
+  return {
+    ...baseScenario,
+    name: 'Exhaust Your Portfolio',
+    expenses: {
+      ...baseScenario.expenses,
+      fixed_monthly: optimizedSpending
+    }
+  }
+}
+
+/**
  * Calculate quick estimates for a scenario variant
  * (Client-side, no full calculation)
  */

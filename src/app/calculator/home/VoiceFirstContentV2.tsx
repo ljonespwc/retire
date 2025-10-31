@@ -29,7 +29,7 @@ import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdow
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant, createDelayCppOasVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
@@ -296,7 +296,7 @@ export function VoiceFirstContentV2() {
   const [variantNarratives, setVariantNarratives] = useState<string[]>([])
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | null>(null)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
@@ -884,15 +884,17 @@ export function VoiceFirstContentV2() {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
-    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits')
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust')
     try {
       const baseScenario = createScenarioFromFormData()
+      const supabase = createClient()
 
       console.log('🔍 BASE SCENARIO CPP:', baseScenario.income_sources.cpp)
       console.log('🔍 BASE SCENARIO OAS:', baseScenario.income_sources.oas)
 
       // Create variant based on selected type
       let variant: Scenario
+      let variantConfig: Record<string, any> | undefined
       switch (selectedScenarioType) {
         case 'front_load':
           variant = createFrontLoadVariant(baseScenario)
@@ -900,6 +902,24 @@ export function VoiceFirstContentV2() {
         case 'delay_benefits':
           variant = createDelayCppOasVariant(baseScenario)
           break
+        case 'exhaust': {
+          // Run binary search optimization to find maximum spending
+          console.log('💰 Running binary search optimization...')
+          const { optimizeSpendingToExhaust } = await import('@/lib/calculations/scenario-optimizer')
+          const optimizationResult = await optimizeSpendingToExhaust(supabase, baseScenario)
+
+          console.log(`✅ Optimization complete: $${Math.round(optimizationResult.optimizedSpending)}/mo after ${optimizationResult.iterations} iterations`)
+
+          variant = createExhaustPortfolioVariant(baseScenario, optimizationResult.optimizedSpending)
+
+          // Store optimized spending in config for regeneration
+          variantConfig = {
+            optimizedSpending: optimizationResult.optimizedSpending,
+            iterations: optimizationResult.iterations,
+            message: optimizationResult.message
+          }
+          break
+        }
         default:
           console.error(`Unknown scenario type: ${selectedScenarioType}`)
           return
@@ -914,7 +934,6 @@ export function VoiceFirstContentV2() {
       // Clear loaded variant metadata (user is creating a NEW variant via what-if button)
       setLoadedVariantMetadata(null)
 
-      const supabase = createClient()
       const results = await calculateRetirementProjection(supabase, variant)
 
       console.log('🔍 VARIANT RESULTS:', {
@@ -1467,6 +1486,39 @@ export function VoiceFirstContentV2() {
                         </p>
                       </div>
                       {variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70') && !generatingVariantType && (
+                        <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
+                      )}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleScenarioClick('exhaust')}
+                    disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')}
+                    className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
+                      loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')
+                        ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : generatingVariantType === 'exhaust'
+                        ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
+                        : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {generatingVariantType === 'exhaust' ? (
+                        <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
+                      ) : (
+                        <span className="text-2xl">💰</span>
+                      )}
+                      <div className="flex-1">
+                        <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                          Exhaust Your Portfolio
+                        </div>
+                        <p className={`text-sm ${theme.text.secondary}`}>
+                          {generatingVariantType === 'exhaust'
+                            ? 'Optimizing maximum spending...'
+                            : 'Maximize your lifestyle'}
+                        </p>
+                      </div>
+                      {variantScenarios.some(v => v.name === 'Exhaust Your Portfolio') && !generatingVariantType && (
                         <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
                       )}
                     </div>
