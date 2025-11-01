@@ -1,14 +1,14 @@
 'use client'
 
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { useConfetti } from '@/hooks/useConfetti'
 import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Calculator, Sun, Moon, LogIn, LogOut, User, Play, Lightbulb, Share2 } from 'lucide-react'
-import { HELP_TIPS, DEFAULT_TIP } from '@/lib/calculator/help-tips'
+import { Heart, Calculator, Share2 } from 'lucide-react'
 import { MobileHelpBanner } from '@/components/help/MobileHelpBanner'
-import { parseInteger, parsePercentage, roundPercentage } from '@/lib/utils/number-utils'
+import { roundPercentage } from '@/lib/utils/number-utils'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
 import { useAuth } from '@/contexts/AuthContext'
 import { SaveWithAccountModal } from '@/components/auth/SaveWithAccountModal'
@@ -25,7 +25,6 @@ import { RetirementNarrative } from '@/components/results/RetirementNarrative'
 import { VariantDetailsBanner } from '@/components/results/VariantDetailsBanner'
 import { SaveScenarioModal } from '@/components/scenarios/SaveScenarioModal'
 import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
-import { LoadScenarioDropdown } from '@/components/scenarios/LoadScenarioDropdown'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
@@ -35,223 +34,10 @@ import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, ty
 import { createClient } from '@/lib/supabase/client'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
-import confetti from 'canvas-confetti'
-
-// WarmDataField - theme-aware form field component
-function WarmDataField({
-  label,
-  value,
-  editMode,
-  onEdit,
-  type,
-  options,
-  editValue,
-  isDarkMode,
-  theme,
-  onFocus,
-  isRequired = false
-}: {
-  label: string
-  value: any
-  editMode: boolean
-  onEdit?: (val: any) => void
-  type: 'number' | 'currency' | 'percentage' | 'text' | 'select'
-  options?: { value: string; label: string }[]
-  editValue?: any
-  isDarkMode: boolean
-  theme: any
-  onFocus?: () => void
-  isRequired?: boolean
-}) {
-  // Auto-scroll on mobile to keep focused field visible above banner
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
-    if (onFocus) onFocus()
-
-    // Only on mobile (when help banner is visible)
-    if (window.innerWidth >= 1024) return
-
-    // Immediate scroll (no delay) so field is visible before banner animates in
-    setTimeout(() => {
-      const element = e.target
-      const offset = 120 // Padding from top of viewport
-
-      // Get element position
-      const rect = element.getBoundingClientRect()
-      const elementTop = rect.top + window.scrollY
-
-      // Scroll so element is visible in upper half of viewport
-      const scrollTo = elementTop - offset
-
-      window.scrollTo({
-        top: scrollTo,
-        behavior: 'smooth'
-      })
-    }, 50) // Minimal delay, just enough for focus to register
-  }
-  const formatValue = () => {
-    if (value === null || value === undefined) return <span className={`${theme.text.muted} text-sm`}>—</span>
-    if (type === 'currency') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>${value.toLocaleString()}</span>
-    if (type === 'percentage') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}%</span>
-    if (type === 'number') return <span className={`${theme.text.primary} font-bold text-lg sm:text-xl`}>{value}</span>
-    return <span className={`${theme.text.primary} font-semibold text-base sm:text-lg`}>{value}</span>
-  }
-
-  const isEmpty = value === null || value === undefined || value === '';
-  const showRequiredBorder = isRequired && isEmpty && editMode;
-
-  return (
-    <div className="space-y-2">
-      <label className={`block text-xs sm:text-xs font-bold ${theme.text.muted} uppercase tracking-wider`}>
-        {label}
-      </label>
-      {editMode && onEdit ? (
-        type === 'select' ? (
-          <select
-            value={editValue !== undefined ? editValue : value || ''}
-            onChange={(e) => onEdit(e.target.value || null)}
-            onFocus={handleFocus}
-            autoComplete="off"
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
-              showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
-            } ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
-          >
-            <option value="">Select...</option>
-            {options?.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type={type === 'text' ? 'text' : 'number'}
-            value={value ?? ''}
-            onChange={(e) => {
-              if (type === 'text') {
-                onEdit(e.target.value || null)
-              } else if (type === 'percentage') {
-                // Percentages: allow 1 decimal place
-                onEdit(parsePercentage(e.target.value))
-              } else {
-                // Ages and currency: integers only
-                onEdit(parseInteger(e.target.value))
-              }
-            }}
-            onFocus={handleFocus}
-            autoComplete="off"
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
-              showRequiredBorder ? 'border-red-500 ring-2 ring-red-500/50' : ''
-            } ${isDarkMode ? 'focus:ring-blue-400 focus:border-blue-400' : 'focus:ring-rose-400 focus:border-rose-400'}`}
-            step={type === 'percentage' ? '0.1' : '1'}
-          />
-        )
-      ) : (
-        <div className={`px-4 sm:px-5 py-3 sm:py-4 rounded-2xl border-2 transition-all duration-300 ${
-          isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800/20 border-gray-600' : 'bg-gradient-to-br from-gray-50 to-orange-50/20 border-gray-200'
-        }`}>
-          {formatValue()}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Help Sidebar - contextual tips based on focused field
-function HelpSidebar({ focusedField, isDarkMode, theme, onStartPlanning, onLoadScenario, planningStarted, calculationResults, isMandatoryFieldsComplete }: {
-  focusedField: string | null
-  isDarkMode: boolean
-  theme: any
-  onStartPlanning: () => void
-  onLoadScenario: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => void
-  planningStarted: boolean
-  calculationResults: CalculationResults | null
-  isMandatoryFieldsComplete: () => boolean
-}) {
-  const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : null
-
-  return (
-    <Card className={`border-0 shadow-lg rounded-3xl ${theme.card} h-full`}>
-      <CardContent className="pt-6 sm:pt-8 lg:pt-10">
-        {tip ? (
-          // Show tooltip when field is focused (highest priority)
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">{tip.icon}</span>
-              <h3 className={`text-xl font-bold ${theme.text.primary}`}>{tip.title}</h3>
-            </div>
-            <div className="space-y-3">
-              {tip.content.split('\n\n').map((paragraph, idx) => (
-                <p key={idx} className={`${theme.text.secondary} text-base leading-relaxed`}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
-        ) : !planningStarted || calculationResults ? (
-          // Show welcome state if not started yet OR after calculation
-          <div className="py-6 sm:py-8 lg:py-10 px-4 space-y-6">
-            <div className="text-center space-y-4">
-              <div className="text-6xl">🇨🇦</div>
-              <h2 className={`text-2xl font-bold ${theme.text.primary}`}>Let's Plan Your Retirement</h2>
-              <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-                Fill out the form to see your personalized retirement projection. We'll calculate your income, taxes, and portfolio balance year by year.
-              </p>
-            </div>
-
-            {/* Load Saved Scenario */}
-            <div className="max-w-xs mx-auto">
-              <LoadScenarioDropdown
-                onLoad={onLoadScenario}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center gap-4 my-4">
-              <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
-              <span className={`text-sm ${theme.text.muted}`}>or</span>
-              <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
-            </div>
-
-            {/* Create New Plan Button */}
-            <div className="text-center">
-              <Button
-                onClick={onStartPlanning}
-                size="lg"
-                className={`${theme.button.secondary} text-white px-6 sm:px-8 lg:px-10 py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
-              >
-                <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                Create New Plan
-              </Button>
-            </div>
-          </div>
-        ) : isMandatoryFieldsComplete() ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">✅</span>
-              <h3 className={`text-xl font-bold ${theme.text.primary}`}>Ready to Calculate</h3>
-            </div>
-            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-              All required fields are complete! Click the <strong>Calculate</strong> button to see your personalized retirement projection.
-            </p>
-            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-              You can add more details (like RRSP contributions or pension income) to get a more accurate projection, or calculate now and refine later.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Lightbulb className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
-              <h3 className={`text-xl font-bold ${theme.text.primary}`}>Pro Tip</h3>
-            </div>
-            <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-              Click on any field to see helpful information about what it means and how it affects your retirement plan.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
+import { WarmDataField } from '@/components/calculator/WarmDataField'
+import { CalculatorHeader } from '@/components/calculator/CalculatorHeader'
+import { HelpSidebar } from '@/components/help/HelpSidebar'
+import { MobileIntroCard } from '@/components/calculator/MobileIntroCard'
 
 export function VoiceFirstContentV2() {
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
@@ -350,50 +136,8 @@ export function VoiceFirstContentV2() {
       : 'bg-white border-gray-200',
   }
 
-  // Confetti celebration effect - persists until results render
-  const confettiIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
-  const startConfetti = () => {
-    // Clear any existing confetti
-    stopConfetti()
-
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
-
-    function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min
-    }
-
-    // Start continuous confetti until stopped
-    confettiIntervalRef.current = setInterval(function() {
-      const particleCount = 50
-
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-        colors: ['#f43f5e', '#fb923c', '#fbbf24', '#10b981', '#06b6d4']
-      })
-
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-        colors: ['#f43f5e', '#fb923c', '#fbbf24', '#10b981', '#06b6d4']
-      })
-    }, 250)
-  }
-
-  const stopConfetti = () => {
-    if (confettiIntervalRef.current) {
-      clearInterval(confettiIntervalRef.current)
-      confettiIntervalRef.current = null
-    }
-  }
-
-  // Cleanup confetti on unmount
-  useEffect(() => {
-    return () => stopConfetti()
-  }, [])
+  // Confetti celebration effect
+  const { startConfetti, stopConfetti } = useConfetti()
 
   // Handle Create New Plan button
   // Check if mandatory fields are complete and valid
@@ -1156,116 +900,27 @@ export function VoiceFirstContentV2() {
   return (
     <div className={`min-h-screen ${theme.background}`}>
       {/* Header */}
-      <div className={theme.headerBg}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
-          <div className="flex items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-white/30 backdrop-blur flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0">
-                🇨🇦
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                  The Ultimate Canadian Retirement Calculator
-                </h1>
-                <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">Tax-accurate. Future teller.</p>
-              </div>
-            </div>
-
-            {/* Auth & Theme Controls */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              {!authLoading && (
-                <>
-                  {isAnonymous ? (
-                    <button
-                      onClick={() => setShowLoginModal(true)}
-                      className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
-                      aria-label="Login"
-                    >
-                      <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
-                      <span className="hidden sm:inline">Login</span>
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/20 backdrop-blur text-white text-sm">
-                        <User className="w-4 h-4" />
-                        <span className="max-w-[120px] truncate">{user?.email}</span>
-                      </div>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
-                        aria-label="Logout"
-                      >
-                        <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="hidden sm:inline">Logout</span>
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Theme Toggle */}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-all duration-200"
-                aria-label="Toggle theme"
-              >
-                {isDarkMode ? (
-                  <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                ) : (
-                  <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CalculatorHeader
+        isDarkMode={isDarkMode}
+        theme={theme}
+        isAnonymous={isAnonymous}
+        authLoading={authLoading}
+        user={user}
+        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onLoginClick={() => setShowLoginModal(true)}
+        onLogout={handleLogout}
+      />
 
       {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 space-y-6 lg:space-y-8">
         {/* Mobile Intro - Shown before planning starts OR after calculation, only on mobile */}
         {(!planningStarted || calculationResults) && (
-          <div className="lg:hidden">
-            <Card className={`border-0 shadow-lg rounded-3xl ${theme.card}`}>
-              <CardContent className="pt-6 sm:pt-8">
-                <div className="py-6 sm:py-8 px-4 space-y-6">
-                  <div className="text-center space-y-4">
-                    <div className="text-6xl">🇨🇦</div>
-                    <h2 className={`text-2xl font-bold ${theme.text.primary}`}>Let's Plan Your Retirement</h2>
-                    <p className={`${theme.text.secondary} text-base leading-relaxed`}>
-                      Fill out the form to see your personalized retirement projection. We'll calculate your income, taxes, and portfolio balance year by year.
-                    </p>
-                  </div>
-
-                  {/* Load Saved Scenario */}
-                  <div className="max-w-xs mx-auto">
-                    <LoadScenarioDropdown
-                      onLoad={handleLoadScenario}
-                      isDarkMode={isDarkMode}
-                    />
-                  </div>
-
-                  {/* Divider */}
-                  <div className="flex items-center gap-4 my-4">
-                    <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
-                    <span className={`text-sm ${theme.text.muted}`}>or</span>
-                    <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
-                  </div>
-
-                  {/* Create New Plan Button */}
-                  <div className="text-center">
-                    <Button
-                      onClick={handleStartPlanning}
-                      size="lg"
-                      className={`${theme.button.secondary} text-white px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
-                    >
-                      <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                      Create New Plan
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <MobileIntroCard
+            isDarkMode={isDarkMode}
+            theme={theme}
+            onStartPlanning={handleStartPlanning}
+            onLoadScenario={handleLoadScenario}
+          />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
