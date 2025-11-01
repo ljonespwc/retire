@@ -96,7 +96,6 @@ export async function calculateRetirementProjection(
   let pensionIndexed = false
 
   if (income_sources.pension) {
-    console.log(`💰 Processing pension income: $${income_sources.pension.annual_amount}/year starting at age ${income_sources.pension.start_age ?? retirement_age}`)
     basePensionAmount = income_sources.pension.annual_amount
     pensionStartAge = income_sources.pension.start_age ?? retirement_age
     pensionIndexed = income_sources.pension.indexed_to_inflation
@@ -111,9 +110,7 @@ export async function calculateRetirementProjection(
   }> = [];
 
   if (income_sources.other_income) {
-    console.log(`💰 Processing ${income_sources.other_income.length} other income source(s)`)
     for (const income of income_sources.other_income) {
-      console.log(`   - ${income.description}: $${income.annual_amount}/year starting at age ${income.start_age ?? retirement_age}`)
       otherIncomes.push({
         description: income.description,
         baseAmount: income.annual_amount,
@@ -121,8 +118,6 @@ export async function calculateRetirementProjection(
         indexedToInflation: income.indexed_to_inflation ?? true,
       });
     }
-  } else {
-    console.log(`💰 No other income sources configured`)
   }
 
   if (income_sources.cpp) {
@@ -281,7 +276,13 @@ export async function calculateRetirementProjection(
       (change) => change.age === age
     );
     if (ageChange) {
-      annualExpenses = ageChange.monthly_amount * 12;
+      // Apply inflation to age-based changes from retirement age
+      // Age-based changes are specified at retirement age values and need inflation adjustment
+      const yearsFromRetirement = age - retirement_age;
+      const inflationMultiplier = expenses.indexed_to_inflation
+        ? Math.pow(1 + assumptions.inflation_rate, yearsFromRetirement)
+        : 1;
+      annualExpenses = ageChange.monthly_amount * 12 * inflationMultiplier;
     }
 
     // Calculate government benefits with inflation indexing
@@ -329,10 +330,32 @@ export async function calculateRetirementProjection(
     // Calculate total income from benefits + pension + other income
     const governmentBenefits = cppIncome + oasIncome + pensionIncome + otherIncome;
 
+    // Calculate taxes on pension/CPP/OAS income (before withdrawals)
+    // This determines after-tax income from external sources
+    const preliminaryTaxCalc = await calculateTotalTax(
+      client,
+      {
+        rrsp_rrif: 0, // No withdrawals yet
+        tfsa: 0,
+        capital_gains: 0,
+        cpp: cppIncome,
+        oas: oasIncome,
+        pension: pensionIncome,
+        other: otherIncome,
+      },
+      province,
+      age
+    );
+
+    // After-tax income from external sources (pension/CPP/OAS/other)
+    const afterTaxExternalIncome = governmentBenefits - preliminaryTaxCalc.total_tax;
+
     // Determine how much to withdraw from portfolio
-    const targetWithdrawal = Math.max(0, annualExpenses - governmentBenefits);
+    // Only withdraw if after-tax external income can't cover expenses
+    const targetWithdrawal = Math.max(0, annualExpenses - afterTaxExternalIncome);
 
     // Project account forward with withdrawals and post-retirement returns
+    // NO surplus reinvestment - surplus cash is not tracked (spent on lifestyle/gifts/etc)
     const projection = await projectYearForward(
       client,
       currentBalances,
@@ -340,7 +363,7 @@ export async function calculateRetirementProjection(
       year,
       true, // Retired
       targetWithdrawal,
-      {}, // No contributions
+      {}, // No contributions (surplus not reinvested)
       {
         rrsp_rrif: assumptions.post_retirement_return,
         tfsa: assumptions.post_retirement_return,
@@ -427,7 +450,7 @@ export async function calculateRetirementProjection(
     if (projection.withdrawals.non_registered > 0) {
       // Reduce cost basis proportionally
       const withdrawalRatio =
-        projection.withdrawals.non_registered / currentBalances.non_registered;
+        projection.withdrawals.non_registered / (currentBalances.non_registered + projection.withdrawals.non_registered);
       nonRegCostBasis = Math.max(0, nonRegCostBasis * (1 - withdrawalRatio));
     }
 

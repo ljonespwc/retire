@@ -832,15 +832,17 @@ export function VoiceFirstContentV2() {
       monthly_amount: 713.34
     }
 
-    const otherIncomeItems = []
+    // Pension as dedicated field (new format)
     if (pensionIncome && pensionIncome > 0) {
-      otherIncomeItems.push({
-        description: 'Pension Income',
+      income_sources.pension = {
         annual_amount: pensionIncome,
         start_age: retirementAge || 65,
-        indexed_to_inflation: true
-      })
+        indexed_to_inflation: false
+      }
     }
+
+    // Other income (excludes pension)
+    const otherIncomeItems = []
     if (otherIncome && otherIncome > 0) {
       otherIncomeItems.push({
         description: 'Other Income',
@@ -865,7 +867,8 @@ export function VoiceFirstContentV2() {
       income_sources,
       expenses: {
         fixed_monthly: monthlySpending || 0,
-        indexed_to_inflation: true
+        indexed_to_inflation: true,
+        age_based_changes: []
       },
       assumptions: {
         pre_retirement_return: defaultPreRetirementReturn,
@@ -1706,6 +1709,7 @@ export function VoiceFirstContentV2() {
         aiInsight={savingVariantIndex !== null && variantInsights[savingVariantIndex] ? variantInsights[savingVariantIndex] : loadedVariantMetadata?.ai_insight}
         aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : baselineNarrative || undefined}
         onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}
+        scenario={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex] : undefined}
       />
 
       <ShareScenarioModal

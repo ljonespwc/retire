@@ -31,6 +31,7 @@ interface SaveScenarioModalProps {
   aiInsight?: string // Optional AI-generated insight (for variants)
   aiNarrative?: string // Optional AI-generated narrative (for variants)
   onSaveSuccess?: (scenarioId: string, scenarioName: string) => void // Callback after successful save
+  scenario?: any // Optional full scenario object (preserves age_based_changes for variants)
 }
 
 export function SaveScenarioModal({
@@ -50,6 +51,7 @@ export function SaveScenarioModal({
   aiInsight,
   aiNarrative,
   onSaveSuccess,
+  scenario,
 }: SaveScenarioModalProps) {
   const [scenarioName, setScenarioName] = useState(defaultName || getDefaultScenarioName())
   const [isSaving, setIsSaving] = useState(false)
@@ -89,16 +91,18 @@ export function SaveScenarioModal({
     try {
       const client = createClient()
 
-      // Convert form data to scenario structure
-      const scenario = formDataToScenario(formData, scenarioName)
+      // Use provided scenario object (for variants with age_based_changes) or rebuild from formData
+      const scenarioData = scenario
+        ? { ...scenario, name: scenarioName }
+        : formDataToScenario(formData, scenarioName)
 
       // Prepare inputs object
       let inputs: any = {
-        basic_inputs: scenario.basic_inputs,
-        assets: scenario.assets,
-        income_sources: scenario.income_sources,
-        expenses: scenario.expenses,
-        assumptions: scenario.assumptions,
+        basic_inputs: scenarioData.basic_inputs,
+        assets: scenarioData.assets,
+        income_sources: scenarioData.income_sources,
+        expenses: scenarioData.expenses,
+        assumptions: scenarioData.assumptions,
       }
 
       // Add variant metadata if this is a variant scenario
@@ -126,7 +130,7 @@ export function SaveScenarioModal({
       if (scenarioId) {
         // UPDATE existing scenario
         const { data, error: updateError } = await updateScenario(client, scenarioId, {
-          name: scenario.name,
+          name: scenarioData.name,
           inputs,
           results: calculationResults as any,
         })
@@ -139,7 +143,7 @@ export function SaveScenarioModal({
       } else {
         // CREATE new scenario
         const { data, error: saveError } = await saveScenario(client, {
-          name: scenario.name,
+          name: scenarioData.name,
           inputs,
           results: calculationResults as any,
           source: 'manual',  // Manually saved by user
@@ -153,7 +157,7 @@ export function SaveScenarioModal({
 
         // Notify parent of successful save (so it can track the new ID)
         if (onSaveSuccess && data?.id) {
-          onSaveSuccess(data.id, scenario.name)
+          onSaveSuccess(data.id, scenarioData.name)
         }
       }
 

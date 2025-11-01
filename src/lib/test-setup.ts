@@ -6,6 +6,10 @@
 import '@testing-library/jest-dom';
 import { expect, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { config } from 'dotenv';
+
+// Load .env.local for tests
+config({ path: '.env.local' });
 
 // Cleanup after each test
 afterEach(() => {

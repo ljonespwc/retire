@@ -45,8 +45,6 @@ export async function optimizeSpendingToExhaust(
   let high = baselineMonthly * 3.0
   let iterations = 0
 
-  console.log(`🔍 Starting optimization: baseline=${baselineMonthly}, range=[${low}, ${high}]`)
-
   // Edge case: Check if baseline already exhausts portfolio
   const baselineResults = await calculateRetirementProjection(client, baseScenario)
 
@@ -56,7 +54,6 @@ export async function optimizeSpendingToExhaust(
 
     if (depletionAge < longevityAge) {
       // Portfolio already exhausts before target - need to REDUCE spending
-      console.log(`⚠️  Portfolio already exhausts at age ${depletionAge} (target: ${longevityAge})`)
 
       // Binary search for LOWER spending to reach longevity
       low = baselineMonthly * 0.5 // Could need to cut spending in half
@@ -74,8 +71,6 @@ export async function optimizeSpendingToExhaust(
 
         const results = await calculateRetirementProjection(client, testScenario)
         iterations++
-
-        console.log(`  Iteration ${iterations}: testing $${Math.round(mid)}/mo → depletion age ${results.portfolio_depleted_age || 'never'}`)
 
         if (!results.portfolio_depleted_age || results.portfolio_depleted_age >= longevityAge) {
           // This spending level works (reaches longevity) - can we spend more?
@@ -121,8 +116,6 @@ export async function optimizeSpendingToExhaust(
     const depletionAge = results.portfolio_depleted_age
     const finalBalance = results.final_portfolio_value
 
-    console.log(`  Iteration ${iterations}: testing $${Math.round(mid)}/mo → depletion ${depletionAge || 'never'}, balance ${Math.round(finalBalance)}`)
-
     // Check depletion age, not just final balance
     if (depletionAge) {
       // Portfolio depletes at some age
@@ -133,7 +126,6 @@ export async function optimizeSpendingToExhaust(
         // Depletes at or after longevity - this is good, but check if we can spend more
         // If depletion is exactly at longevity (within 1 year), we're done
         if (Math.abs(depletionAge - longevityAge) <= 1) {
-          console.log(`✅ Converged at $${Math.round(mid)}/mo (depletes at age ${depletionAge}) after ${iterations} iterations`)
           return {
             optimizedSpending: mid,
             iterations,
@@ -148,7 +140,6 @@ export async function optimizeSpendingToExhaust(
       // Portfolio never depletes - has surplus
       if (finalBalance <= tolerance) {
         // Surplus is small enough - close to optimal
-        console.log(`✅ Converged at $${Math.round(mid)}/mo (small surplus $${Math.round(finalBalance)}) after ${iterations} iterations`)
         return {
           optimizedSpending: mid,
           iterations,
@@ -167,8 +158,6 @@ export async function optimizeSpendingToExhaust(
     ...baseScenario,
     expenses: { ...baseScenario.expenses, fixed_monthly: finalSpending }
   })
-
-  console.log(`✅ Optimization complete: $${Math.round(finalSpending)}/mo after ${iterations} iterations`)
 
   return {
     optimizedSpending: finalSpending,

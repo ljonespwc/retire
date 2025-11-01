@@ -112,8 +112,10 @@ export async function calculateRRIFMinimumWithdrawal(
   rrifBalance: number,
   age: number
 ): Promise<number> {
-  if (age < 55) {
-    // Can't have RRIF before age 55 (must convert by end of year turning 71)
+  // RRIF minimums only apply after mandatory RRSP → RRIF conversion at age 71
+  // Before age 71, RRSP holders can choose to convert (optional starting age 55)
+  // but we assume optimal behavior: delay conversion until required at age 71
+  if (!shouldConvertToRRIF(age)) {
     return 0;
   }
 
@@ -219,7 +221,8 @@ export async function calculateWithdrawalSequence(
     return withdrawals;
   }
 
-  // Step 2: Withdraw from non-registered account (tax-advantaged due to capital gains)
+  // STANDARD TAX-EFFICIENT SEQUENCING (always):
+  // Step 2: Non-registered first (50% capital gains inclusion = lowest tax)
   if (balances.non_registered > 0 && remaining > 0) {
     const nonRegWithdrawal = Math.min(remaining, balances.non_registered);
     withdrawals.non_registered = nonRegWithdrawal;
@@ -239,7 +242,7 @@ export async function calculateWithdrawalSequence(
     remaining -= nonRegWithdrawal;
   }
 
-  // Step 3: Withdraw from RRSP/RRIF (after minimum already taken)
+  // Step 3: RRSP/RRIF second (100% taxable, preserves TFSA)
   if (balances.rrsp_rrif > withdrawals.rrsp_rrif && remaining > 0) {
     const availableRRSP = balances.rrsp_rrif - withdrawals.rrsp_rrif;
     const additionalRRSP = Math.min(remaining, availableRRSP);
