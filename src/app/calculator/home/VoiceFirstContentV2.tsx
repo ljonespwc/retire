@@ -1001,6 +1001,10 @@ export function VoiceFirstContentV2() {
         newNarratives[existingIndex] = narrative || ''
         setVariantNarratives(newNarratives)
 
+        const newIds = [...variantScenarioIds]
+        newIds[existingIndex] = variantScenarioIds[existingIndex]  // Preserve for "update" on save
+        setVariantScenarioIds(newIds)
+
         // Focus on the replaced variant tab
         setActiveVariantTab(existingIndex)
       } else {
@@ -1030,6 +1034,8 @@ export function VoiceFirstContentV2() {
       setVariantInsights(variantInsights.filter((_, i) => i !== index))
       setVariantNarratives(variantNarratives.filter((_, i) => i !== index))
       setVariantScenarioIds(variantScenarioIds.filter((_, i) => i !== index))
+      setVariantShareTokens(variantShareTokens.filter((_, i) => i !== index))
+      setVariantIsShared(variantIsShared.filter((_, i) => i !== index))
 
       // Adjust active tab after removal
       if (activeVariantTab === index) {
@@ -1047,6 +1053,8 @@ export function VoiceFirstContentV2() {
       setVariantInsights([])
       setVariantNarratives([])
       setVariantScenarioIds([])
+      setVariantShareTokens([])
+      setVariantIsShared([])
       setActiveVariantTab(0)
     }
   }
