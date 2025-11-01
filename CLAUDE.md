@@ -291,3 +291,12 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - age_based_changes handled via metadata regeneration, not direct persistence
 - What-if buttons disabled when variant metadata exists to prevent variant stacking
 
+**2025-11-01**: Enhanced Pension Income Treatment
+- **Feature**: Added dedicated pension field with inflation indexing and bridge benefit support
+- **Indexing**: Optional checkbox to grow pension with inflation (COL-A adjustments) throughout retirement
+- **Bridge Benefits**: Temporary pension supplements that reduce by fixed amount (typically $16,374) at age 65
+- **Implementation**: Separate from other income, with checkboxes for `indexed_to_inflation` and `has_bridge_benefit`
+- **Database**: Stored in `scenarios.inputs.income_sources.pension` as structured object
+- **Calculation**: Engine applies inflation compounding when indexed, reduces by bridge amount at specified age
+- **Status**: ✅ Implemented and verified
+

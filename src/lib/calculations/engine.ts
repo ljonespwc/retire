@@ -94,11 +94,17 @@ export async function calculateRetirementProjection(
   let basePensionAmount = 0
   let pensionStartAge = retirement_age
   let pensionIndexed = false
+  let pensionHasBridge = false
+  let pensionBridgeReductionAmount = 0
+  let pensionBridgeReductionAge = 65
 
   if (income_sources.pension) {
     basePensionAmount = income_sources.pension.annual_amount
     pensionStartAge = income_sources.pension.start_age ?? retirement_age
     pensionIndexed = income_sources.pension.indexed_to_inflation
+    pensionHasBridge = income_sources.pension.has_bridge_benefit ?? false
+    pensionBridgeReductionAmount = income_sources.pension.bridge_reduction_amount ?? 0
+    pensionBridgeReductionAge = income_sources.pension.bridge_reduction_age ?? 65
   }
 
   // Process other income sources (excluding pension, which is now separate)
@@ -191,6 +197,10 @@ export async function calculateRetirementProjection(
         pensionIncome = basePensionAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
       } else {
         pensionIncome = basePensionAmount;
+      }
+      // Apply bridge benefit reduction if applicable
+      if (pensionHasBridge && age >= pensionBridgeReductionAge) {
+        pensionIncome = Math.max(0, pensionIncome - pensionBridgeReductionAmount);
       }
     }
 
@@ -311,6 +321,10 @@ export async function calculateRetirementProjection(
         pensionIncome = basePensionAmount * Math.pow(1 + assumptions.inflation_rate, yearsFromStart);
       } else {
         pensionIncome = basePensionAmount;
+      }
+      // Apply bridge benefit reduction if applicable
+      if (pensionHasBridge && age >= pensionBridgeReductionAge) {
+        pensionIncome = Math.max(0, pensionIncome - pensionBridgeReductionAmount);
       }
     }
 

@@ -73,7 +73,7 @@ export const HELP_TIPS: Record<string, HelpTip> = {
   pensionIncome: {
     title: "Pension Income",
     icon: "🏢",
-    content: "Annual employer pension. Common for government, education, and union workers.\n\nTypical defined benefit pension: $30K-60K/year. Federal public service avg: ~$45K. Check if yours is indexed to inflation."
+    content: "Annual employer pension. Common for government, education, and union workers.\n\nTypical defined benefit pension: $30K-60K/year. Federal public service avg: ~$45K.\n\n**Indexing (COL-A):** Check if your pension increases with inflation. Many public sector pensions are indexed.\n\n**Bridge Benefit:** Some pensions include a temporary supplement (often ~$16K) that reduces when you turn 65 and become eligible for CPP/OAS. This is common for public sector pensions."
   },
   otherIncome: {
     title: "Other Income",

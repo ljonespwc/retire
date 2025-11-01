@@ -109,6 +109,12 @@ export interface PensionDetails {
   start_age?: number;
   /** Whether pension is indexed to inflation */
   indexed_to_inflation: boolean;
+  /** Whether pension has a bridge benefit that reduces at age 65 */
+  has_bridge_benefit?: boolean;
+  /** Amount by which bridge benefit reduces (e.g., $16,374) */
+  bridge_reduction_amount?: number;
+  /** Age at which bridge benefit reduces (typically 65) */
+  bridge_reduction_age?: number;
 }
 
 /**

@@ -60,6 +60,8 @@ export function VoiceFirstContentV2() {
   const [nonRegisteredContribution, setNonRegisteredContribution] = useState<number | null>(null)
   const [monthlySpending, setMonthlySpending] = useState<number | null>(null)
   const [pensionIncome, setPensionIncome] = useState<number | null>(null)
+  const [pensionIndexed, setPensionIndexed] = useState<boolean | null>(null)
+  const [pensionHasBridge, setPensionHasBridge] = useState<boolean | null>(null)
   const [otherIncome, setOtherIncome] = useState<number | null>(null)
   const [cppStartAge, setCppStartAge] = useState<number | null>(null)
   const [investmentReturn, setInvestmentReturn] = useState<number | null>(null)
@@ -191,6 +193,8 @@ export function VoiceFirstContentV2() {
     setNonRegisteredContribution(null)
     setMonthlySpending(null)
     setPensionIncome(null)
+    setPensionIndexed(null)
+    setPensionHasBridge(null)
     setOtherIncome(null)
     setCppStartAge(65)
 
@@ -292,7 +296,12 @@ export function VoiceFirstContentV2() {
             pension: {
               annual_amount: pensionIncome,
               start_age: retirementAge || 65,
-              indexed_to_inflation: false
+              indexed_to_inflation: pensionIndexed === true,
+              ...(pensionHasBridge === true && {
+                has_bridge_benefit: true,
+                bridge_reduction_amount: 16374,
+                bridge_reduction_age: 65
+              })
             }
           } : {}),
           other_income: [
@@ -379,6 +388,8 @@ export function VoiceFirstContentV2() {
       nonRegisteredContribution,
       monthlySpending,
       pensionIncome,
+      pensionIndexed,
+      pensionHasBridge,
       otherIncome,
       cppStartAge,
       investmentReturn,
@@ -411,6 +422,8 @@ export function VoiceFirstContentV2() {
     setNonRegisteredContribution(formData.nonRegisteredContribution)
     setMonthlySpending(formData.monthlySpending)
     setPensionIncome(formData.pensionIncome)
+    setPensionIndexed(formData.pensionIndexed)
+    setPensionHasBridge(formData.pensionHasBridge)
     setOtherIncome(formData.otherIncome)
     setCppStartAge(formData.cppStartAge)
     // Round percentages to 1 decimal place
@@ -585,7 +598,12 @@ export function VoiceFirstContentV2() {
       income_sources.pension = {
         annual_amount: pensionIncome,
         start_age: retirementAge || 65,
-        indexed_to_inflation: false
+        indexed_to_inflation: pensionIndexed === true,
+        ...(pensionHasBridge === true && {
+          has_bridge_benefit: true,
+          bridge_reduction_amount: 16374,
+          bridge_reduction_age: 65
+        })
       }
     }
 
@@ -809,7 +827,6 @@ export function VoiceFirstContentV2() {
 
   // Convert Scenario to FormData format
   const scenarioToFormData = (scenario: Scenario): FormData => {
-    const pension = scenario.income_sources.other_income?.find(i => i.description === 'Pension Income')
     const other = scenario.income_sources.other_income?.find(i => i.description === 'Other Income')
 
     return {
@@ -825,7 +842,9 @@ export function VoiceFirstContentV2() {
       nonRegisteredAmount: scenario.assets.non_registered?.balance || null,
       nonRegisteredContribution: scenario.assets.non_registered?.annual_contribution || null,
       monthlySpending: scenario.expenses.fixed_monthly,
-      pensionIncome: pension?.annual_amount || null,
+      pensionIncome: scenario.income_sources.pension?.annual_amount || null,
+      pensionIndexed: scenario.income_sources.pension?.indexed_to_inflation ?? null,
+      pensionHasBridge: scenario.income_sources.pension?.has_bridge_benefit ?? null,
       otherIncome: other?.annual_amount || null,
       cppStartAge: scenario.income_sources.cpp?.start_age || null,
       investmentReturn: roundPercentage(scenario.assumptions.pre_retirement_return * 100),
@@ -990,6 +1009,8 @@ export function VoiceFirstContentV2() {
                   nonRegisteredContribution={nonRegisteredContribution}
                   monthlySpending={monthlySpending}
                   pensionIncome={pensionIncome}
+                  pensionIndexed={pensionIndexed}
+                  pensionHasBridge={pensionHasBridge}
                   otherIncome={otherIncome}
                   cppStartAge={cppStartAge}
                   investmentReturn={investmentReturn}
@@ -1012,6 +1033,8 @@ export function VoiceFirstContentV2() {
                   setNonRegisteredContribution={setNonRegisteredContribution}
                   setMonthlySpending={setMonthlySpending}
                   setPensionIncome={setPensionIncome}
+                  setPensionIndexed={setPensionIndexed}
+                  setPensionHasBridge={setPensionHasBridge}
                   setOtherIncome={setOtherIncome}
                   setCppStartAge={setCppStartAge}
                   setInvestmentReturn={setInvestmentReturn}

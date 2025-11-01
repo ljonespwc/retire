@@ -29,9 +29,11 @@ export interface FormData {
   tfsaContribution: number | null
   nonRegisteredContribution: number | null
 
-  // Income & expenses (4 fields)
+  // Income & expenses (6 fields)
   monthlySpending: number | null
   pensionIncome: number | null
+  pensionIndexed: boolean | null
+  pensionHasBridge: boolean | null
   otherIncome: number | null
   cppStartAge: number | null
 
@@ -102,7 +104,12 @@ export function formDataToScenario(
         ? {
             annual_amount: formData.pensionIncome,
             start_age: formData.retirementAge || 65,
-            indexed_to_inflation: false, // Default to false, can add UI toggle later
+            indexed_to_inflation: formData.pensionIndexed === true,
+            ...(formData.pensionHasBridge === true && {
+              has_bridge_benefit: true,
+              bridge_reduction_amount: 16374,
+              bridge_reduction_age: 65
+            })
           }
         : undefined,
       other_income: formData.otherIncome
@@ -159,6 +166,8 @@ export function scenarioToFormData(scenario: Scenario): FormData {
     pensionIncome: scenario.income_sources.pension?.annual_amount ||
       scenario.income_sources.other_income?.find(i => i.description === 'Pension')?.annual_amount ||
       null,
+    pensionIndexed: scenario.income_sources.pension?.indexed_to_inflation ?? null,
+    pensionHasBridge: scenario.income_sources.pension?.has_bridge_benefit ?? null,
     otherIncome: scenario.income_sources.other_income?.find(i => i.description === 'Other Income')?.annual_amount || null,
     cppStartAge: scenario.income_sources.cpp?.start_age || null,
 

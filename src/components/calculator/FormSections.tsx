@@ -9,6 +9,7 @@
  */
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { WarmDataField } from '@/components/calculator/WarmDataField'
 import { Province } from '@/types/constants'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
@@ -33,6 +34,8 @@ interface FormSectionsProps {
   // Retirement
   monthlySpending: number | null
   pensionIncome: number | null
+  pensionIndexed: boolean | null
+  pensionHasBridge: boolean | null
   otherIncome: number | null
   cppStartAge: number | null
 
@@ -61,6 +64,8 @@ interface FormSectionsProps {
   setNonRegisteredContribution: (v: number | null) => void
   setMonthlySpending: (v: number | null) => void
   setPensionIncome: (v: number | null) => void
+  setPensionIndexed: (v: boolean | null) => void
+  setPensionHasBridge: (v: boolean | null) => void
   setOtherIncome: (v: number | null) => void
   setCppStartAge: (v: number | null) => void
   setInvestmentReturn: (v: number | null) => void
@@ -91,6 +96,8 @@ export function FormSections({
   // Retirement
   monthlySpending,
   pensionIncome,
+  pensionIndexed,
+  pensionHasBridge,
   otherIncome,
   cppStartAge,
 
@@ -119,6 +126,8 @@ export function FormSections({
   setNonRegisteredContribution,
   setMonthlySpending,
   setPensionIncome,
+  setPensionIndexed,
+  setPensionHasBridge,
   setOtherIncome,
   setCppStartAge,
   setInvestmentReturn,
@@ -215,6 +224,51 @@ export function FormSections({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <WarmDataField label="Monthly Spending Goal (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('monthlySpending')} />
           <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('pensionIncome')} />
+
+          {/* Pension Options - Only show if pension income exists */}
+          {pensionIncome !== null && pensionIncome > 0 && (
+            <div className="col-span-1 sm:col-span-2 space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="pension-indexed"
+                  checked={pensionIndexed === true}
+                  onCheckedChange={(checked) => setPensionIndexed(checked as boolean)}
+                  disabled={!editMode}
+                />
+                <label
+                  htmlFor="pension-indexed"
+                  className={`text-sm ${theme.text.primary} cursor-pointer select-none`}
+                >
+                  Indexed to inflation (cost-of-living adjustments)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="pension-bridge"
+                  checked={pensionHasBridge === true}
+                  onCheckedChange={(checked) => setPensionHasBridge(checked as boolean)}
+                  disabled={!editMode || (pensionIncome !== null && pensionIncome < 16374)}
+                />
+                <label
+                  htmlFor="pension-bridge"
+                  className={`text-sm ${
+                    pensionIncome !== null && pensionIncome < 16374
+                      ? theme.text.muted
+                      : theme.text.primary
+                  } cursor-pointer select-none`}
+                >
+                  Has bridge benefit (reduces by $16,374 at age 65)
+                  {pensionIncome !== null && pensionIncome < 16374 && (
+                    <span className={`ml-2 text-xs ${theme.text.muted}`}>
+                      (requires pension ≥ $16,374)
+                    </span>
+                  )}
+                </label>
+              </div>
+            </div>
+          )}
+
           <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('otherIncome')} />
           <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('cppStartAge')} />
         </div>
