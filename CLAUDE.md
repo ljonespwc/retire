@@ -210,126 +210,31 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 
 ### Sprint 1: Foundation & Infrastructure Setup ✅ COMPLETED
 
-**1. Project Configuration**
-- Next.js 14 with TypeScript (strict mode) and App Router
-- Tailwind CSS with custom PRD design system
-- shadcn/ui CLI configured
-- Dependencies: zod, date-fns, @supabase/ssr, clsx, tailwind-merge
-- Folder structure: app/, components/, lib/, services/, hooks/, types/
-
-**2. Supabase Database Schema**
-- **Core Tables**: users, scenarios (with RLS policies and indexes)
-- **Tax Data Tables** (7 tables): tax_years, federal_tax_brackets, provincial_tax_brackets, government_benefits, rrif_minimums, tfsa_limits, tax_credits
-- **2025 Data**: 5 federal brackets, 57 provincial brackets (13 jurisdictions), CPP/OAS benefits, RRIF rules, TFSA limits
-- **Query Layer**: `src/lib/supabase/tax-data.ts` (15+ functions, 24-hour in-memory caching)
-- **Clients**: Browser, server, middleware using @supabase/ssr
-
-**3. TypeScript Type System**
-- `src/types/calculator.ts` (400+ lines): BasicInputs, Assets, IncomeSources, Expenses, Assumptions, YearByYearResult, CalculationResults, Scenario
-- `src/types/constants.ts`: Province enum, TaxBracket interface
-- `src/types/database.ts`: Schema types for all tables
-- `src/types/index.ts`: Barrel export
-
-**4. Database Optimizations**
-- RLS policies (using `SELECT` subqueries)
-- Secured functions with fixed `search_path`
-- Public read-only access to tax data tables
-
-**5. Deployment**
-- Vercel deployment working
-- `.npmrc` configured with `legacy-peer-deps`
-
-**Achievement**: Migrated tax data from hardcoded constants to database, enabling multi-year support without code deployment.
+- Next.js 14 with TypeScript (strict mode), Tailwind CSS, shadcn/ui
+- Supabase database with RLS policies: users, scenarios, 7 tax data tables
+- Tax data migrated to database (federal/provincial brackets, CPP/OAS, RRIF, TFSA)
+- Query layer with 24-hour in-memory caching
+- TypeScript type system for calculator, scenarios, database schema
+- Vercel deployment configured
 
 ### Sprint 2: Calculation Engine (Core Business Logic) ✅ COMPLETED
 
-**Setup**
-- Vitest with Next.js/React compatibility (`vitest.config.ts`)
-- Testing infrastructure (test-setup.ts, test-utils.ts, test-fixtures.ts)
-- Provincial tax credits in database (migrations 004, 005)
-- 2025 provincial basic personal amounts for all 13 provinces
-- Updated tax-data.ts with provincial credit query functions
-
-**1. Tax Calculation Engine** (`src/lib/calculations/tax-calculator.ts` - 433 lines)
-- **31 tests passing**
-- Progressive federal tax (basic personal amount $15,705, income-tested age amount)
-- Provincial tax for all 13 provinces with province-specific credits
-- Income treatment by source (RRSP 100%, capital gains 50%, dividends 138%, TFSA 0%)
-- OAS clawback (15% above $86,912)
-- Master tax function with detailed breakdown
-- All functions accept Supabase client (dependency injection)
-
-**2. Government Benefits** (`src/lib/calculations/government-benefits.ts` - 344 lines)
-- **38 tests passing**
-- CPP adjustment by age (60-70): 64% at 60, 100% at 65, 142% at 70
-- OAS deferral bonuses (65-70): 100% at 65, 136% at 70
-- Earnings-based CPP estimation
-- Optimal start age calculators
-- Database-backed 2025 amounts
-
-**3. Account Management** (`src/lib/calculations/accounts.ts` - 438 lines)
-- **36 tests passing**
-- RRIF minimum withdrawals (age-based percentages from database)
-- Tax-efficient sequencing: Non-registered → RRSP/RRIF → TFSA
-- Account growth projections (single + multi-year)
-- RRSP to RRIF conversion at 71
-
-**4. Main Engine** (`src/lib/calculations/engine.ts` - 401 lines)
-- **21 tests passing**
-- `calculateRetirementProjection()`: Phase 1 (pre-retirement accumulation) + Phase 2 (retirement drawdown)
-- Year-by-year simulation (current age to longevity)
-- Scenario comparison, depletion detection, success metrics
-- Summary statistics
-
-**Test Results**: **126 tests passing** (31 tax + 38 benefits + 36 accounts + 21 engine)
-
-**Architecture**:
-1. Dependency Injection (all functions accept Supabase client)
-2. Database-backed tax data (enables multi-year support)
-3. Pure functions (calculation logic separated from data retrieval)
-4. Type safety (strict TypeScript)
-
-**Files Created**: 17 (4 engines, 4 tests, 4 infrastructure, 2 migrations, 3 configs)
-
-**Production Build Fixes**:
-- Optional asset field handling (rrsp, tfsa, non_registered)
-- CalculationResults interface alignment
-- AgeBasedExpenseChange property names
-
-**Achievement**: Complete calculation engine with 100% test coverage, deployed to production.
+- Vitest testing framework with comprehensive test coverage
+- **Tax Calculator**: Federal/provincial tax for all 13 jurisdictions, income treatment by source, OAS clawback
+- **Government Benefits**: CPP/OAS age adjustments (60-70), optimal start age calculators
+- **Account Management**: RRIF minimums, tax-efficient withdrawal sequencing (Non-reg → RRSP → TFSA)
+- **Main Engine**: Year-by-year projection with pre-retirement + retirement phases
+- Architecture: Dependency injection, database-backed data, pure functions, type safety
+- Production build verified and deployed
 
 ### Sprint 3: UI & Results Visualization ✅ COMPLETED
 
-**Goal**: Production-ready calculator UI with comprehensive results visualization and scenario comparison.
-
-**UI Implementation**:
-- Form-first calculator at `/calculator/home` with contextual help sidebar
-- "Start Planning" button flow with empty form initial state
-- Field-level focus tracking with 17 contextual help tips
-- Dark mode support via useLocalStorage hook
-- Responsive two-column layout (40% sidebar, 60% form)
-- Confetti celebration on calculation completion
-
-**Results Components**:
-- `ResultsSummary.tsx` - Key metrics overview
-- `BalanceOverTimeChart.tsx` - Portfolio balance projection
-- `IncomeCompositionChart.tsx` - Income source breakdown
-- `TaxSummaryCard.tsx` - Tax impact analysis
-- `RetirementNarrative.tsx` - AI-generated summary
-
-**Scenario Features**:
-- Save/load scenarios with LoadScenarioDropdown
-- What-if scenario variants (Front-Load the Fun, Delay CPP/OAS, etc.)
+- Form-first calculator at `/calculator/home` with contextual help sidebar and dark mode
+- Results visualization: Portfolio balance chart, income composition, tax summary, AI narrative
+- Scenario management: Save/load scenarios, what-if variants (Front-Load, Delay CPP/OAS, etc.)
 - Tabbed comparison UI for baseline vs variant analysis
 - Anonymous auth with seamless upgrade flow
-
-**Files Created**:
-- `/src/components/results/*.tsx` - 5 visualization components
-- `/src/components/scenarios/*.tsx` - Scenario management
-- `/src/lib/calculations/results-formatter.ts` - Data formatting utilities
-- `/src/lib/calculations/scenario-variants.ts` - Variant creation logic
-
-**Achievement**: Full end-to-end flow from form entry → calculation → results display → scenario comparison.
+- Full end-to-end flow: form entry → calculation → results → comparison
 
 ## Recent Updates
 
@@ -376,92 +281,13 @@ Example: `import { MyComponent } from '@/components/MyComponent'`
 - **Build Status**: ✅ Production build passes
 
 **2025-10-29**: AI Architecture Simplification
-- **Problem**: Complex client-side caching (~160 lines) with module-level Maps and in-flight promise tracking to prevent duplicate AI calls in React StrictMode
-- **Solution**: Server-side AI generation architecture - generate narratives/insights during calculation (in API routes), return with results, pass as props
-- **Changes**:
-  - Modified `/api/calculate` to generate baseline narrative server-side (src/app/api/calculate/route.ts:38-46)
-  - Updated `handleRunScenario` to call `/api/generate-insight` and `/api/generate-narrative` via fetch (parallel execution)
-  - Simplified `RetirementNarrative.tsx` from ~100 lines to ~40 lines (removed all caching, accepts narrative prop)
-  - Simplified `ScenarioComparison.tsx` to accept `baselineNarrative`, `variantInsights[]`, `variantNarratives[]` as props
-  - Removed all console logging for AI generation (kept error logs only)
-  - Removed "Tax Efficiency Tips" section from TaxSummaryCard
-  - Reordered components: Banner → AI Analysis → Save Button → Charts (better narrative flow)
-- **Impact**: Deleted ~160 lines of caching code, cleaner architecture, accept dev-mode duplicates (StrictMode) over complex optimization
-- **Philosophy**: Follow mindset.md - "don't build what you don't need", Simple/Lovable/Complete over premature optimization
-- **Status**: ✅ Implemented and deployed
-- **Build Status**: ✅ Production build passes
+- Moved AI generation to server-side (API routes) instead of complex client-side caching
+- Simplified components by accepting narratives/insights as props
+- Removed ~160 lines of cache management code
 
-**2025-10-29**: Variant Regeneration Bug Fix - CRITICAL
-- **Problem**: Saved variants (e.g., "Front-Load the Fun") showed different results when reloaded and recalculated
-  - Original variant: $18.1M ending balance, TWO distinct spending dips at ages 71 and 81
-  - Regenerated variant: $22.5M ending balance, ONE large dip at 71, hump UP at 81
-- **Root Cause**: `handleCalculate()` in VoiceFirstContentV2.tsx was missing `indexed_to_inflation: true` in expenses object
-  - Original variant (via `createScenarioFromFormData`): Had `indexed_to_inflation: true` ✓
-  - Regenerated variant (via `handleCalculate`): Missing this field, defaulted to false ✗
-  - Impact: Without inflation indexing, spending stayed flat in nominal terms instead of growing with 2% inflation
-  - This caused artificially lower real spending over time → higher ending balance + incorrect chart shape
-- **Fix**: Added `indexed_to_inflation: true` to expenses in `handleCalculate()` (line 509)
-- **Files Modified**:
-  - `/src/app/calculator/home/VoiceFirstContentV2.tsx` - Added missing inflation flag
-- **Testing**: Created debug test suite (`variant-debug.test.ts`) to verify identical baselines produce identical results
-- **Key Insight**: When creating scenarios programmatically (like in `handleCalculate`), must match ALL fields from `createScenarioFromFormData`, not just the obvious ones. Small differences in baseline scenario lead to massive differences in 30-year projections.
-- **Variant Metadata System**:
-  - Variants saved with `__metadata.variant_type` field in Supabase JSONB
-  - On load, metadata detected and variant regenerated from current baseline
-  - This makes variants "live" - they update if you change baseline values
-  - Located in `/src/lib/scenarios/variant-metadata.ts`
-- **What-If Button Logic for Saved Variants**:
-  - When variant metadata exists (purple badge displayed), ALL what-if buttons are disabled
-  - Rationale: Prevents variant stacking (applying what-ifs to former what-ifs) which creates complex conflicts
-  - Examples of conflicts: Front-Load has age-based changes at 61/71/81, but Retire Earlier changes retirement to 58
-  - UI feedback: Badge shows "What-if scenarios not available for saved variants"
-  - Implementation: `disabled={!!loadedVariantMetadata || variantScenario?.name === 'Front-Load the Fun'}`
-  - When tabbed interface is active, buttons are disabled only if matching variant tab already exists
-  - This allows multiple different variants open simultaneously (e.g., Front-Load + Delay CPP tabs)
-- **Status**: ✅ Fixed and verified
-- **Build Status**: ✅ Production build passes
+**2025-10-29**: Variant Metadata System
+- Variants save metadata (`__metadata.variant_type`) to enable regeneration from baseline
+- On load, variants are regenerated from current form values (makes them "live")
+- age_based_changes handled via metadata regeneration, not direct persistence
+- What-if buttons disabled when variant metadata exists to prevent variant stacking
 
-**2025-10-28**: Voice Infrastructure Removal
-- **Removed**: All voice/LLM/Layercode infrastructure (15+ files, 7 npm packages)
-- **Refactored**: VoiceFirstContentV2.tsx to form-first UI with contextual help sidebar
-- **Database**: Dropped conversation_states table and conversation_id column
-- **UI Changes**: "Start Planning" button, field focus tracking, 17 help tips
-- **Preserved**: All calculation, results, scenario comparison, auth functionality
-
-**2025-10-27**: What-If Scenario Planning
-- **Proposed**: 8 scenario variant buttons (retire early, spend more, front-load, max RRSP, windfall, increase contributions, optimize CPP/OAS, target reserve)
-- **Status**: 🟡 Planning approved, implementation deferred
-- **Rationale**: Addresses key user questions about retirement flexibility
-
-**2025-10-28**: What-If Scenario Variants - Tabbed Comparison UI
-- **Goal**: Allow users to explore scenario variants (e.g., "Front-Load the Fun") with comprehensive side-by-side comparison
-- **Architecture Decisions**:
-  - **NO parent-child relationships**: Variants are temporary explorations, not permanently linked to baseline
-  - **NO age_based_changes in FormData**: These fields remain calculation-only, not user-editable
-  - **Variants are ephemeral**: Created on-demand from baseline, not saved unless user explicitly chooses to save
-  - **Save = new baseline**: When user saves a variant, it becomes a new independent scenario (not linked to original)
-- **UI Implementation**:
-  - **Tabbed Interface**: "Your Plan" (baseline) | "Front-Load the Fun" (variant)
-  - **Single-column layout**: All 5 result components stacked vertically for better readability
-  - **What-If buttons**: Moved to heading area (below "Your Retirement Projection"), always visible when results exist
-  - **Button state management**: Active variants show "Active" badge and are disabled to prevent duplicate tabs
-  - **Conditional display**: Baseline results hidden when variant active (shown in tab instead)
-  - **Gradient save buttons**: Consistent styling across baseline and variant tabs (rose/orange/amber light, blue/indigo/purple dark)
-  - **Centered buttons**: Save buttons centered in all views (baseline-only, baseline tab, variant tabs)
-- **User Flow**:
-  1. User completes calculation → sees baseline results + what-if buttons
-  2. Clicks "Front-Load the Fun" → baseline replaced by tabbed interface
-  3. Can switch between "Your Plan" and variant tabs to compare
-  4. Each tab has "Save This Scenario" button (saves that specific scenario as new baseline)
-  5. Close variant tab (X icon) → returns to baseline-only view
-- **Components Modified**:
-  - `ScenarioComparison.tsx`: Complete refactor to tabbed interface (420 lines)
-  - `VoiceFirstContentV2.tsx`: What-if buttons moved to heading, conditional baseline display
-- **Files**:
-  - `/src/components/results/ScenarioComparison.tsx` - Tabbed comparison UI
-  - `/src/components/scenarios/ScenarioModal.tsx` - Variant selection modal
-  - `/src/lib/calculations/scenario-variants.ts` - Pure functions for creating variants
-  - `/src/app/calculator/home/VoiceFirstContentV2.tsx` - Main UI integration
-- **Known Limitation**: Age-based spending data (for variants like Front-Load) is lost during save/load cycle because it's not in FormData interface. Future fix: Add metadata or regenerate variants on load.
-- **Status**: ✅ Implemented and deployed
-- **Build Status**: ✅ Production build passes
