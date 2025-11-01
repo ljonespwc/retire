@@ -38,6 +38,10 @@ import { WarmDataField } from '@/components/calculator/WarmDataField'
 import { CalculatorHeader } from '@/components/calculator/CalculatorHeader'
 import { HelpSidebar } from '@/components/help/HelpSidebar'
 import { MobileIntroCard } from '@/components/calculator/MobileIntroCard'
+import { WhatIfScenarioButtons } from '@/components/calculator/WhatIfScenarioButtons'
+import { CalculateButton } from '@/components/calculator/CalculateButton'
+import { BaselineResults } from '@/components/results/BaselineResults'
+import { FormSections } from '@/components/calculator/FormSections'
 
 export function VoiceFirstContentV2() {
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
@@ -972,150 +976,62 @@ export function VoiceFirstContentV2() {
                 </div>
               </CardHeader>
               <CardContent className={`pt-6 sm:pt-8 px-4 sm:px-6 ${planningStarted ? 'pb-[25vh] lg:pb-6' : ''}`}>
-                <div className="space-y-6 sm:space-y-8">
-                  {/* Basic Info */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                    <WarmDataField
-                      label="Current Age"
-                      value={currentAge}
-                      editMode={editMode}
-                      onEdit={setCurrentAge}
-                      type="number"
-                      isDarkMode={isDarkMode}
-                      theme={theme}
-                      onFocus={() => setFocusedField('currentAge')}
-                      isRequired={true}
-                    />
-                    <WarmDataField
-                      label="Retirement Age"
-                      value={retirementAge}
-                      editMode={editMode}
-                      onEdit={setRetirementAge}
-                      type="number"
-                      isDarkMode={isDarkMode}
-                      theme={theme}
-                      onFocus={() => setFocusedField('retirementAge')}
-                      isRequired={true}
-                    />
-                    <WarmDataField
-                      label="Life Expectancy Age"
-                      value={longevityAge}
-                      editMode={editMode}
-                      onEdit={setLongevityAge}
-                      type="number"
-                      isDarkMode={isDarkMode}
-                      theme={theme}
-                      onFocus={() => setFocusedField('longevityAge')}
-                      isRequired={true}
-                    />
-                    <WarmDataField
-                      label="Current Income (Annual)"
-                      value={currentIncome}
-                      editMode={editMode}
-                      onEdit={setCurrentIncome}
-                      type="currency"
-                      isDarkMode={isDarkMode}
-                      theme={theme}
-                      onFocus={() => setFocusedField('currentIncome')}
-                    />
-                  </div>
+                <FormSections
+                  currentAge={currentAge}
+                  retirementAge={retirementAge}
+                  longevityAge={longevityAge}
+                  currentIncome={currentIncome}
+                  province={province}
+                  rrsp={rrsp}
+                  rrspContribution={rrspContribution}
+                  tfsa={tfsa}
+                  tfsaContribution={tfsaContribution}
+                  nonRegistered={nonRegistered}
+                  nonRegisteredContribution={nonRegisteredContribution}
+                  monthlySpending={monthlySpending}
+                  pensionIncome={pensionIncome}
+                  otherIncome={otherIncome}
+                  cppStartAge={cppStartAge}
+                  investmentReturn={investmentReturn}
+                  postRetirementReturn={postRetirementReturn}
+                  inflationRate={inflationRate}
+                  editMode={editMode}
+                  isDarkMode={isDarkMode}
+                  theme={theme}
+                  calculationResults={calculationResults}
+                  setCurrentAge={setCurrentAge}
+                  setRetirementAge={setRetirementAge}
+                  setLongevityAge={setLongevityAge}
+                  setCurrentIncome={setCurrentIncome}
+                  setProvince={setProvince}
+                  setRrsp={setRrsp}
+                  setRrspContribution={setRrspContribution}
+                  setTfsa={setTfsa}
+                  setTfsaContribution={setTfsaContribution}
+                  setNonRegistered={setNonRegistered}
+                  setNonRegisteredContribution={setNonRegisteredContribution}
+                  setMonthlySpending={setMonthlySpending}
+                  setPensionIncome={setPensionIncome}
+                  setOtherIncome={setOtherIncome}
+                  setCppStartAge={setCppStartAge}
+                  setInvestmentReturn={setInvestmentReturn}
+                  setPostRetirementReturn={setPostRetirementReturn}
+                  setInflationRate={setInflationRate}
+                  setEditMode={setEditMode}
+                  onFieldFocus={setFocusedField}
+                />
 
-                  <WarmDataField
-                    label="Province/Territory"
-                    value={province ? PROVINCE_NAMES[province as Province] : null}
-                    editValue={province}
+                {/* Calculate Button */}
+                <div className="mt-6 sm:mt-8">
+                  <CalculateButton
+                    isCalculating={isCalculating}
+                    isMandatoryFieldsComplete={isMandatoryFieldsComplete()}
                     editMode={editMode}
-                    onEdit={setProvince}
-                    type="select"
-                    options={PROVINCE_OPTIONS}
-                    isDarkMode={isDarkMode}
+                    calculationResults={calculationResults}
+                    justCalculated={justCalculated}
                     theme={theme}
-                    onFocus={() => setFocusedField('province')}
-                    isRequired={true}
-                  />
-
-                  {/* Accounts */}
-                  <div className="space-y-4">
-                    <h3 className={`text-base sm:text-lg font-bold ${theme.text.primary} pb-2 border-b-2 ${isDarkMode ? 'border-blue-700' : 'border-rose-200'}`}>
-                      💰 Your Accounts
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="RRSP Balance" value={rrsp} editMode={editMode} onEdit={setRrsp} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('rrsp')} />
-                      <WarmDataField label="RRSP Contribution (Annual)" value={rrspContribution} editMode={editMode} onEdit={setRrspContribution} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('rrspContribution')} />
-                      <WarmDataField label="TFSA Balance" value={tfsa} editMode={editMode} onEdit={setTfsa} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('tfsa')} />
-                      <WarmDataField label="TFSA Contribution (Annual)" value={tfsaContribution} editMode={editMode} onEdit={setTfsaContribution} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('tfsaContribution')} />
-                      <WarmDataField label="Non-Registered Balance" value={nonRegistered} editMode={editMode} onEdit={setNonRegistered} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('nonRegistered')} />
-                      <WarmDataField label="Non-Registered Contribution (Annual)" value={nonRegisteredContribution} editMode={editMode} onEdit={setNonRegisteredContribution} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('nonRegisteredContribution')} />
-                    </div>
-                  </div>
-
-                  {/* Retirement */}
-                  <div className="space-y-4">
-                    <h3 className={`text-base sm:text-lg font-bold ${theme.text.primary} pb-2 border-b-2 ${isDarkMode ? 'border-indigo-700' : 'border-orange-200'}`}>
-                      🏖️ In Retirement
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                      <WarmDataField label="Monthly Spending Goal (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('monthlySpending')} />
-                      <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('pensionIncome')} />
-                      <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('otherIncome')} />
-                      <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('cppStartAge')} />
-                    </div>
-                  </div>
-
-                  {/* Rates */}
-                  <div className="space-y-4">
-                    <h3 className={`text-base sm:text-lg font-bold ${theme.text.primary} pb-2 border-b-2 ${isDarkMode ? 'border-purple-700' : 'border-teal-200'}`}>
-                      📊 Rate Assumptions
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-                      <WarmDataField label="Pre-Retirement" value={investmentReturn} editMode={editMode} onEdit={setInvestmentReturn} type="percentage" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('investmentReturn')} />
-                      <WarmDataField label="Post-Retirement" value={postRetirementReturn} editMode={editMode} onEdit={setPostRetirementReturn} type="percentage" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('postRetirementReturn')} />
-                      <WarmDataField label="Inflation" value={inflationRate} editMode={editMode} onEdit={setInflationRate} type="percentage" isDarkMode={isDarkMode} theme={theme} onFocus={() => setFocusedField('inflationRate')} />
-                    </div>
-                  </div>
-
-                  {/* Done Editing Button (Bottom) - Mobile convenience */}
-                  {editMode && calculationResults && (
-                    <div className={`pt-4 border-t-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                      <Button
-                        size="lg"
-                        onClick={() => setEditMode(false)}
-                        className={`w-full ${
-                          isDarkMode
-                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 hover:text-blue-300'
-                            : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 hover:text-rose-800'
-                        } text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl transition-all`}
-                      >
-                        ✓ Done Editing
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Calculate Button */}
-                  <Button
-                    size="lg"
                     onClick={handleCalculate}
-                    data-calculate-button
-                    disabled={isCalculating || !isMandatoryFieldsComplete() || (editMode && !!calculationResults) || justCalculated}
-                    className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {isCalculating ? (
-                      <>
-                        <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 animate-pulse" fill="white" />
-                        Calculating...
-                      </>
-                    ) : calculationResults ? (
-                      <>
-                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                        Recalculate
-                      </>
-                    ) : (
-                      <>
-                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                        Calculate
-                      </>
-                    )}
-                  </Button>
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -1129,186 +1045,41 @@ export function VoiceFirstContentV2() {
               <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} mb-4`}>Your Retirement Projection</h2>
 
               {/* What-If Scenarios Buttons */}
-              <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-6xl mx-auto`}>
-                <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4 text-center`}>
-                  Try What-If Scenarios
-                </h3>
-                <div className="flex flex-wrap gap-3 justify-center">
-                  <button
-                    onClick={() => handleScenarioClick('front_load')}
-                    disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')}
-                    className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
-                      loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')
-                        ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-                        : generatingVariantType === 'front_load'
-                        ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-                        : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {generatingVariantType === 'front_load' ? (
-                        <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-                      ) : (
-                        <span className="text-2xl">🎯</span>
-                      )}
-                      <div className="flex-1">
-                        <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                          Front-Load the Fun
-                        </div>
-                        <p className={`text-sm ${theme.text.secondary}`}>
-                          {generatingVariantType === 'front_load'
-                            ? 'Generating scenario...'
-                            : 'Spend more early, scale back later'}
-                        </p>
-                      </div>
-                      {variantScenarios.some(v => v.name === 'Front-Load the Fun') && !generatingVariantType && (
-                        <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-                      )}
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleScenarioClick('delay_benefits')}
-                    disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')}
-                    className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
-                      loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')
-                        ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-                        : generatingVariantType === 'delay_benefits'
-                        ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-                        : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {generatingVariantType === 'delay_benefits' ? (
-                        <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-                      ) : (
-                        <span className="text-2xl">⏰</span>
-                      )}
-                      <div className="flex-1">
-                        <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                          Delay CPP/OAS to 70
-                        </div>
-                        <p className={`text-sm ${theme.text.secondary}`}>
-                          {generatingVariantType === 'delay_benefits'
-                            ? 'Generating scenario...'
-                            : 'Maximize government benefits'}
-                        </p>
-                      </div>
-                      {variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70') && !generatingVariantType && (
-                        <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-                      )}
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleScenarioClick('exhaust')}
-                    disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')}
-                    className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
-                      loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')
-                        ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-                        : generatingVariantType === 'exhaust'
-                        ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-                        : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {generatingVariantType === 'exhaust' ? (
-                        <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-                      ) : (
-                        <span className="text-2xl">💰</span>
-                      )}
-                      <div className="flex-1">
-                        <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                          Exhaust Your Portfolio
-                        </div>
-                        <p className={`text-sm ${theme.text.secondary}`}>
-                          {generatingVariantType === 'exhaust'
-                            ? 'Optimizing maximum spending...'
-                            : 'Maximize your lifestyle'}
-                        </p>
-                      </div>
-                      {variantScenarios.some(v => v.name === 'Exhaust Your Portfolio') && !generatingVariantType && (
-                        <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-                      )}
-                    </div>
-                  </button>
-                </div>
-
-                {/* Disabled message for saved variants */}
-                {loadedVariantMetadata && (
-                  <p className={`text-sm text-center mt-4 ${theme.text.secondary}`}>
-                    ℹ️ Not available for previously saved what-if scenarios
-                  </p>
-                )}
-              </div>
+              <WhatIfScenarioButtons
+                isDarkMode={isDarkMode}
+                theme={theme}
+                loadedVariantMetadata={loadedVariantMetadata}
+                variantScenarios={variantScenarios}
+                generatingVariantType={generatingVariantType}
+                onScenarioClick={handleScenarioClick}
+              />
             </div>
 
             {/* Baseline Results (shown only when NO variants active) */}
             {variantScenarios.length === 0 && (
-              <div className="space-y-6 lg:space-y-8">
-                {/* Variant Details Banner (shown when loaded variant has metadata) */}
-                {loadedVariantMetadata && (
-                  <VariantDetailsBanner
-                    variantMetadata={loadedVariantMetadata}
-                    scenario={createScenarioFromFormData()}
-                    isDarkMode={isDarkMode}
-                    isCollapsible={true}
-                  />
-                )}
-
-                <ResultsSummary
-                  results={calculationResults}
-                  retirementAge={retirementAge || 65}
-                  isDarkMode={isDarkMode}
-                  variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
-                  actionButtons={
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
-                          if (isAnonymous) {
-                            console.log('💾 Opening SaveWithAccountModal (anonymous user)')
-                            setShowSaveWithAccountModal(true)
-                          } else {
-                            console.log('💾 Opening SaveScenarioModal (authenticated user)')
-                            setShowScenarioSaveModal(true)
-                          }
-                        }}
-                        className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-                          isDarkMode
-                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                            : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-                        }`}
-                      >
-                        {scenarioId && loadedScenarioName
-                          ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
-                          : 'SAVE THIS SCENARIO'}
-                      </button>
-
-                      {/* Share Button (only visible if scenario is saved) */}
-                      {scenarioId && loadedScenarioName && (
-                        <button
-                          onClick={() => setShowShareModal(true)}
-                          className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${
-                            isDarkMode
-                              ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          }`}
-                        >
-                          <Share2 className="w-4 h-4 inline mr-2" />
-                          SHARE
-                        </button>
-                      )}
-                    </div>
+              <BaselineResults
+                calculationResults={calculationResults}
+                retirementAge={retirementAge || 65}
+                isDarkMode={isDarkMode}
+                baselineNarrative={baselineNarrative}
+                loadedVariantMetadata={loadedVariantMetadata}
+                baselineScenario={createScenarioFromFormData()}
+                scenarioId={scenarioId}
+                loadedScenarioName={loadedScenarioName}
+                isAnonymous={isAnonymous}
+                theme={theme}
+                onSaveClick={() => {
+                  console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
+                  if (isAnonymous) {
+                    console.log('💾 Opening SaveWithAccountModal (anonymous user)')
+                    setShowSaveWithAccountModal(true)
+                  } else {
+                    console.log('💾 Opening SaveScenarioModal (authenticated user)')
+                    setShowScenarioSaveModal(true)
                   }
-                />
-
-                <RetirementNarrative narrative={baselineNarrative} isDarkMode={isDarkMode} />
-
-                <BalanceOverTimeChart results={calculationResults} isDarkMode={isDarkMode} />
-                <IncomeCompositionChart results={calculationResults} isDarkMode={isDarkMode} />
-                <TaxSummaryCard results={calculationResults} retirementAge={retirementAge || 65} isDarkMode={isDarkMode} />
-              </div>
+                }}
+                onShareClick={() => setShowShareModal(true)}
+              />
             )}
 
             {/* Scenario Comparison Tabs (shown when variants exist) */}
