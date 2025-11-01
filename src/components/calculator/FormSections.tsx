@@ -223,51 +223,55 @@ export function FormSections({
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <WarmDataField label="Monthly Spending Goal (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('monthlySpending')} />
-          <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('pensionIncome')} />
 
-          {/* Pension Options - Only show if pension income exists */}
-          {pensionIncome !== null && pensionIncome > 0 && (
-            <div className="col-span-1 sm:col-span-2 space-y-3">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="pension-indexed"
-                  checked={pensionIndexed === true}
-                  onCheckedChange={(checked) => setPensionIndexed(checked as boolean)}
-                  disabled={!editMode}
-                />
-                <label
-                  htmlFor="pension-indexed"
-                  className={`text-sm ${theme.text.primary} cursor-pointer select-none`}
-                >
-                  Indexed to inflation (cost-of-living adjustments)
-                </label>
-              </div>
+          {/* Pension field with checkboxes grouped together */}
+          <div className="space-y-3">
+            <WarmDataField label="Expected Pension Income (Annual)" value={pensionIncome} editMode={editMode} onEdit={setPensionIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('pensionIncome')} />
 
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="pension-bridge"
-                  checked={pensionHasBridge === true}
-                  onCheckedChange={(checked) => setPensionHasBridge(checked as boolean)}
-                  disabled={!editMode || (pensionIncome !== null && pensionIncome < 16374)}
-                />
-                <label
-                  htmlFor="pension-bridge"
-                  className={`text-sm ${
-                    pensionIncome !== null && pensionIncome < 16374
-                      ? theme.text.muted
-                      : theme.text.primary
-                  } cursor-pointer select-none`}
-                >
-                  Has bridge benefit (reduces by $16,374 at age 65)
-                  {pensionIncome !== null && pensionIncome < 16374 && (
-                    <span className={`ml-2 text-xs ${theme.text.muted}`}>
-                      (requires pension ≥ $16,374)
-                    </span>
-                  )}
-                </label>
+            {/* Pension Options - Only show if pension income exists */}
+            {pensionIncome !== null && pensionIncome > 0 && (
+              <div className="space-y-2 pl-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="pension-indexed"
+                    checked={pensionIndexed === true}
+                    onCheckedChange={(checked) => setPensionIndexed(checked as boolean)}
+                    disabled={!editMode}
+                  />
+                  <label
+                    htmlFor="pension-indexed"
+                    className={`text-sm ${theme.text.primary} cursor-pointer select-none`}
+                  >
+                    Indexed to inflation (cost-of-living adjustments)
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="pension-bridge"
+                    checked={pensionHasBridge === true}
+                    onCheckedChange={(checked) => setPensionHasBridge(checked as boolean)}
+                    disabled={!editMode || (pensionIncome !== null && pensionIncome < 16374)}
+                  />
+                  <label
+                    htmlFor="pension-bridge"
+                    className={`text-sm ${
+                      pensionIncome !== null && pensionIncome < 16374
+                        ? theme.text.muted
+                        : theme.text.primary
+                    } cursor-pointer select-none`}
+                  >
+                    Has bridge benefit (reduces by $16,374 at age 65)
+                    {pensionIncome !== null && pensionIncome < 16374 && (
+                      <span className={`ml-2 text-xs ${theme.text.muted}`}>
+                        (requires pension ≥ $16,374)
+                      </span>
+                    )}
+                  </label>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <WarmDataField label="Other Income (Annual)" value={otherIncome} editMode={editMode} onEdit={setOtherIncome} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('otherIncome')} />
           <WarmDataField label="CPP Start Age" value={cppStartAge} editMode={editMode} onEdit={setCppStartAge} type="number" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('cppStartAge')} />

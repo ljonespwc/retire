@@ -948,7 +948,7 @@ export function VoiceFirstContentV2() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Left Sidebar - Help/Tips (40%) - Desktop only */}
-          <div className="hidden lg:block lg:col-span-5">
+          <div className="hidden lg:block lg:col-span-5 lg:sticky lg:top-8 lg:self-start">
             <HelpSidebar
               focusedField={focusedField}
               isDarkMode={isDarkMode}
@@ -963,7 +963,7 @@ export function VoiceFirstContentV2() {
 
           {/* Right Column - Form (60%) */}
           <div className="lg:col-span-7">
-            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card} lg:sticky lg:top-8`}>
+            <Card className={`border-0 shadow-xl rounded-3xl ${theme.card}`}>
               <CardHeader className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} pb-4 sm:pb-6 px-4 sm:px-6`}>
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="min-w-0">
