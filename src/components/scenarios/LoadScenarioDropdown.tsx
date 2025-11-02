@@ -15,7 +15,7 @@ import { getVariantMetadata, type VariantMetadata } from '@/lib/scenarios/varian
 import { useAuth } from '@/contexts/AuthContext'
 
 interface LoadScenarioDropdownProps {
-  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string, shareToken?: string | null, isShared?: boolean, results?: any | null, narrative?: string | null) => void
+  onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string, shareToken?: string | null, isShared?: boolean, results?: any | null, narrative?: string | null, variantScenario?: any | null) => void
   isDarkMode?: boolean
 }
 
@@ -103,8 +103,21 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
 
   const handleSelectScenario = (scenario: SavedScenario) => {
     try {
+      // Extract variant metadata if present
+      const variantMetadata = getVariantMetadata(scenario.inputs)
+
+      // Store original scenario data (with variant values) for comparison display
+      const originalScenario = variantMetadata ? {
+        name: scenario.name,
+        basic_inputs: scenario.inputs.basic_inputs,
+        assets: scenario.inputs.assets,
+        income_sources: scenario.inputs.income_sources,
+        expenses: scenario.inputs.expenses,
+        assumptions: scenario.inputs.assumptions,
+      } : null
+
       // Convert database structure to form data
-      const formData = scenarioToFormData({
+      let formData = scenarioToFormData({
         name: scenario.name,
         basic_inputs: scenario.inputs.basic_inputs,
         assets: scenario.inputs.assets,
@@ -113,8 +126,24 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         assumptions: scenario.inputs.assumptions,
       })
 
-      // Extract variant metadata if present
-      const variantMetadata = getVariantMetadata(scenario.inputs)
+      // For variant scenarios, override form data with baseline snapshot values
+      // so form displays baseline values, not variant values
+      if (variantMetadata?.baseline_snapshot) {
+        console.log('🔄 Overriding form data with baseline snapshot values')
+        formData = {
+          ...formData,
+          monthlySpending: variantMetadata.baseline_snapshot.monthly_spending,
+          retirementAge: variantMetadata.baseline_snapshot.retirement_age,
+          cppStartAge: variantMetadata.baseline_snapshot.cpp_start_age,
+          // Note: OAS start age is always 65 in baseline, but variants may change it
+          // For now, we only handle monthly_spending, retirement_age, cpp_start_age
+        }
+        console.log('✅ Form data updated with baseline values:', {
+          monthlySpending: formData.monthlySpending,
+          retirementAge: formData.retirementAge,
+          cppStartAge: formData.cppStartAge
+        })
+      }
 
       // Extract baseline narrative if present (for baselines) or from metadata (for variants)
       let narrative: string | null = null
@@ -125,6 +154,7 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       }
 
       // Pass sharing state along with other scenario data, plus results and narrative
+      // Also pass original variant scenario (with variant values) for comparison display
       onLoad(
         formData,
         scenario.name,
@@ -133,7 +163,8 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
         scenario.share_token,
         scenario.is_shared,
         scenario.results,
-        narrative
+        narrative,
+        originalScenario
       )
       setIsOpen(false)
     } catch (err) {

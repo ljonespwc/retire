@@ -6,8 +6,9 @@
  */
 
 import { Button } from '@/components/ui/button'
-import { Heart, Calculator } from 'lucide-react'
+import { Heart, Calculator, Lock } from 'lucide-react'
 import { CalculationResults } from '@/types/calculator'
+import { VariantMetadata } from '@/lib/scenarios/variant-metadata'
 
 interface CalculateButtonProps {
   isCalculating: boolean
@@ -17,6 +18,7 @@ interface CalculateButtonProps {
   justCalculated: boolean
   theme: any
   onClick: () => void
+  loadedVariantMetadata?: VariantMetadata | null
 }
 
 export function CalculateButton({
@@ -26,32 +28,51 @@ export function CalculateButton({
   calculationResults,
   justCalculated,
   theme,
-  onClick
+  onClick,
+  loadedVariantMetadata
 }: CalculateButtonProps) {
+  // Disable button when a variant scenario is loaded
+  const isVariantLoaded = !!loadedVariantMetadata
+  const isDisabled = isCalculating || !isMandatoryFieldsComplete || (editMode && !!calculationResults) || justCalculated || isVariantLoaded
+
   return (
-    <Button
-      size="lg"
-      onClick={onClick}
-      data-calculate-button
-      disabled={isCalculating || !isMandatoryFieldsComplete || (editMode && !!calculationResults) || justCalculated}
-      className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
-    >
-      {isCalculating ? (
-        <>
-          <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 animate-pulse" fill="white" />
-          Calculating...
-        </>
-      ) : calculationResults ? (
-        <>
-          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-          Recalculate
-        </>
-      ) : (
-        <>
-          <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-          Calculate
-        </>
+    <div className="space-y-2">
+      <Button
+        size="lg"
+        onClick={onClick}
+        data-calculate-button
+        disabled={isDisabled}
+        className={`w-full ${theme.button.primary} text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        {isCalculating ? (
+          <>
+            <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 animate-pulse" fill="white" />
+            Calculating...
+          </>
+        ) : isVariantLoaded ? (
+          <>
+            <Lock className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+            Recalculate (Locked)
+          </>
+        ) : calculationResults ? (
+          <>
+            <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+            Recalculate
+          </>
+        ) : (
+          <>
+            <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+            Calculate
+          </>
+        )}
+      </Button>
+
+      {/* Helper text when variant is loaded */}
+      {isVariantLoaded && (
+        <p className={`text-xs text-center ${theme.text.muted}`}>
+          Variant scenarios cannot be recalculated. Click "Start Planning" to create a new scenario.
+        </p>
       )}
-    </Button>
+    </div>
   )
 }

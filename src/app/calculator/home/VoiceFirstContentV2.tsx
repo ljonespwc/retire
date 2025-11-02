@@ -30,7 +30,7 @@ import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
 import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
-import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
+import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
@@ -78,6 +78,7 @@ export function VoiceFirstContentV2() {
   const [loadedScenarioName, setLoadedScenarioName] = useState<string | null>(null)
   const [calculationResults, setCalculationResults] = useState<CalculationResults | null>(null)
   const [baselineNarrative, setBaselineNarrative] = useState<string | null>(null)
+  const [baselineSnapshot, setBaselineSnapshot] = useState<BaselineSnapshot | null>(null)
 
   // What-if scenario state
   const [showScenarioModal, setShowScenarioModal] = useState(false)
@@ -95,6 +96,7 @@ export function VoiceFirstContentV2() {
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [loadedVariantMetadata, setLoadedVariantMetadata] = useState<VariantMetadata | null>(null)
+  const [loadedVariantScenario, setLoadedVariantScenario] = useState<Scenario | null>(null)
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
   const [showScenarioSaveModal, setShowScenarioSaveModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -353,6 +355,22 @@ export function VoiceFirstContentV2() {
         })
         setCalculationResults(data.results)
         setBaselineNarrative(data.narrative || null)
+
+        // Create baseline snapshot for variant comparisons (only for non-variant calculations)
+        if (!loadedVariantMetadata) {
+          const snapshot: BaselineSnapshot = {
+            name: loadedScenarioName || 'Your Baseline',
+            ending_balance: data.results.final_portfolio_value,
+            monthly_spending: monthlySpending || 4000,
+            retirement_age: retirementAge || 65,
+            cpp_start_age: cppStartAge || 65,
+            oas_start_age: 65,
+            portfolio_depleted_age: data.results.portfolio_depleted_age
+          }
+          setBaselineSnapshot(snapshot)
+          console.log('📸 Created baseline snapshot:', snapshot)
+        }
+
         setShowResults(true)
         stopConfetti() // Stop fireworks when results render
         setEditMode(false)
@@ -407,7 +425,8 @@ export function VoiceFirstContentV2() {
     shareToken?: string | null,
     isShared?: boolean,
     results?: any | null,
-    narrative?: string | null
+    narrative?: string | null,
+    variantScenario?: any | null
   ) => {
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
@@ -462,9 +481,37 @@ export function VoiceFirstContentV2() {
     if (variantMetadata) {
       setLoadedVariantMetadata(variantMetadata)
       console.log(`✅ Loaded variant scenario: ${scenarioName} (type: ${variantMetadata.variant_type})`)
+
+      // Store original variant scenario (with variant values) for comparison display
+      if (variantScenario) {
+        setLoadedVariantScenario(variantScenario)
+        console.log('📦 Stored original variant scenario for comparison')
+      }
+
+      // Extract baseline snapshot from variant metadata and set to state
+      if (variantMetadata.baseline_snapshot) {
+        setBaselineSnapshot(variantMetadata.baseline_snapshot)
+        console.log('📸 Restored baseline snapshot from variant metadata:', variantMetadata.baseline_snapshot)
+      }
     } else {
       setLoadedVariantMetadata(null)
+      setLoadedVariantScenario(null)
       console.log(`✅ Loaded scenario: ${scenarioName}`)
+
+      // When loading baseline, create snapshot from loaded data
+      if (results) {
+        const snapshot: BaselineSnapshot = {
+          name: scenarioName,
+          ending_balance: results.final_portfolio_value,
+          monthly_spending: formData.monthlySpending || 4000,
+          retirement_age: formData.retirementAge || 65,
+          cpp_start_age: formData.cppStartAge || 65,
+          oas_start_age: 65,
+          portfolio_depleted_age: results.portfolio_depleted_age
+        }
+        setBaselineSnapshot(snapshot)
+        console.log('📸 Created baseline snapshot from loaded scenario:', snapshot)
+      }
     }
 
     // Load stored results and narrative directly from database (no recalculation needed)
@@ -971,7 +1018,7 @@ export function VoiceFirstContentV2() {
                       Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
                     </CardTitle>
                   </div>
-                  {calculationResults && (
+                  {calculationResults && !loadedVariantMetadata && (
                     <Button
                       onClick={() => {
                         if (!editMode) {
@@ -1054,6 +1101,7 @@ export function VoiceFirstContentV2() {
                     justCalculated={justCalculated}
                     theme={theme}
                     onClick={handleCalculate}
+                    loadedVariantMetadata={loadedVariantMetadata}
                   />
                 </div>
               </CardContent>
@@ -1086,7 +1134,7 @@ export function VoiceFirstContentV2() {
                 isDarkMode={isDarkMode}
                 baselineNarrative={baselineNarrative}
                 loadedVariantMetadata={loadedVariantMetadata}
-                baselineScenario={createScenarioFromFormData()}
+                baselineScenario={loadedVariantScenario || createScenarioFromFormData()}
                 scenarioId={scenarioId}
                 loadedScenarioName={loadedScenarioName}
                 isAnonymous={isAnonymous}
@@ -1162,11 +1210,11 @@ export function VoiceFirstContentV2() {
         scenarioId={savingVariantIndex !== null ? variantScenarioIds[savingVariantIndex] : scenarioId}
         baselineScenarioName={savingVariantIndex !== null ? (loadedScenarioName || 'Your Baseline') : undefined}
         baselineResults={savingVariantIndex !== null ? (calculationResults ?? undefined) : undefined}
-        baselineFormData={savingVariantIndex !== null ? getCurrentFormData() : undefined}
+        baselineSnapshot={savingVariantIndex !== null || loadedVariantMetadata ? baselineSnapshot : undefined}
         aiInsight={savingVariantIndex !== null && variantInsights[savingVariantIndex] ? variantInsights[savingVariantIndex] : loadedVariantMetadata?.ai_insight}
         aiNarrative={savingVariantIndex !== null && variantNarratives[savingVariantIndex] ? variantNarratives[savingVariantIndex] : baselineNarrative || undefined}
         onSaveSuccess={savingVariantIndex === null ? handleSaveSuccess : handleVariantSaveSuccess}
-        scenario={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex] : undefined}
+        scenario={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex] : loadedVariantScenario || undefined}
       />
 
       <ShareScenarioModal

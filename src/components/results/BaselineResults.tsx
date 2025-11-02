@@ -66,18 +66,21 @@ export function BaselineResults({
         variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
         actionButtons={
           <div className="flex items-center gap-3">
-            <button
-              onClick={onSaveClick}
-              className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-                isDarkMode
-                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                  : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-              }`}
-            >
-              {scenarioId && loadedScenarioName
-                ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
-                : 'SAVE THIS SCENARIO'}
-            </button>
+            {/* Save/Update Button - hidden for loaded variants */}
+            {!loadedVariantMetadata && (
+              <button
+                onClick={onSaveClick}
+                className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
+                    : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
+                }`}
+              >
+                {scenarioId && loadedScenarioName
+                  ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
+                  : 'SAVE THIS SCENARIO'}
+              </button>
+            )}
 
             {/* Share Button (only visible if scenario is saved) */}
             {scenarioId && loadedScenarioName && (
