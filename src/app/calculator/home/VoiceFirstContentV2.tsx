@@ -1310,6 +1310,7 @@ export function VoiceFirstContentV2() {
         baselineMonthly={monthlySpending || 0}
         retirementAge={retirementAge || 65}
         currentAge={currentAge || 18}
+        totalAssets={(rrsp || 0) + (tfsa || 0) + (nonRegistered || 0)}
         isDarkMode={isDarkMode}
         onRun={handleRunScenario}
       />

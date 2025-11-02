@@ -14,8 +14,8 @@ interface WhatIfScenarioButtonsProps {
   theme: any
   loadedVariantMetadata: VariantMetadata | null
   variantScenarios: Scenario[]
-  generatingVariantType: 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | null
-  onScenarioClick: (type: 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early') => void
+  generatingVariantType: 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | null
+  onScenarioClick: (type: 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy') => void
 }
 
 export function WhatIfScenarioButtons({
@@ -165,24 +165,37 @@ export function WhatIfScenarioButtons({
           </div>
         </button>
 
-        {/* Leave a Legacy - Disabled for now */}
+        {/* Leave a Legacy - NOW ENABLED */}
         <button
-          disabled
+          onClick={() => onScenarioClick('legacy')}
+          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Leave') && v.name.includes('Legacy'))}
           className={`text-left p-4 rounded-lg border transition-colors ${
-            isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+            loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Leave') && v.name.includes('Legacy'))
+              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+              : generatingVariantType === 'legacy'
+              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
+              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
           }`}
         >
           <div className="flex items-start gap-3">
-            <span className="text-2xl opacity-50">🏛️</span>
+            {generatingVariantType === 'legacy' ? (
+              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
+            ) : (
+              <span className="text-2xl">🏛️</span>
+            )}
             <div className="flex-1">
               <div className={`font-semibold ${theme.text.primary} mb-1`}>
                 Leave a Legacy
               </div>
               <p className={`text-sm ${theme.text.secondary}`}>
-                Preserve 25% for heirs
+                {generatingVariantType === 'legacy'
+                  ? 'Generating scenario...'
+                  : 'Preserve 10-50% for heirs'}
               </p>
             </div>
-            <span className={`text-xs ${theme.text.muted} font-medium`}>Coming Soon</span>
+            {variantScenarios.some(v => v.name.includes('Leave') && v.name.includes('Legacy')) && !generatingVariantType && (
+              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
+            )}
           </div>
         </button>
 

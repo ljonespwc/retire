@@ -16,6 +16,7 @@ interface ScenarioModalProps {
   baselineMonthly: number
   retirementAge: number
   currentAge: number
+  totalAssets?: number // Total starting portfolio for legacy calculations
   isDarkMode?: boolean
   onRun: (config?: any) => void // Config for parameterized scenarios
 }
@@ -27,12 +28,16 @@ export function ScenarioModal({
   baselineMonthly,
   retirementAge,
   currentAge,
+  totalAssets = 0,
   isDarkMode = false,
   onRun
 }: ScenarioModalProps) {
   // State for retire early age selection (default to 3 years earlier, but not before current age)
   const getDefaultRetireAge = () => Math.max(retirementAge - 3, currentAge)
   const [selectedRetireAge, setSelectedRetireAge] = useState(getDefaultRetireAge())
+
+  // State for legacy percentage selection (default to 25%)
+  const [selectedLegacyPercentage, setSelectedLegacyPercentage] = useState(25)
 
   // Reset state when modal opens (only on isOpen transition from false to true)
   const [previousIsOpen, setPreviousIsOpen] = useState(isOpen)
@@ -41,17 +46,20 @@ export function ScenarioModal({
     setPreviousIsOpen(isOpen)
     if (isOpen) {
       setSelectedRetireAge(getDefaultRetireAge())
+      setSelectedLegacyPercentage(25)
     }
   }
 
   if (!isOpen) return null
 
-  const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge, selectedRetireAge)
+  const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge, totalAssets, selectedRetireAge, selectedLegacyPercentage)
 
-  // Handle run with config for retire_early
+  // Handle run with config for retire_early and legacy
   const handleRun = () => {
     if (scenarioType === 'retire_early') {
       onRun({ newRetirementAge: selectedRetireAge })
+    } else if (scenarioType === 'legacy') {
+      onRun({ legacyPercentage: selectedLegacyPercentage / 100 }) // Convert to decimal
     } else {
       onRun()
     }
@@ -174,6 +182,66 @@ export function ScenarioModal({
             </div>
           )}
 
+          {/* Legacy Percentage Selector */}
+          {scenarioType === 'legacy' && (
+            <div>
+              <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                Legacy Preservation Amount:
+              </h3>
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
+                <div className={`text-xs ${textSecondary} mb-2`}>
+                  Starting Portfolio: <span className={`font-semibold ${textPrimary}`}>
+                    {totalAssets >= 1_000_000 ? `$${(totalAssets / 1_000_000).toFixed(1)}M` : `$${Math.round(totalAssets / 1000)}K`}
+                  </span>
+                </div>
+
+                {/* Percentage Selection Radio Buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[10, 25, 50].map((pct) => {
+                    const targetAmount = totalAssets * (pct / 100)
+                    const targetFormatted = targetAmount >= 1_000_000
+                      ? `$${(targetAmount / 1_000_000).toFixed(1)}M`
+                      : `$${Math.round(targetAmount / 1000)}K`
+
+                    return (
+                      <button
+                        key={pct}
+                        onClick={() => setSelectedLegacyPercentage(pct)}
+                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                          selectedLegacyPercentage === pct
+                            ? isDarkMode
+                              ? 'bg-blue-600 text-white border-2 border-blue-500'
+                              : 'bg-blue-600 text-white border-2 border-blue-500'
+                            : isDarkMode
+                            ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                            : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pct}%
+                        <div className={`text-xs mt-0.5 ${selectedLegacyPercentage === pct ? 'text-blue-100' : textSecondary}`}>
+                          {targetFormatted}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Quick Impact Preview */}
+                <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className={`text-xs ${textSecondary} space-y-1`}>
+                    <div>• Preserve {selectedLegacyPercentage}% of portfolio ({
+                      totalAssets * (selectedLegacyPercentage / 100) >= 1_000_000
+                        ? `$${((totalAssets * selectedLegacyPercentage / 100) / 1_000_000).toFixed(1)}M`
+                        : `$${Math.round((totalAssets * selectedLegacyPercentage / 100) / 1000)}K`
+                    }) for heirs</div>
+                    <div>• Portfolio will never drop below this target</div>
+                    <div>• May require reduced monthly spending</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Parameters */}
           {scenario.parameters && (
             <div>
@@ -228,7 +296,9 @@ function getScenarioConfig(
   type: string,
   baselineMonthly: number,
   retirementAge: number,
-  selectedRetireAge?: number
+  totalAssets: number,
+  selectedRetireAge?: number,
+  selectedLegacyPercentage?: number
 ) {
   const baselineAnnual = baselineMonthly * 12
 
@@ -281,17 +351,32 @@ function getScenarioConfig(
       }
 
     case 'legacy':
+      const percentage = selectedLegacyPercentage || 25
+      const legacyTarget = totalAssets * (percentage / 100)
+      const legacyTargetFormatted = legacyTarget >= 1_000_000
+        ? `$${(legacyTarget / 1_000_000).toFixed(1)}M`
+        : `$${Math.round(legacyTarget / 1000)}K`
+
       return {
         icon: '🏛️',
         title: 'Leave a Legacy',
-        subtitle: 'Preserve 25% for heirs',
+        subtitle: `Preserve ${percentage}% for heirs`,
         description:
-          'Constrain your withdrawals to preserve 25% of your starting portfolio for estate planning. Shows the spending trade-off required.',
-        parametersTitle: null,
-        parameters: null,
+          `Constrain your withdrawals to preserve ${percentage}% of your starting portfolio for estate planning. Shows the spending trade-off required to leave ${legacyTargetFormatted} to your heirs.`,
+        parametersTitle: 'Legacy Settings',
+        parameters: [
+          {
+            label: `Starting Portfolio: ${totalAssets >= 1_000_000 ? `$${(totalAssets / 1_000_000).toFixed(1)}M` : `$${Math.round(totalAssets / 1000)}K`}`,
+            detail: 'Total across all accounts (RRSP, TFSA, Non-Registered)'
+          },
+          {
+            label: `Preservation Target: ${legacyTargetFormatted} (${percentage}%)`,
+            detail: 'Amount preserved for heirs at longevity age'
+          }
+        ],
         estimates: [
-          `Preservation target: ~$${Math.round((baselineAnnual * 25) / 1000)}K`,
-          'Required spending adjustment: TBD'
+          'Required spending adjustment: TBD (run to calculate)',
+          'Portfolio will never drop below legacy target'
         ]
       }
 
