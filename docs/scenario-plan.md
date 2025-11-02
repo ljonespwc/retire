@@ -189,31 +189,405 @@ Required Portfolio at 65: $250,000 extra
 
 ---
 
-### 5. 🚀 Retire Earlier (Optional)
+### 5. 🚀 Retire Earlier
 **Subtitle**: *What if I retired at 62 instead of 65?*
 
 **What It Does**:
-- Reduces `retirement_age` by 3 years
-- Shows portfolio impact of early retirement
+- User selects desired retirement age via modal (ages 55-70)
+- Calculates impact of retiring earlier (or later) than baseline
+- Shows portfolio longevity impact and lifestyle trade-offs
+
+**Scenario Modal - User Input**:
+```
+┌─────────────────────────────────────────────┐
+│ 🚀 Retire Earlier                    [X]   │
+│─────────────────────────────────────────────│
+│                                              │
+│ What This Does:                             │
+│ See how changing your retirement age        │
+│ affects your portfolio and lifestyle.       │
+│                                              │
+│ Your Baseline Retirement Age: 65            │
+│                                              │
+│ Test Retirement Age:                        │
+│ ┌─────────────────────────────────────────┐ │
+│ │  55  57  59  61  [62]  64  66  68  70  │ │ <- Radio buttons
+│ └─────────────────────────────────────────┘ │
+│                                              │
+│ Quick Impact Preview:                       │
+│ • Retire 3 years earlier (age 62)          │
+│ • Portfolio may deplete ~6 years sooner    │
+│ • Gain: 3 extra years of freedom           │
+│                                              │
+│─────────────────────────────────────────────│
+│        [ Cancel ]    [ Run Scenario ]       │
+└─────────────────────────────────────────────┘
+```
+
+**Modal Inputs**:
+- **Retirement Age**: Radio button group or slider (55-70, step 1)
+- **Default**: Current baseline retirement age - 3 years
+- **Validation**: Must be before longevity age
 
 **Implementation**:
-- Simple age modification: `retirement_age -= 3`
-- Recalculate with modified scenario
+```typescript
+export function createRetireEarlierVariant(
+  baseScenario: Scenario,
+  newRetirementAge: number
+): Scenario {
+  return {
+    ...baseScenario,
+    name: `Retire at ${newRetirementAge}`,
+    basic_inputs: {
+      ...baseScenario.basic_inputs,
+      retirement_age: newRetirementAge
+    },
+    income_sources: {
+      ...baseScenario.income_sources,
+      employment: baseScenario.income_sources.employment ? {
+        ...baseScenario.income_sources.employment,
+        until_age: newRetirementAge
+      } : undefined,
+      // Adjust pension start age if present
+      pension: baseScenario.income_sources.pension ? {
+        ...baseScenario.income_sources.pension,
+        start_age: newRetirementAge
+      } : undefined
+    }
+  }
+}
+```
 
 **Shows User**:
 ```
-Baseline (Retire at 65) vs Early (Retire at 62)
+Baseline (Retire at 65) vs Retire at 62
 
 Retirement Start: Age 65 → Age 62 (-3 years)
+Employment Ends: Age 65 → Age 62
+Pre-Retirement Savings Lost: ~$180K
 Portfolio Depletion: Age 95+ → Age 89
 Extra Years Retired: +3 years
 Cost: Portfolio exhausts 6 years earlier
+
+💡 Insight: Each year of early retirement costs
+approximately 2 years of portfolio longevity
 ```
 
-**User Value**: Feasibility check for early retirement dreams
-**Complexity**: LOW (30 min)
+**User Value**:
+- Feasibility check for early retirement dreams
+- Quantifies the cost of freedom (years vs dollars)
+- Common user question: "Can I afford to retire early?"
+
+**Complexity**: LOW-MEDIUM (30-45 min)
+- Modal UI: 15 min
+- Variant function: 10 min
+- Integration: 10 min
+
 **Priority**: LOW (Phase 3 - if user demand exists)
-**Trade-off**: Less impactful than optimization buttons
+**Trade-off**: Less algorithmic complexity than optimization buttons, but configurable makes it more useful
+
+---
+
+### 6. 🏛️ Leave a Legacy
+**Subtitle**: *Preserve 25% for heirs*
+
+**What It Does**:
+- Constrains withdrawals to preserve X% of starting portfolio
+- User selects preservation percentage (10%, 25%, or 50%)
+- Shows spending trade-off required to achieve legacy goal
+
+**Scenario Modal - User Input**:
+```
+┌─────────────────────────────────────────────┐
+│ 🏛️ Leave a Legacy                    [X]   │
+│─────────────────────────────────────────────│
+│                                              │
+│ What This Does:                             │
+│ Limit portfolio withdrawals to preserve     │
+│ a specific amount for your heirs.           │
+│                                              │
+│ Starting Portfolio: $2,000,000              │
+│                                              │
+│ Legacy Preservation Amount:                 │
+│ ┌─────────────────────────────────────────┐ │
+│ │   [10%]     [25%]     [50%]             │ │ <- Radio buttons
+│ │  $200K      $500K      $1M              │ │
+│ └─────────────────────────────────────────┘ │
+│                                              │
+│ Required Adjustment:                        │
+│ Reduce spending by ~$650/month (-13%)       │
+│                                              │
+│ Trade-off:                                  │
+│ -$7,800/year = $500K legacy                │
+│                                              │
+│─────────────────────────────────────────────│
+│        [ Cancel ]    [ Run Scenario ]       │
+└─────────────────────────────────────────────┘
+```
+
+**Modal Inputs**:
+- **Preservation Percentage**: Radio buttons (10%, 25%, 50%)
+- **Default**: 25% (recommended)
+- **Display**: Show dollar amount alongside percentage
+
+**Implementation**:
+```typescript
+export function createLegacyVariant(
+  baseScenario: Scenario,
+  percentage: number = 0.25
+): Scenario {
+  return {
+    ...baseScenario,
+    name: `Leave Legacy (${percentage * 100}%)`,
+    expenses: {
+      ...baseScenario.expenses,
+      legacy_preservation_percentage: percentage
+    }
+  }
+}
+```
+
+**Engine Modification** (`accounts.ts` and `engine.ts`):
+```typescript
+// In calculateWithdrawalSequence()
+const legacyTarget = scenario.expenses.legacy_preservation_percentage
+  ? totalStartingPortfolio * scenario.expenses.legacy_preservation_percentage
+  : 0;
+
+// Before withdrawing
+if (currentTotalBalance <= legacyTarget) {
+  // Preserve legacy - stop/reduce withdrawals
+  const availableForWithdrawal = Math.max(0, currentTotalBalance - legacyTarget);
+  targetWithdrawal = Math.min(targetWithdrawal, availableForWithdrawal);
+}
+```
+
+**Type Definition** (`types/calculator.ts`):
+```typescript
+interface Expenses {
+  fixed_monthly: number;
+  variable_annual?: number;
+  indexed_to_inflation: boolean;
+  age_based_changes?: AgeBasedExpenseChange[];
+  legacy_preservation_percentage?: number;  // NEW: 0.25 = 25%
+}
+```
+
+**Shows User**:
+```
+Baseline vs Leave a Legacy (25%)
+
+Starting Portfolio: $2,000,000
+Legacy Target: $500,000 (25%)
+
+Required Spending Adjustment:
+$5,000/month → $4,350/month (-13%)
+
+Annual Reduction: $7,800/year
+Total Lifetime Reduction: $234,000
+
+Legacy Value: $500,000
+(Preserved until age 95)
+
+💡 Insight: Each 10% preserved requires
+reducing spending by approximately 5-6%
+```
+
+**User Value**:
+- Balance lifestyle vs estate planning goals
+- Clear visualization of legacy trade-offs
+- Quantifies "What do I sacrifice to leave $X to heirs?"
+
+**Complexity**: MEDIUM (3-4 hours)
+- Modal UI: 30 min
+- Engine modifications: 2 hours
+- Type updates: 15 min
+- Integration & testing: 1-1.5 hours
+
+**Priority**: MEDIUM (Phase 2)
+**Note**: Percentage-based (not fixed $) scales with portfolio size, simpler UX
+
+---
+
+### 7. 💵 Lump Sum Withdrawal
+**Subtitle**: *Test a one-time large withdrawal*
+
+**What It Does**:
+- Models impact of withdrawing a large sum (wedding, renovation, travel, etc.)
+- User configures: amount, timing, and source account
+- Shows portfolio recovery timeline and longevity impact
+
+**Scenario Modal - User Input**:
+```
+┌─────────────────────────────────────────────┐
+│ 💵 Lump Sum Withdrawal              [X]    │
+│─────────────────────────────────────────────│
+│                                              │
+│ What This Does:                             │
+│ See the impact of a large one-time          │
+│ withdrawal on your retirement plan.         │
+│                                              │
+│ Withdrawal Amount:                          │
+│ ┌─────────────────────────────────────────┐ │
+│ │ $ [50,000]                              │ │ <- Input field
+│ └─────────────────────────────────────────┘ │
+│                                              │
+│ Withdrawal Age:                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │  [70]                                   │ │ <- Number input (retirement age - longevity)
+│ └─────────────────────────────────────────┘ │
+│                                              │
+│ Withdraw From:                              │
+│ ┌─────────────────────────────────────────┐ │
+│ │ ○ Non-Registered ($500K)                │ │
+│ │ ● RRSP ($800K) - Recommended            │ │ <- Radio buttons
+│ │ ○ TFSA ($200K)                          │ │
+│ │ ○ Smart Withdrawal (tax-optimized)      │ │
+│ └─────────────────────────────────────────┘ │
+│                                              │
+│ Quick Impact Preview:                       │
+│ • $50K RRSP withdrawal at age 70           │
+│ • Estimated tax: ~$15K                      │
+│ • Net received: ~$35K                       │
+│ • Portfolio depletes ~1 year earlier       │
+│                                              │
+│─────────────────────────────────────────────│
+│        [ Cancel ]    [ Run Scenario ]       │
+└─────────────────────────────────────────────┘
+```
+
+**Modal Inputs**:
+1. **Withdrawal Amount**: Text input, formatted as currency
+   - Validation: $1,000 - $1,000,000
+   - Default: $50,000
+2. **Withdrawal Age**: Number input
+   - Range: Retirement age to Longevity age - 1
+   - Default: Retirement age + 5
+3. **Source Account**: Radio button group
+   - Options: Non-Registered, RRSP, TFSA, Smart Withdrawal (tax-optimized)
+   - Show current balance for each account
+   - Default: "Smart Withdrawal" (engine decides optimal account)
+
+**Implementation**:
+```typescript
+export function createLumpSumWithdrawalVariant(
+  baseScenario: Scenario,
+  amount: number,
+  withdrawalAge: number,
+  sourceAccount: 'non_registered' | 'rrsp' | 'tfsa' | 'smart'
+): Scenario {
+  return {
+    ...baseScenario,
+    name: `$${(amount/1000).toFixed(0)}K Withdrawal at ${withdrawalAge}`,
+    expenses: {
+      ...baseScenario.expenses,
+      one_time_withdrawals: [
+        {
+          age: withdrawalAge,
+          amount: amount,
+          source: sourceAccount,
+          description: 'One-time withdrawal'
+        }
+      ]
+    }
+  }
+}
+```
+
+**Type Definition** (`types/calculator.ts`):
+```typescript
+interface OneTimeWithdrawal {
+  age: number;
+  amount: number;
+  source: 'non_registered' | 'rrsp' | 'tfsa' | 'smart';
+  description?: string;
+}
+
+interface Expenses {
+  fixed_monthly: number;
+  variable_annual?: number;
+  indexed_to_inflation: boolean;
+  age_based_changes?: AgeBasedExpenseChange[];
+  legacy_preservation_percentage?: number;
+  one_time_withdrawals?: OneTimeWithdrawal[];  // NEW
+}
+```
+
+**Engine Modification** (`engine.ts`):
+```typescript
+// In year-by-year loop
+const oneTimeWithdrawal = scenario.expenses.one_time_withdrawals?.find(
+  w => w.age === currentAge
+);
+
+if (oneTimeWithdrawal) {
+  const { amount, source } = oneTimeWithdrawal;
+
+  if (source === 'smart') {
+    // Use existing tax-optimized withdrawal sequencing
+    const withdrawal = calculateWithdrawalSequence(
+      amount / 12, // Convert to monthly for existing function
+      accounts,
+      provincialTax,
+      currentAge,
+      year
+    );
+    // Apply withdrawal...
+  } else {
+    // Withdraw from specific account
+    if (source === 'rrsp' && accounts.rrsp) {
+      accounts.rrsp.balance -= amount;
+      totalTax += calculateTaxOnRRSPWithdrawal(amount, ...);
+    } else if (source === 'tfsa' && accounts.tfsa) {
+      accounts.tfsa.balance -= amount; // No tax
+    } else if (source === 'non_registered' && accounts.non_registered) {
+      const { tax } = withdrawFromNonRegistered(accounts.non_registered, amount, ...);
+      totalTax += tax;
+    }
+  }
+}
+```
+
+**Shows User**:
+```
+Baseline vs $50K Withdrawal at Age 70
+
+Withdrawal Details:
+Amount: $50,000 (from RRSP)
+Timing: Age 70
+Tax Impact: $15,000 (30% marginal rate)
+Net Received: $35,000
+
+Portfolio Impact:
+Depletion Age: 95+ → 94 (-1 year)
+Recovery Time: Portfolio never fully recovers
+  (but still lasts to target age)
+
+Tax Comparison:
+Annual Tax (Age 70):
+  Baseline: $8,500
+  With Withdrawal: $23,500 (+$15,000)
+
+💡 Insight: RRSP withdrawals at age 70 are taxed
+at 30%. Consider TFSA ($0 tax) if available.
+
+Alternative: Withdraw from TFSA = $0 tax
+```
+
+**User Value**:
+- Common real-world scenario (weddings, renovations, travel, gifts)
+- Shows tax implications of different withdrawal sources
+- Helps users make informed decisions about timing
+
+**Complexity**: MEDIUM-HIGH (4-5 hours)
+- Modal UI with 3 inputs: 45 min
+- Type definitions: 15 min
+- Engine modifications: 2-2.5 hours
+- Tax calculation logic: 1 hour
+- Integration & testing: 1 hour
+
+**Priority**: MEDIUM-LOW (Phase 2-3)
+**Note**: Builds on existing withdrawal sequencing, adds one-time event handling
 
 ---
 
