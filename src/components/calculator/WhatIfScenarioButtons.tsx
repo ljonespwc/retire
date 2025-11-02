@@ -27,15 +27,15 @@ export function WhatIfScenarioButtons({
   onScenarioClick
 }: WhatIfScenarioButtonsProps) {
   return (
-    <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-6xl mx-auto`}>
+    <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-7xl mx-auto`}>
       <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4 text-center`}>
         Try What-If Scenarios
       </h3>
-      <div className="flex flex-wrap gap-3 justify-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <button
           onClick={() => onScenarioClick('front_load')}
           disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')}
-          className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
+          className={`text-left p-4 rounded-lg border transition-colors ${
             loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')
               ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
               : generatingVariantType === 'front_load'
@@ -68,7 +68,7 @@ export function WhatIfScenarioButtons({
         <button
           onClick={() => onScenarioClick('delay_benefits')}
           disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')}
-          className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
+          className={`text-left p-4 rounded-lg border transition-colors ${
             loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')
               ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
               : generatingVariantType === 'delay_benefits'
@@ -101,7 +101,7 @@ export function WhatIfScenarioButtons({
         <button
           onClick={() => onScenarioClick('exhaust')}
           disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')}
-          className={`flex-1 min-w-[280px] max-w-md text-left p-4 rounded-lg border transition-colors ${
+          className={`text-left p-4 rounded-lg border transition-colors ${
             loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')
               ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
               : generatingVariantType === 'exhaust'
@@ -128,6 +128,69 @@ export function WhatIfScenarioButtons({
             {variantScenarios.some(v => v.name === 'Exhaust Your Portfolio') && !generatingVariantType && (
               <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
             )}
+          </div>
+        </button>
+
+        {/* Retire Earlier - Disabled for now */}
+        <button
+          disabled
+          className={`text-left p-4 rounded-lg border transition-colors ${
+            isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl opacity-50">🚀</span>
+            <div className="flex-1">
+              <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                Retire Earlier
+              </div>
+              <p className={`text-sm ${theme.text.secondary}`}>
+                Test retiring 3-5 years sooner
+              </p>
+            </div>
+            <span className={`text-xs ${theme.text.muted} font-medium`}>Coming Soon</span>
+          </div>
+        </button>
+
+        {/* Leave a Legacy - Disabled for now */}
+        <button
+          disabled
+          className={`text-left p-4 rounded-lg border transition-colors ${
+            isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl opacity-50">🏛️</span>
+            <div className="flex-1">
+              <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                Leave a Legacy
+              </div>
+              <p className={`text-sm ${theme.text.secondary}`}>
+                Preserve 25% for heirs
+              </p>
+            </div>
+            <span className={`text-xs ${theme.text.muted} font-medium`}>Coming Soon</span>
+          </div>
+        </button>
+
+        {/* Lump Sum Withdrawal - Disabled for now */}
+        <button
+          disabled
+          className={`text-left p-4 rounded-lg border transition-colors ${
+            isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl opacity-50">💵</span>
+            <div className="flex-1">
+              <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                Lump Sum Withdrawal
+              </div>
+              <p className={`text-sm ${theme.text.secondary}`}>
+                Test a one-time large withdrawal
+              </p>
+            </div>
+            <span className={`text-xs ${theme.text.muted} font-medium`}>Coming Soon</span>
           </div>
         </button>
       </div>
