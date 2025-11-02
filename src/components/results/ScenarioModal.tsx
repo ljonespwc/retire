@@ -59,7 +59,7 @@ export function ScenarioModal({
     if (scenarioType === 'retire_early') {
       onRun({ newRetirementAge: selectedRetireAge })
     } else if (scenarioType === 'legacy') {
-      onRun({ legacyPercentage: selectedLegacyPercentage / 100 }) // Convert to decimal
+      onRun({ percentage: selectedLegacyPercentage / 100 }) // Convert to decimal
     } else {
       onRun()
     }
@@ -235,7 +235,7 @@ export function ScenarioModal({
                         : `$${Math.round((totalAssets * selectedLegacyPercentage / 100) / 1000)}K`
                     }) for heirs</div>
                     <div>• Portfolio will never drop below this target</div>
-                    <div>• May require reduced monthly spending</div>
+                    <div>• Spending will be optimized to reach target</div>
                   </div>
                 </div>
               </div>
@@ -362,7 +362,7 @@ function getScenarioConfig(
         title: 'Leave a Legacy',
         subtitle: `Preserve ${percentage}% for heirs`,
         description:
-          `Constrain your withdrawals to preserve ${percentage}% of your starting portfolio for estate planning. Shows the spending trade-off required to leave ${legacyTargetFormatted} to your heirs.`,
+          `Optimize your spending to preserve ${percentage}% of your starting portfolio for estate planning. Calculates the maximum monthly spending that leaves ${legacyTargetFormatted} to your heirs.`,
         parametersTitle: 'Legacy Settings',
         parameters: [
           {
@@ -375,8 +375,8 @@ function getScenarioConfig(
           }
         ],
         estimates: [
-          'Required spending adjustment: TBD (run to calculate)',
-          'Portfolio will never drop below legacy target'
+          'Spending optimized to end at legacy target',
+          'May increase or decrease from baseline'
         ]
       }
 

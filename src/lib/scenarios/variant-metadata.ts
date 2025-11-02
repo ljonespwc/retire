@@ -11,7 +11,8 @@ import {
   createFrontLoadVariant,
   createDelayCppOasVariant,
   createRetireEarlyVariant,
-  createExhaustPortfolioVariant
+  createExhaustPortfolioVariant,
+  createLegacyVariant
 } from '@/lib/calculations/scenario-variants'
 import { calculateCPPAdjustmentFactor, calculateOASAdjustmentFactor } from '@/lib/calculations/government-benefits'
 
@@ -23,6 +24,7 @@ export type VariantType =
   | 'delay-cpp-oas'
   | 'retire-early'
   | 'exhaust-portfolio'
+  | 'legacy'
 
 /**
  * Baseline snapshot stored with variants for standalone comparison context
@@ -125,6 +127,18 @@ export function regenerateVariant(
       // Use stored optimized spending from config (calculated during original optimization)
       const optimizedSpending = config?.optimizedSpending || baseScenario.expenses.fixed_monthly
       return createExhaustPortfolioVariant(baseScenario, optimizedSpending)
+    case 'legacy': {
+      // Use stored percentage from config or default to 25%
+      const percentage = config?.percentage || 0.25
+      const variant = createLegacyVariant(baseScenario, percentage)
+
+      // Use stored optimized spending if available (avoids re-running optimization)
+      if (config?.optimizedSpending) {
+        variant.expenses.fixed_monthly = config.optimizedSpending
+      }
+
+      return variant
+    }
     default:
       // Unknown variant type - return base scenario unchanged
       console.warn(`Unknown variant type: ${variantType}`)
@@ -140,7 +154,8 @@ export function getVariantDisplayName(variantType: VariantType): string {
     'front-load': 'Front-Load the Fun',
     'delay-cpp-oas': 'Delay CPP/OAS to Age 70',
     'retire-early': 'Retire Early',
-    'exhaust-portfolio': 'Exhaust Your Portfolio'
+    'exhaust-portfolio': 'Exhaust Your Portfolio',
+    'legacy': 'Leave a Legacy'
   }
   const baseName = names[variantType] || variantType
   return `What-If Variant: ${baseName}`
@@ -163,6 +178,9 @@ export function detectVariantTypeFromName(name: string): VariantType | null {
   }
   if (lowercaseName.includes('exhaust') || lowercaseName.includes('maximize') || lowercaseName.includes('maximum')) {
     return 'exhaust-portfolio'
+  }
+  if (lowercaseName.includes('legacy') || lowercaseName.includes('leave') || lowercaseName.includes('preserve')) {
+    return 'legacy'
   }
 
   return null
@@ -360,6 +378,61 @@ export function getVariantDetails(
           {
             label: 'Strategy',
             value: 'Portfolio depletes to ~$0 at your longevity age'
+          }
+        ]
+      }
+    }
+
+    case 'legacy': {
+      const percentage = scenario?.expenses.legacy_preservation_percentage || 0.25
+
+      // Calculate starting portfolio total
+      const startingPortfolio =
+        (scenario?.assets.rrsp?.balance || 0) +
+        (scenario?.assets.tfsa?.balance || 0) +
+        (scenario?.assets.non_registered?.balance || 0)
+
+      const legacyTarget = startingPortfolio * percentage
+
+      // Get optimized spending from scenario
+      const optimizedSpending = scenario?.expenses.fixed_monthly || 0
+      const baselineSpending = baselineSnapshot?.monthly_spending || optimizedSpending
+
+      // Calculate spending difference
+      const spendingDiff = optimizedSpending - baselineSpending
+      const spendingChangeText = spendingDiff > 0
+        ? `+$${Math.round(Math.abs(spendingDiff)).toLocaleString()}/month (+${Math.round((spendingDiff / baselineSpending) * 100)}%)`
+        : spendingDiff < 0
+        ? `-$${Math.round(Math.abs(spendingDiff)).toLocaleString()}/month (${Math.round((spendingDiff / baselineSpending) * 100)}%)`
+        : 'No change'
+
+      // Format baseline reference
+      const baselineLabel = baselineSnapshot
+        ? 'Baseline Plan Spending'
+        : 'Current Spending'
+
+      return {
+        title: `Leave a Legacy (${percentage * 100}% Preservation)`,
+        items: [
+          {
+            label: 'Starting Portfolio',
+            value: `$${Math.round(startingPortfolio).toLocaleString()}`
+          },
+          {
+            label: 'Legacy Target',
+            value: `$${Math.round(legacyTarget).toLocaleString()} (${percentage * 100}%)`
+          },
+          {
+            label: 'Optimized Spending',
+            value: `$${Math.round(optimizedSpending).toLocaleString()}/month`
+          },
+          {
+            label: baselineLabel,
+            value: `$${Math.round(baselineSpending).toLocaleString()}/month (${spendingChangeText})`
+          },
+          {
+            label: 'Strategy',
+            value: 'Spending optimized to end at legacy target'
           }
         ]
       }

@@ -9,6 +9,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateVariantInsight } from '@/lib/ai/variant-insight-generator';
 import { CalculationResults } from '@/types/calculator';
 
+interface SpendingComparison {
+  baselineMonthly: number;
+  variantMonthly: number;
+  legacyPercentage?: number;
+  legacyTarget?: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -16,6 +23,7 @@ export async function POST(request: NextRequest) {
     const variantResults: CalculationResults = body.variantResults;
     const variantName: string = body.variantName;
     const baselineScenarioName: string | undefined = body.baselineScenarioName;
+    const spendingComparison: SpendingComparison | undefined = body.spendingComparison;
 
     if (!baselineResults || !variantResults || !variantName) {
       return NextResponse.json(
@@ -35,7 +43,8 @@ export async function POST(request: NextRequest) {
       baselineResults,
       variantResults,
       variantName,
-      baselineScenarioName
+      baselineScenarioName,
+      spendingComparison
     );
 
     return NextResponse.json({ insight });

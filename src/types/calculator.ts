@@ -172,6 +172,8 @@ export interface Expenses {
   indexed_to_inflation: boolean;
   /** Age-based changes to spending patterns */
   age_based_changes?: AgeBasedExpenseChange[];
+  /** Legacy preservation percentage (e.g., 0.25 = 25%) */
+  legacy_preservation_percentage?: number;
 }
 
 /**

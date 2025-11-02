@@ -64,10 +64,9 @@ export function createDelayCppOasVariant(baseScenario: Scenario): Scenario {
  * Create "Leave a Legacy" variant
  * Preserves percentage of starting portfolio
  *
- * NOTE: This feature requires calculation engine support for legacy preservation.
- * Commented out until the Expenses interface includes legacy_preservation_percentage.
+ * @param baseScenario - Base retirement scenario
+ * @param percentage - Percentage to preserve (default 0.25 = 25%)
  */
-/*
 export function createLegacyVariant(
   baseScenario: Scenario,
   percentage: number = 0.25
@@ -77,11 +76,10 @@ export function createLegacyVariant(
     name: `Leave Legacy (${percentage * 100}%)`,
     expenses: {
       ...baseScenario.expenses,
-      // legacy_preservation_percentage: percentage
+      legacy_preservation_percentage: percentage
     }
   }
 }
-*/
 
 /**
  * Create "Retire Earlier" variant

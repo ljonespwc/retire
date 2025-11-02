@@ -28,7 +28,7 @@ import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
@@ -90,7 +90,7 @@ export function VoiceFirstContentV2() {
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | null>(null)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [isSavingVariantNarrative, setIsSavingVariantNarrative] = useState(false)
@@ -706,7 +706,7 @@ export function VoiceFirstContentV2() {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
-    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early')
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy')
     try {
       const baseScenario = createScenarioFromFormData()
       const supabase = createClient()
@@ -753,6 +753,29 @@ export function VoiceFirstContentV2() {
           }
           break
         }
+        case 'legacy': {
+          const percentage = config?.percentage || 0.25
+          console.log(`🏛️  Running legacy optimization for ${(percentage * 100).toFixed(0)}% preservation...`)
+
+          // Run binary search optimization to find spending that preserves legacy target
+          const { optimizeSpendingForLegacy } = await import('@/lib/calculations/scenario-optimizer')
+          const optimizationResult = await optimizeSpendingForLegacy(supabase, baseScenario, percentage)
+
+          console.log(`✅ Legacy optimization complete: $${Math.round(optimizationResult.optimizedSpending)}/mo preserves $${Math.round(optimizationResult.finalBalance).toLocaleString()} after ${optimizationResult.iterations} iterations`)
+
+          variant = createLegacyVariant(baseScenario, percentage)
+          // Override spending with optimized amount
+          variant.expenses.fixed_monthly = optimizationResult.optimizedSpending
+
+          // Store percentage and optimized spending in config for regeneration
+          variantConfig = {
+            percentage,
+            optimizedSpending: optimizationResult.optimizedSpending,
+            iterations: optimizationResult.iterations,
+            finalBalance: optimizationResult.finalBalance
+          }
+          break
+        }
         default:
           console.error(`Unknown scenario type: ${selectedScenarioType}`)
           return
@@ -785,6 +808,24 @@ export function VoiceFirstContentV2() {
           // Only generate comparison insight (cheap, useful)
           // Skip full narrative for temporary variants (expensive, repetitive)
           // Narratives only shown for baseline and saved variants
+
+          // Build spending comparison data (particularly important for legacy scenarios)
+          const spendingComparison: any = {
+            baselineMonthly: baseScenario.expenses.fixed_monthly,
+            variantMonthly: variant.expenses.fixed_monthly
+          }
+
+          // Add legacy-specific data if this is a legacy variant
+          if (selectedScenarioType === 'legacy' && variantConfig) {
+            const startingPortfolio =
+              (baseScenario.assets.rrsp?.balance || 0) +
+              (baseScenario.assets.tfsa?.balance || 0) +
+              (baseScenario.assets.non_registered?.balance || 0)
+
+            spendingComparison.legacyPercentage = variantConfig.percentage
+            spendingComparison.legacyTarget = startingPortfolio * variantConfig.percentage
+          }
+
           const insightResult = await fetch('/api/generate-insight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -792,7 +833,8 @@ export function VoiceFirstContentV2() {
               baselineResults: calculationResults,
               variantResults: results,
               variantName: variant.name,
-              baselineScenarioName: loadedScenarioName || undefined
+              baselineScenarioName: loadedScenarioName || undefined,
+              spendingComparison
             })
           })
             .then(res => res.json())

@@ -75,6 +75,13 @@ function formatCurrency(amount: number): string {
   return `${sign}$${Math.round(absAmount)}`;
 }
 
+interface SpendingComparison {
+  baselineMonthly: number;
+  variantMonthly: number;
+  legacyPercentage?: number;  // For Leave a Legacy variants
+  legacyTarget?: number;      // Target legacy amount
+}
+
 /**
  * Generate variant insight using LLM
  */
@@ -82,7 +89,8 @@ export async function generateVariantInsight(
   baselineResults: CalculationResults,
   variantResults: CalculationResults,
   variantName: string,
-  baselineScenarioName?: string
+  baselineScenarioName?: string,
+  spendingComparison?: SpendingComparison
 ): Promise<string> {
   try {
     const metrics = extractComparison(baselineResults, variantResults);
@@ -91,12 +99,31 @@ export async function generateVariantInsight(
     const baselineName = baselineScenarioName
       ? `your ${baselineScenarioName} baseline plan`
       : 'your baseline plan';
+
+    // Build spending comparison context if provided
+    let spendingContext = '';
+    if (spendingComparison) {
+      const spendingDiff = spendingComparison.variantMonthly - spendingComparison.baselineMonthly;
+      const spendingPercent = spendingComparison.baselineMonthly > 0
+        ? ((spendingDiff / spendingComparison.baselineMonthly) * 100).toFixed(1)
+        : '0';
+
+      spendingContext = `
+  - Baseline spending: ${formatCurrency(spendingComparison.baselineMonthly)}/month
+  - Variant spending: ${formatCurrency(spendingComparison.variantMonthly)}/month (${formatCurrency(spendingDiff)} / ${spendingPercent}%)`;
+
+      if (spendingComparison.legacyPercentage !== undefined && spendingComparison.legacyTarget !== undefined) {
+        spendingContext += `
+  - Legacy target: ${formatCurrency(spendingComparison.legacyTarget)} (${(spendingComparison.legacyPercentage * 100).toFixed(0)}% of starting portfolio)`;
+      }
+    }
+
     const context = `
 Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}
   - First year income: ${formatCurrency(baselineResults.first_year_retirement_income)}
   - Total CPP: ${formatCurrency(baselineResults.total_cpp_received)}
-  - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}
+  - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}${spendingContext}
 
 Variant: ${variantName}
   - Ending balance: ${formatCurrency(variantResults.final_portfolio_value)} (${formatCurrency(metrics.portfolioDiff)} / ${metrics.portfolioPercent.toFixed(1)}%)
@@ -118,7 +145,9 @@ Guidelines:
 - Use **bold** for key numbers (e.g., "ending balance drops by **$614K (3.5%)**")
 - Reference the baseline scenario by name in the opening
 - Explain WHY the outcome differs using specific metrics
-- Focus on portfolio balance, income, and taxes as primary metrics
+- Focus on portfolio balance, income, taxes, AND spending changes as primary metrics
+- For legacy preservation scenarios: ALWAYS mention spending adjustments needed to hit the legacy target
+- When spending increases/decreases by >10%, explain this tradeoff explicitly
 - Use plain English (no jargon)
 - Target: 60-100 words (3-4 sentences)`;
 
