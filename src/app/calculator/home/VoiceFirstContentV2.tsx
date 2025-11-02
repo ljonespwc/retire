@@ -82,7 +82,7 @@ export function VoiceFirstContentV2() {
 
   // What-if scenario state
   const [showScenarioModal, setShowScenarioModal] = useState(false)
-  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early'>('front_load')
+  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum'>('front_load')
   const [variantScenarios, setVariantScenarios] = useState<Scenario[]>([])
   const [variantResultsArray, setVariantResultsArray] = useState<CalculationResults[]>([])
   const [variantInsights, setVariantInsights] = useState<string[]>([])
@@ -90,7 +90,7 @@ export function VoiceFirstContentV2() {
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | null>(null)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [isSavingVariantNarrative, setIsSavingVariantNarrative] = useState(false)
@@ -696,7 +696,7 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle scenario button click
-  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early') => {
+  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum') => {
     setSelectedScenarioType(scenarioType)
     setShowScenarioModal(true)
   }
@@ -706,7 +706,7 @@ export function VoiceFirstContentV2() {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
-    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy')
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum')
     try {
       const baseScenario = createScenarioFromFormData()
       const supabase = createClient()
@@ -1352,7 +1352,13 @@ export function VoiceFirstContentV2() {
         baselineMonthly={monthlySpending || 0}
         retirementAge={retirementAge || 65}
         currentAge={currentAge || 18}
+        longevityAge={longevityAge || 95}
         totalAssets={(rrsp || 0) + (tfsa || 0) + (nonRegistered || 0)}
+        rrspBalance={rrsp || 0}
+        tfsaBalance={tfsa || 0}
+        nonRegisteredBalance={nonRegistered || 0}
+        cppStartAge={cppStartAge || 65}
+        oasStartAge={65}
         isDarkMode={isDarkMode}
         onRun={handleRunScenario}
       />

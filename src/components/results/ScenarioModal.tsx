@@ -12,11 +12,17 @@ import { useState } from 'react'
 interface ScenarioModalProps {
   isOpen: boolean
   onClose: () => void
-  scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early'
+  scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum'
   baselineMonthly: number
   retirementAge: number
   currentAge: number
+  longevityAge?: number // For lump sum age validation
   totalAssets?: number // Total starting portfolio for legacy calculations
+  rrspBalance?: number // For lump sum source account selection
+  tfsaBalance?: number // For lump sum source account selection
+  nonRegisteredBalance?: number // For lump sum source account selection
+  cppStartAge?: number // For delay benefits modal to show baseline CPP age
+  oasStartAge?: number // For delay benefits modal to show baseline OAS age
   isDarkMode?: boolean
   onRun: (config?: any) => void // Config for parameterized scenarios
 }
@@ -28,7 +34,13 @@ export function ScenarioModal({
   baselineMonthly,
   retirementAge,
   currentAge,
+  longevityAge = 95,
   totalAssets = 0,
+  rrspBalance = 0,
+  tfsaBalance = 0,
+  nonRegisteredBalance = 0,
+  cppStartAge = 65,
+  oasStartAge = 65,
   isDarkMode = false,
   onRun
 }: ScenarioModalProps) {
@@ -39,6 +51,11 @@ export function ScenarioModal({
   // State for legacy percentage selection (default to 25%)
   const [selectedLegacyPercentage, setSelectedLegacyPercentage] = useState(25)
 
+  // State for lump sum withdrawal (default: $100K, age retirement+5, smart withdrawal)
+  const [lumpSumAmount, setLumpSumAmount] = useState(100000)
+  const [lumpSumAge, setLumpSumAge] = useState(Math.min(retirementAge + 5, longevityAge - 1))
+  const [lumpSumSource, setLumpSumSource] = useState<'non_registered' | 'rrsp' | 'tfsa' | 'smart'>('smart')
+
   // Reset state when modal opens (only on isOpen transition from false to true)
   const [previousIsOpen, setPreviousIsOpen] = useState(isOpen)
 
@@ -47,19 +64,24 @@ export function ScenarioModal({
     if (isOpen) {
       setSelectedRetireAge(getDefaultRetireAge())
       setSelectedLegacyPercentage(25)
+      setLumpSumAmount(100000)
+      setLumpSumAge(Math.min(retirementAge + 5, longevityAge - 1))
+      setLumpSumSource('smart')
     }
   }
 
   if (!isOpen) return null
 
-  const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge, totalAssets, selectedRetireAge, selectedLegacyPercentage)
+  const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge, totalAssets, selectedRetireAge, selectedLegacyPercentage, cppStartAge, oasStartAge)
 
-  // Handle run with config for retire_early and legacy
+  // Handle run with config for retire_early, legacy, and lump_sum
   const handleRun = () => {
     if (scenarioType === 'retire_early') {
       onRun({ newRetirementAge: selectedRetireAge })
     } else if (scenarioType === 'legacy') {
       onRun({ percentage: selectedLegacyPercentage / 100 }) // Convert to decimal
+    } else if (scenarioType === 'lump_sum') {
+      onRun({ amount: lumpSumAmount, withdrawalAge: lumpSumAge, sourceAccount: lumpSumSource })
     } else {
       onRun()
     }
@@ -242,6 +264,111 @@ export function ScenarioModal({
             </div>
           )}
 
+          {/* Lump Sum Withdrawal Selector */}
+          {scenarioType === 'lump_sum' && (
+            <div className="space-y-4">
+              {/* Withdrawal Amount */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Withdrawal Amount:
+                </h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {[10000, 50000, 100000, 150000, 200000, 300000, 500000, 750000, 1000000, 1500000, 2000000, 3000000].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => setLumpSumAmount(amount)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        lumpSumAmount === amount
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      ${amount >= 1000000 ? `${(amount / 1000000).toFixed(1)}M` : `${amount / 1000}K`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Withdrawal Age */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Withdrawal Age:
+                </h3>
+                <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                  <input
+                    type="number"
+                    min={retirementAge}
+                    max={longevityAge - 1}
+                    value={lumpSumAge}
+                    onChange={(e) => setLumpSumAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
+                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
+                      isDarkMode
+                        ? 'bg-gray-600 text-white border-2 border-gray-500'
+                        : 'bg-white text-gray-900 border-2 border-gray-300'
+                    }`}
+                  />
+                  <div className={`text-xs ${textSecondary} mt-2`}>
+                    Age must be between {retirementAge} (retirement) and {longevityAge - 1}
+                  </div>
+                </div>
+              </div>
+
+              {/* Source Account */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Withdraw From:
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { value: 'smart' as const, label: 'Smart Withdrawal (Tax-Optimized)', balance: null, recommended: true },
+                    { value: 'rrsp' as const, label: 'RRSP', balance: rrspBalance, recommended: false },
+                    { value: 'tfsa' as const, label: 'TFSA', balance: tfsaBalance, recommended: false },
+                    { value: 'non_registered' as const, label: 'Non-Registered', balance: nonRegisteredBalance, recommended: false }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setLumpSumSource(option.value)}
+                      disabled={option.balance !== null && option.balance === 0}
+                      className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all ${
+                        lumpSumSource === option.value
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : option.balance === 0
+                          ? isDarkMode
+                            ? 'bg-gray-700 text-gray-500 border-2 border-gray-600 cursor-not-allowed'
+                            : 'bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">{option.label}</span>
+                          {option.recommended && (
+                            <span className={`ml-2 text-xs ${lumpSumSource === option.value ? 'text-blue-200' : isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                              (Recommended)
+                            </span>
+                          )}
+                        </div>
+                        {option.balance !== null && (
+                          <span className={`text-xs ${lumpSumSource === option.value ? 'text-blue-100' : textSecondary}`}>
+                            {option.balance >= 1000000 ? `$${(option.balance / 1000000).toFixed(1)}M` : `$${Math.round(option.balance / 1000)}K`}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Parameters */}
           {scenario.parameters && (
             <div>
@@ -298,7 +425,9 @@ function getScenarioConfig(
   retirementAge: number,
   totalAssets: number,
   selectedRetireAge?: number,
-  selectedLegacyPercentage?: number
+  selectedLegacyPercentage?: number,
+  cppStartAge: number = 65,
+  oasStartAge: number = 65
 ) {
   const baselineAnnual = baselineMonthly * 12
 
@@ -381,26 +510,32 @@ function getScenarioConfig(
       }
 
     case 'delay_benefits':
+      // Calculate percentage increases from baseline CPP/OAS ages to 70
+      const cppYearsDelay = 70 - cppStartAge
+      const oasYearsDelay = 70 - oasStartAge
+      const cppIncreasePct = cppYearsDelay * 8.4 // 0.7% per month = 8.4% per year
+      const oasIncreasePct = oasYearsDelay * 7.2 // 0.6% per month = 7.2% per year
+
       return {
         icon: '⏰',
         title: 'Delay CPP/OAS',
-        subtitle: 'Start government benefits at 70 instead of 65',
+        subtitle: `Start government benefits at 70 instead of ${cppStartAge}`,
         description:
-          'Compare starting CPP and OAS at age 70 vs 65. CPP increases 42% and OAS increases 36% with delay, but requires 5 years of portfolio withdrawals.',
+          `Compare starting CPP and OAS at age 70 vs ${cppStartAge}. CPP increases ${cppIncreasePct.toFixed(0)}% and OAS increases ${oasIncreasePct.toFixed(0)}% with delay, but requires ${cppYearsDelay} years of portfolio withdrawals.`,
         parametersTitle: 'Benefit Increases',
         parameters: [
           {
-            label: 'CPP at 70: +42% vs age 65',
-            detail: '~$22K/year instead of $15.5K'
+            label: `CPP at 70: +${cppIncreasePct.toFixed(0)}% vs age ${cppStartAge}`,
+            detail: cppStartAge === 65 ? '~$22K/year instead of $15.5K' : `${cppYearsDelay} year delay = ${cppIncreasePct.toFixed(0)}% increase`
           },
           {
-            label: 'OAS at 70: +36% vs age 65',
-            detail: '~$12K/year instead of $8.8K'
+            label: `OAS at 70: +${oasIncreasePct.toFixed(0)}% vs age ${oasStartAge}`,
+            detail: oasStartAge === 65 ? '~$12K/year instead of $8.8K' : `${oasYearsDelay} year delay = ${oasIncreasePct.toFixed(0)}% increase`
           }
         ],
         estimates: [
-          'Lifetime income gain: ~$127K (to age 95)',
-          'Requires: $250K extra portfolio at 65'
+          cppStartAge === 65 ? 'Lifetime income gain: ~$127K (to age 95)' : `${cppYearsDelay + oasYearsDelay} total years of delay`,
+          cppStartAge === 65 ? 'Requires: $250K extra portfolio at 65' : `Higher monthly benefits for life`
         ]
       }
 
@@ -418,6 +553,21 @@ function getScenarioConfig(
         estimates: [
           `+${yearsEarlier} extra year${yearsEarlier > 1 ? 's' : ''} of retirement`,
           `Portfolio depletes ~${yearsEarlier * 2} years earlier`
+        ]
+      }
+
+    case 'lump_sum':
+      return {
+        icon: '💵',
+        title: 'Lump Sum Withdrawal',
+        subtitle: 'Test a one-time large withdrawal',
+        description:
+          'Model the impact of a large one-time withdrawal (wedding, renovation, travel, gift to family) on your retirement plan. See tax implications and portfolio recovery timeline.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Configure withdrawal amount, age, and source account above',
+          'Results show tax impact and portfolio longevity'
         ]
       }
 

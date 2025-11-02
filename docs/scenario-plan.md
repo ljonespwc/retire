@@ -1,15 +1,16 @@
 # What-If Scenario Buttons - Implementation Plan
 
-**Status**: ✅ Phase 2 Partially Complete (3/5 scenarios implemented)
+**Status**: ✅ Phase 2 Complete (5/5 core scenarios implemented) | 🔜 Phase 3 Pending (Lump Sum Withdrawal)
 **Target Implementation**: Phase 4 (Post-MVP)
-**Estimated Total Effort**: 12-16 hours
+**Estimated Total Effort**: 12-16 hours (14 hours actual)
 
 **Implementation Log**:
 - ✅ **Front-Load the Fun** - Implemented (Phase 1)
 - ✅ **Delay CPP/OAS to 70** - Implemented (Phase 1)
 - ✅ **Exhaust Your Portfolio** - Implemented 2025-10-31 (Phase 2) - Binary search optimizer with 8-15 iterations, edge case handling for overspending, stores optimizedSpending in variant metadata
-- 🔜 **Leave a Legacy** - Pending (Phase 2)
-- 🔜 **Retire Earlier** - Pending (Phase 3)
+- ✅ **Leave a Legacy** - Implemented 2025-11-02 (Phase 2) - Percentage-based preservation (10%, 25%, 50%), binary search optimization, wide search range (0.3x-5.0x baseline)
+- ✅ **Retire Earlier** - Implemented 2025-11-01 (Phase 3) - Configurable retirement age (55-70), modal UI with radio buttons, regeneration support
+- 🔜 **Lump Sum Withdrawal** - Pending (Phase 3)
 
 ---
 
