@@ -12,6 +12,7 @@ import { CalculationResults, YearByYearResult } from '@/types/calculator'
  */
 export interface FormattedSummary {
   monthlyAfterTaxIncome: number
+  lifetimeNetIncome: number  // Total after-tax income across entire retirement
   successIndicator: 'sufficient' | 'concerning' | 'depleted'
   retirementAge: number
   yearsInRetirement: number
@@ -90,8 +91,15 @@ export function formatSummary(results: CalculationResults, retirementAge: number
   // Calculate years in retirement
   const yearsInRetirement = lastYear.age - firstRetirementYear.age
 
+  // Calculate lifetime total after-tax income (across all retirement years)
+  const retirementYears = results.year_by_year.filter(year => year.age >= retirementAge)
+  const lifetimeNetIncome = retirementYears.reduce((sum, year) => {
+    return sum + (year.income.total - year.tax.total)
+  }, 0)
+
   return {
     monthlyAfterTaxIncome,
+    lifetimeNetIncome,
     successIndicator,
     retirementAge: firstRetirementYear.age,
     yearsInRetirement,

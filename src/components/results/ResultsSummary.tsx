@@ -73,6 +73,9 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false, var
         <div className={`text-6xl font-bold ${valueColor}`}>
           {formatCurrency(summary.monthlyAfterTaxIncome)}/mth
         </div>
+        <div className={`text-sm ${subLabelColor} mt-2`}>
+          Lifetime total: {formatCompactCurrency(summary.lifetimeNetIncome)} after taxes
+        </div>
       </div>
 
       {/* Action Buttons (Save/Share) */}
