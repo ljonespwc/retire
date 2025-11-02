@@ -1262,6 +1262,26 @@ User creates variant → Saves → Loads later → Edits form → Clicks Calcula
 - `/src/lib/calculations/scenario-variants.ts` - Variant creation functions
 - `/src/app/calculator/home/VoiceFirstContentV2.tsx:572-576` - Regeneration trigger
 
+### Critical Learnings for Lump Sum Implementation (2025-11-02)
+
+**1. Binary Search Range Must Be Wide (0.3x-5.0x baseline)**
+- Leave a Legacy 10% required +60% spending increase (not reduction!)
+- Narrow range (0.8x-1.2x) failed - couldn't find solution outside 20% bounds
+- Lump Sum will have same issue: large withdrawal might require reduction OR allow increase
+- See `/src/lib/calculations/scenario-optimizer.ts:203-207` for reference
+
+**2. Pass Spending Comparison to AI Insights**
+- AI needs spending data, not just calculation results, to explain variants
+- Add `spendingComparison` object when calling `/api/generate-insight`
+- For Lump Sum: Include withdrawal amount, age, source account, tax impact
+- See `/src/app/calculator/home/VoiceFirstContentV2.tsx:812-827` for pattern
+
+**3. Add Lifetime Total as Secondary Metric**
+- Year 1 After-Tax Income misleads for one-time events (only shows withdrawal year)
+- Added "Lifetime total: $1.8M after taxes" below Year 1
+- Captures full impact: withdrawal tax + reduced growth + adjusted spending
+- See `/src/lib/calculations/results-formatter.ts:94-98` for implementation
+
 ### Critical Bug Pattern: retirement_age Modifications (2025-11-01)
 
 ⚠️ **LESSON LEARNED**: When a variant modifies `basic_inputs.retirement_age` (like "Retire Earlier"), special care must be taken when displaying results.
