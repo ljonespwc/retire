@@ -201,17 +201,40 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
   }
 
   // Calculate dropdown position when opening
-  const handleToggle = () => {
-    if (!isOpen && buttonRef.current) {
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 8,
+        left: rect.left,
         width: rect.width
       })
     }
+  }
+
+  const handleToggle = () => {
+    if (!isOpen) {
+      updateDropdownPosition()
+    }
     setIsOpen(!isOpen)
   }
+
+  // Update dropdown position on scroll/resize when open
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleUpdate = () => {
+      updateDropdownPosition()
+    }
+
+    window.addEventListener('scroll', handleUpdate, true) // Capture scroll from all elements
+    window.addEventListener('resize', handleUpdate)
+
+    return () => {
+      window.removeEventListener('scroll', handleUpdate, true)
+      window.removeEventListener('resize', handleUpdate)
+    }
+  }, [isOpen])
 
   return (
     <div className="relative">
