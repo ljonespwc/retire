@@ -1261,3 +1261,41 @@ User creates variant → Saves → Loads later → Edits form → Clicks Calcula
 - `/src/lib/scenarios/variant-metadata.ts` - Metadata handling, regeneration, detection, display
 - `/src/lib/calculations/scenario-variants.ts` - Variant creation functions
 - `/src/app/calculator/home/VoiceFirstContentV2.tsx:572-576` - Regeneration trigger
+
+### Critical Bug Pattern: retirement_age Modifications (2025-11-01)
+
+⚠️ **LESSON LEARNED**: When a variant modifies `basic_inputs.retirement_age` (like "Retire Earlier"), special care must be taken when displaying results.
+
+**The Bug**:
+- Variants that modify `retirement_age` (e.g., "Retire 3 Years Earlier" changes age 61 → 58) break ResultsSummary display
+- When a saved variant is loaded, BaselineResults receives the variant's calculation results BUT the form's `retirementAge` state still reflects the baseline value
+- `formatSummary()` uses the `retirementAge` parameter to find the first retirement year:
+  ```typescript
+  const firstRetirementYear = results.year_by_year.find(
+    year => year.age >= retirementAge  // Looking for age >= 61 (baseline)
+  )
+  ```
+- If results start at age 58 but we search for age >= 61, it skips 3 years and shows wrong data
+
+**The Fix** (VoiceFirstContentV2.tsx:1155):
+```typescript
+// WRONG: Uses form state which may be baseline value
+retirementAge={retirementAge || 65}
+
+// CORRECT: Use variant's retirement age if variant is loaded
+retirementAge={loadedVariantScenario?.basic_inputs.retirement_age || retirementAge || 65}
+```
+
+**Why Other Variants Didn't Have This Bug**:
+- Front-Load: Modifies `expenses.age_based_changes` (spending patterns) - retirement age unchanged
+- Delay CPP/OAS: Modifies `income_sources.cpp.start_age` and `oas.start_age` - retirement age unchanged
+- Exhaust Portfolio: Modifies `expenses.fixed_monthly` (spending amount) - retirement age unchanged
+- Only "Retire Earlier" modifies `basic_inputs.retirement_age` itself
+
+**Design Principle**:
+When passing the `retirementAge` parameter to any results display component, ALWAYS prioritize the loaded scenario's value over form state:
+```typescript
+retirementAge={loadedScenario?.basic_inputs.retirement_age || formState.retirementAge || defaultValue}
+```
+
+This ensures that results are formatted using the retirement age from the actual calculation, not from potentially stale form state.
