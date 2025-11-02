@@ -85,20 +85,37 @@ export function createLegacyVariant(
 
 /**
  * Create "Retire Earlier" variant
- * Reduces retirement age by specified years
+ * Sets retirement age to specific age
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param newRetirementAge - Target retirement age (or years earlier if < 20)
  */
 export function createRetireEarlyVariant(
   baseScenario: Scenario,
-  yearsEarlier: number = 3
+  newRetirementAge: number
 ): Scenario {
-  const newRetirementAge = baseScenario.basic_inputs.retirement_age - yearsEarlier
+  // If newRetirementAge is small (< 20), treat it as "years earlier"
+  // Otherwise, treat it as the actual retirement age
+  const targetAge = newRetirementAge < 20
+    ? baseScenario.basic_inputs.retirement_age - newRetirementAge
+    : newRetirementAge
+
+  const yearsEarlier = baseScenario.basic_inputs.retirement_age - targetAge
 
   return {
     ...baseScenario,
-    name: `Retire ${yearsEarlier} Years Earlier`,
+    name: `Retire ${yearsEarlier} Year${yearsEarlier !== 1 ? 's' : ''} Earlier`,
     basic_inputs: {
       ...baseScenario.basic_inputs,
-      retirement_age: newRetirementAge
+      retirement_age: targetAge
+    },
+    income_sources: {
+      ...baseScenario.income_sources,
+      // Update employment end age if present
+      employment: baseScenario.income_sources.employment ? {
+        ...baseScenario.income_sources.employment,
+        until_age: targetAge
+      } : undefined
     }
   }
 }

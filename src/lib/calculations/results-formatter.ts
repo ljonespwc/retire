@@ -61,7 +61,8 @@ export interface FormattedTaxSummary {
  * Format calculation results into summary metrics
  */
 export function formatSummary(results: CalculationResults, retirementAge: number): FormattedSummary {
-  // Find first retirement year (first year where income > 0 or at retirement age)
+  // Find first retirement year at/after retirement age
+  // Use the FIRST year at/after retirement age, regardless of tax
   const firstRetirementYear = results.year_by_year.find(
     year => year.age >= retirementAge
   )

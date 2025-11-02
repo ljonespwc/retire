@@ -118,9 +118,9 @@ export function regenerateVariant(
     case 'delay-cpp-oas':
       return createDelayCppOasVariant(baseScenario)
     case 'retire-early':
-      // Check if config has yearsEarlier parameter
-      const yearsEarlier = config?.yearsEarlier || 3
-      return createRetireEarlyVariant(baseScenario, yearsEarlier)
+      // Check if config has newRetirementAge parameter
+      const newRetirementAge = config?.newRetirementAge || baseScenario.basic_inputs.retirement_age - 3
+      return createRetireEarlyVariant(baseScenario, newRetirementAge)
     case 'exhaust-portfolio':
       // Use stored optimized spending from config (calculated during original optimization)
       const optimizedSpending = config?.optimizedSpending || baseScenario.expenses.fixed_monthly

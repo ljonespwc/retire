@@ -28,7 +28,7 @@ import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
@@ -88,8 +88,9 @@ export function VoiceFirstContentV2() {
   const [variantInsights, setVariantInsights] = useState<string[]>([])
   const [variantNarratives, setVariantNarratives] = useState<string[]>([])
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
+  const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | null>(null)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [isSavingVariantNarrative, setIsSavingVariantNarrative] = useState(false)
@@ -223,6 +224,7 @@ export function VoiceFirstContentV2() {
     setVariantScenarios([])
     setVariantResultsArray([])
     setVariantScenarioIds([])
+    setVariantConfigs([])
     setVariantInsights([])
     setVariantNarratives([])
   }
@@ -458,6 +460,7 @@ export function VoiceFirstContentV2() {
     setVariantScenarios([])
     setVariantResultsArray([])
     setVariantScenarioIds([])
+    setVariantConfigs([])
     setVariantInsights([])
     setVariantNarratives([])
 
@@ -585,6 +588,7 @@ export function VoiceFirstContentV2() {
     // Clear all variants and loaded variant metadata
     setVariantScenarios([])
     setVariantResultsArray([])
+    setVariantConfigs([])
     setLoadedVariantMetadata(null)
 
     // Proceed with calculation (handleCalculate will be called again without variants active)
@@ -698,11 +702,11 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle running scenario calculation
-  const handleRunScenario = async () => {
+  const handleRunScenario = async (config?: any) => {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
-    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust')
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early')
     try {
       const baseScenario = createScenarioFromFormData()
       const supabase = createClient()
@@ -720,6 +724,17 @@ export function VoiceFirstContentV2() {
         case 'delay_benefits':
           variant = createDelayCppOasVariant(baseScenario)
           break
+        case 'retire_early': {
+          const newRetirementAge = config?.newRetirementAge || baseScenario.basic_inputs.retirement_age - 3
+          console.log(`🚀 Creating retire early variant: Age ${newRetirementAge}`)
+          variant = createRetireEarlyVariant(baseScenario, newRetirementAge)
+
+          // Store config for regeneration
+          variantConfig = {
+            newRetirementAge
+          }
+          break
+        }
         case 'exhaust': {
           // Run binary search optimization to find maximum spending
           console.log('💰 Running binary search optimization...')
@@ -818,6 +833,10 @@ export function VoiceFirstContentV2() {
         newIds[existingIndex] = variantScenarioIds[existingIndex]  // Preserve for "update" on save
         setVariantScenarioIds(newIds)
 
+        const newConfigs = [...variantConfigs]
+        newConfigs[existingIndex] = variantConfig
+        setVariantConfigs(newConfigs)
+
         // Focus on the replaced variant tab
         setActiveVariantTab(existingIndex)
       } else {
@@ -827,6 +846,7 @@ export function VoiceFirstContentV2() {
         setVariantResultsArray([...variantResultsArray, results])
         setVariantInsights([...variantInsights, insight || ''])
         setVariantNarratives([...variantNarratives, narrative || ''])
+        setVariantConfigs([...variantConfigs, variantConfig])
 
         // Focus on the newly created variant tab
         setActiveVariantTab(newIndex)
@@ -847,6 +867,7 @@ export function VoiceFirstContentV2() {
       setVariantInsights(variantInsights.filter((_, i) => i !== index))
       setVariantNarratives(variantNarratives.filter((_, i) => i !== index))
       setVariantScenarioIds(variantScenarioIds.filter((_, i) => i !== index))
+      setVariantConfigs(variantConfigs.filter((_, i) => i !== index))
       setVariantShareTokens(variantShareTokens.filter((_, i) => i !== index))
       setVariantIsShared(variantIsShared.filter((_, i) => i !== index))
 
@@ -866,6 +887,7 @@ export function VoiceFirstContentV2() {
       setVariantInsights([])
       setVariantNarratives([])
       setVariantScenarioIds([])
+      setVariantConfigs([])
       setVariantShareTokens([])
       setVariantIsShared([])
       setActiveVariantTab(0)
@@ -1130,7 +1152,7 @@ export function VoiceFirstContentV2() {
             {variantScenarios.length === 0 && (
               <BaselineResults
                 calculationResults={calculationResults}
-                retirementAge={retirementAge || 65}
+                retirementAge={loadedVariantScenario?.basic_inputs.retirement_age || retirementAge || 65}
                 isDarkMode={isDarkMode}
                 baselineNarrative={baselineNarrative}
                 loadedVariantMetadata={loadedVariantMetadata}
@@ -1154,10 +1176,41 @@ export function VoiceFirstContentV2() {
             )}
 
             {/* Scenario Comparison Tabs (shown when variants exist) */}
-            {variantScenarios.length > 0 && variantResultsArray.length > 0 && (
-              <ScenarioComparison
-                baselineScenario={createScenarioFromFormData()}
-                baselineResults={calculationResults}
+            {variantScenarios.length > 0 && variantResultsArray.length > 0 && (() => {
+              const baseScenario = createScenarioFromFormData()
+              const reconstructedBaseline = loadedVariantMetadata && baselineSnapshot
+                ? {
+                    ...baseScenario,
+                    basic_inputs: {
+                      ...baseScenario.basic_inputs,
+                      retirement_age: baselineSnapshot.retirement_age
+                    },
+                    income_sources: {
+                      ...baseScenario.income_sources,
+                      employment: baseScenario.income_sources.employment ? {
+                        annual_amount: baseScenario.income_sources.employment.annual_amount,
+                        until_age: baselineSnapshot.retirement_age
+                      } : undefined,
+                      cpp: baseScenario.income_sources.cpp ? {
+                        monthly_amount_at_65: baseScenario.income_sources.cpp.monthly_amount_at_65,
+                        start_age: baselineSnapshot.cpp_start_age
+                      } : undefined,
+                      oas: baseScenario.income_sources.oas ? {
+                        monthly_amount: baseScenario.income_sources.oas.monthly_amount,
+                        start_age: baselineSnapshot.oas_start_age
+                      } : undefined
+                    },
+                    expenses: {
+                      ...baseScenario.expenses,
+                      fixed_monthly: baselineSnapshot.monthly_spending
+                    }
+                  } as Scenario
+                : baseScenario
+
+              return (
+                <ScenarioComparison
+                  baselineScenario={reconstructedBaseline}
+                  baselineResults={calculationResults}
                 baselineNarrative={baselineNarrative}
                 baselineScenarioId={scenarioId}
                 baselineScenarioName={loadedScenarioName || undefined}
@@ -1178,7 +1231,7 @@ export function VoiceFirstContentV2() {
                 onReset={handleResetVariant}
                 isSavingNarrative={isSavingVariantNarrative}
               />
-            )}
+            )})()}
 
             {/* Calculation Disclosure */}
             <CalculationDisclosure isDark={isDarkMode} />
@@ -1206,7 +1259,7 @@ export function VoiceFirstContentV2() {
         isDarkMode={isDarkMode}
         defaultName={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? variantScenarios[savingVariantIndex].name : scenarioId ? loadedScenarioName || undefined : undefined}
         variantType={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? detectVariantTypeFromName(variantScenarios[savingVariantIndex].name) || undefined : loadedVariantMetadata?.variant_type}
-        variantConfig={loadedVariantMetadata?.variant_config}
+        variantConfig={savingVariantIndex !== null ? variantConfigs[savingVariantIndex] : loadedVariantMetadata?.variant_config}
         scenarioId={savingVariantIndex !== null ? variantScenarioIds[savingVariantIndex] : scenarioId}
         baselineScenarioName={savingVariantIndex !== null ? (loadedScenarioName || 'Your Baseline') : undefined}
         baselineResults={savingVariantIndex !== null ? (calculationResults ?? undefined) : undefined}
@@ -1256,6 +1309,7 @@ export function VoiceFirstContentV2() {
         scenarioType={selectedScenarioType}
         baselineMonthly={monthlySpending || 0}
         retirementAge={retirementAge || 65}
+        currentAge={currentAge || 18}
         isDarkMode={isDarkMode}
         onRun={handleRunScenario}
       />

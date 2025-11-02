@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 /**
  * Scenario Modal
  *
@@ -13,8 +15,9 @@ interface ScenarioModalProps {
   scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early'
   baselineMonthly: number
   retirementAge: number
+  currentAge: number
   isDarkMode?: boolean
-  onRun: () => void
+  onRun: (config?: any) => void // Config for parameterized scenarios
 }
 
 export function ScenarioModal({
@@ -23,12 +26,37 @@ export function ScenarioModal({
   scenarioType,
   baselineMonthly,
   retirementAge,
+  currentAge,
   isDarkMode = false,
   onRun
 }: ScenarioModalProps) {
+  // State for retire early age selection (default to 3 years earlier, but not before current age)
+  const getDefaultRetireAge = () => Math.max(retirementAge - 3, currentAge)
+  const [selectedRetireAge, setSelectedRetireAge] = useState(getDefaultRetireAge())
+
+  // Reset state when modal opens (only on isOpen transition from false to true)
+  const [previousIsOpen, setPreviousIsOpen] = useState(isOpen)
+
+  if (isOpen !== previousIsOpen) {
+    setPreviousIsOpen(isOpen)
+    if (isOpen) {
+      setSelectedRetireAge(getDefaultRetireAge())
+    }
+  }
+
   if (!isOpen) return null
 
-  const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge)
+  const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge, selectedRetireAge)
+
+  // Handle run with config for retire_early
+  const handleRun = () => {
+    if (scenarioType === 'retire_early') {
+      onRun({ newRetirementAge: selectedRetireAge })
+    } else {
+      onRun()
+    }
+    onClose()
+  }
 
   // Theme-aware colors
   const overlayBg = isDarkMode ? 'bg-black/60' : 'bg-black/40'
@@ -97,6 +125,55 @@ export function ScenarioModal({
             </p>
           </div>
 
+          {/* Retire Early Age Selector */}
+          {scenarioType === 'retire_early' && (
+            <div>
+              <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                Test Retirement Age:
+              </h3>
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
+                <div className={`text-xs ${textSecondary} mb-2`}>
+                  Your baseline retirement age: <span className={`font-semibold ${textPrimary}`}>Age {retirementAge}</span>
+                </div>
+
+                {/* Age Selection Radio Buttons */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[retirementAge - 5, retirementAge - 4, retirementAge - 3, retirementAge - 2, retirementAge - 1]
+                    .filter(age => age >= currentAge) // Only show ages >= current age
+                    .map((age) => (
+                    <button
+                      key={age}
+                      onClick={() => setSelectedRetireAge(age)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        selectedRetireAge === age
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Age {age}
+                      <div className={`text-xs mt-0.5 ${selectedRetireAge === age ? 'text-blue-100' : textSecondary}`}>
+                        {retirementAge - age} yr{retirementAge - age > 1 ? 's' : ''} earlier
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quick Impact Preview */}
+                <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className={`text-xs ${textSecondary} space-y-1`}>
+                    <div>• Retire {retirementAge - selectedRetireAge} year{retirementAge - selectedRetireAge > 1 ? 's' : ''} earlier (age {selectedRetireAge})</div>
+                    <div>• Gain: {retirementAge - selectedRetireAge} extra year{retirementAge - selectedRetireAge > 1 ? 's' : ''} of freedom</div>
+                    <div>• Portfolio may deplete ~{(retirementAge - selectedRetireAge) * 2} years sooner</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Parameters */}
           {scenario.parameters && (
             <div>
@@ -122,18 +199,6 @@ export function ScenarioModal({
               </ul>
             </div>
           )}
-
-          {/* Quick Estimate */}
-          <div className={`${estimateBg} border ${estimateBorder} rounded-lg p-4`}>
-            <h3 className={`text-sm font-semibold ${textPrimary} mb-2`}>Quick Estimate:</h3>
-            <div className="space-y-1">
-              {scenario.estimates.map((estimate, index) => (
-                <div key={index} className={`text-sm ${textSecondary}`}>
-                  {estimate}
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
@@ -145,10 +210,7 @@ export function ScenarioModal({
             Cancel
           </button>
           <button
-            onClick={() => {
-              onRun()
-              onClose()
-            }}
+            onClick={handleRun}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
           >
             Run Scenario
@@ -165,7 +227,8 @@ export function ScenarioModal({
 function getScenarioConfig(
   type: string,
   baselineMonthly: number,
-  retirementAge: number
+  retirementAge: number,
+  selectedRetireAge?: number
 ) {
   const baselineAnnual = baselineMonthly * 12
 
@@ -257,17 +320,19 @@ function getScenarioConfig(
       }
 
     case 'retire_early':
+      const newRetireAge = selectedRetireAge || retirementAge - 3
+      const yearsEarlier = retirementAge - newRetireAge
       return {
         icon: '🚀',
         title: 'Retire Earlier',
-        subtitle: 'What if you retired 3 years early?',
+        subtitle: `What if you retired ${yearsEarlier} year${yearsEarlier > 1 ? 's' : ''} early?`,
         description:
-          `Explore retiring at age ${retirementAge - 3} instead of ${retirementAge}. Shows the portfolio impact of starting retirement earlier.`,
+          `Explore retiring at age ${newRetireAge} instead of ${retirementAge}. Shows the portfolio impact of starting retirement earlier.`,
         parametersTitle: null,
         parameters: null,
         estimates: [
-          '+3 extra years of retirement',
-          'Portfolio depletes ~6 years earlier'
+          `+${yearsEarlier} extra year${yearsEarlier > 1 ? 's' : ''} of retirement`,
+          `Portfolio depletes ~${yearsEarlier * 2} years earlier`
         ]
       }
 
