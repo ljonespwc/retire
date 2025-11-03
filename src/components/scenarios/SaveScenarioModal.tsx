@@ -61,9 +61,14 @@ export function SaveScenarioModal({
   // Update scenario name when defaultName changes and modal opens
   useEffect(() => {
     if (isOpen) {
-      setScenarioName(defaultName || getDefaultScenarioName())
+      const baseName = defaultName || getDefaultScenarioName()
+      // Add prefix: "WHAT-IF: " for variants, "BASELINE: " for baselines
+      const nameWithPrefix = variantType
+        ? `WHAT-IF: ${baseName}`
+        : `BASELINE: ${baseName}`
+      setScenarioName(nameWithPrefix)
     }
-  }, [isOpen, defaultName])
+  }, [isOpen, defaultName, variantType])
 
   if (!isOpen) return null
 
