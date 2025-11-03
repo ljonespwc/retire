@@ -59,7 +59,7 @@ export function MobileHelpBanner({
     }
   }, [])
 
-  // Auto-show logic with small delay to avoid flash on quick tab
+  // Auto-show logic - show banner when field is focused, hide when no field focused
   useEffect(() => {
     if (!planningStarted) {
       setIsVisible(false)
@@ -67,6 +67,7 @@ export function MobileHelpBanner({
     }
 
     if (focusedField === null) {
+      // No field focused - hide banner
       setIsVisible(false)
       return
     }
@@ -76,13 +77,9 @@ export function MobileHelpBanner({
       setIsDismissed(false) // Reset for next field
     }
 
-    // Small delay to avoid flashing on quick tab through fields
-    const timer = setTimeout(() => {
-      setIsVisible(true)
-    }, 150)
-
-    return () => clearTimeout(timer)
-  }, [focusedField, planningStarted])
+    // Field is focused - show banner (no delay needed since we're not hiding between fields)
+    setIsVisible(true)
+  }, [focusedField, planningStarted, isDismissed])
 
   // Handle user closing the banner
   const handleClose = () => {
