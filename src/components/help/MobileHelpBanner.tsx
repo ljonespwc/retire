@@ -32,9 +32,32 @@ export function MobileHelpBanner({
 }: MobileHelpBannerProps) {
   const [isDismissed, setIsDismissed] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   // Get current tip content
   const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : DEFAULT_TIP
+
+  // Keyboard detection for iPad/iOS
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const kbHeight = window.innerHeight - window.visualViewport.height
+        setKeyboardHeight(kbHeight)
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+      window.visualViewport.addEventListener('scroll', handleResize)
+
+      return () => {
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', handleResize)
+          window.visualViewport.removeEventListener('scroll', handleResize)
+        }
+      }
+    }
+  }, [])
 
   // Auto-show logic with small delay to avoid flash on quick tab
   useEffect(() => {
@@ -71,7 +94,13 @@ export function MobileHelpBanner({
   if (!isVisible) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden pointer-events-none">
+    <div
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden pointer-events-none"
+      style={{
+        transform: `translateY(-${keyboardHeight}px)`,
+        transition: 'transform 0.2s ease-out'
+      }}
+    >
       <div
         className={`pointer-events-auto ${theme.card} border-t-2 ${
           isDarkMode ? 'border-gray-700' : 'border-gray-200'
