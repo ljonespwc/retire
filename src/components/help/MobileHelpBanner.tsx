@@ -37,7 +37,7 @@ export function MobileHelpBanner({
   // Get current tip content
   const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : DEFAULT_TIP
 
-  // Keyboard detection for iPad/iOS
+  // Keyboard detection for iPad/iOS (only resize, not scroll)
   useEffect(() => {
     const handleResize = () => {
       if (window.visualViewport) {
@@ -48,12 +48,10 @@ export function MobileHelpBanner({
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize)
-      window.visualViewport.addEventListener('scroll', handleResize)
 
       return () => {
         if (window.visualViewport) {
           window.visualViewport.removeEventListener('resize', handleResize)
-          window.visualViewport.removeEventListener('scroll', handleResize)
         }
       }
     }
