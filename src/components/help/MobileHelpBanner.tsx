@@ -70,8 +70,7 @@ export function MobileHelpBanner({
       className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
       style={{
         transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.3s ease-out',
-        pointerEvents: isVisible ? 'auto' : 'none'
+        transition: 'transform 0.3s ease-out'
       }}
     >
       <div
@@ -80,6 +79,7 @@ export function MobileHelpBanner({
         } rounded-t-3xl shadow-2xl`}
         style={{
           maxHeight: '50vh',
+          pointerEvents: 'auto'
         }}
       >
         {/* Header */}
@@ -92,11 +92,12 @@ export function MobileHelpBanner({
           </div>
           <button
             onClick={handleClose}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors relative z-50 ${
               isDarkMode
                 ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200'
                 : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
             }`}
+            style={{ pointerEvents: 'auto' }}
             aria-label="Close help"
           >
             <X className="w-5 h-5" />
