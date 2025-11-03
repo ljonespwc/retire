@@ -32,33 +32,9 @@ export function MobileHelpBanner({
 }: MobileHelpBannerProps) {
   const [isDismissed, setIsDismissed] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   // Get current tip content
   const tip = focusedField && HELP_TIPS[focusedField] ? HELP_TIPS[focusedField] : DEFAULT_TIP
-
-  // Keyboard detection for iPad/iOS (only resize, not scroll)
-  // Use threshold to avoid false positives from viewport quirks
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.visualViewport) {
-        const kbHeight = window.innerHeight - window.visualViewport.height
-        // Only set keyboard height if it's actually significant (> 100px)
-        // This avoids false positives from scroll/zoom on iPhone
-        setKeyboardHeight(kbHeight > 100 ? kbHeight : 0)
-      }
-    }
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize)
-
-      return () => {
-        if (window.visualViewport) {
-          window.visualViewport.removeEventListener('resize', handleResize)
-        }
-      }
-    }
-  }, [])
 
   // Auto-show logic - show banner when field is focused, hide when no field focused
   useEffect(() => {
@@ -93,11 +69,7 @@ export function MobileHelpBanner({
     <div
       className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
       style={{
-        // When visible: stay at bottom (0) or move up for keyboard (if detected)
-        // When hidden: move completely off-screen (100%)
-        transform: isVisible
-          ? (keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'translateY(0)')
-          : 'translateY(100%)',
+        transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.3s ease-out',
         pointerEvents: isVisible ? 'auto' : 'none'
       }}
