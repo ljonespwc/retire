@@ -62,11 +62,20 @@ export function SaveScenarioModal({
   useEffect(() => {
     if (isOpen) {
       const baseName = defaultName || getDefaultScenarioName()
-      // Add prefix: "WHAT-IF: " for variants, "BASELINE: " for baselines
-      const nameWithPrefix = variantType
-        ? `WHAT-IF: ${baseName}`
-        : `BASELINE: ${baseName}`
-      setScenarioName(nameWithPrefix)
+
+      // Only add prefix if it doesn't already exist
+      const hasPrefix = baseName.startsWith('BASELINE: ') || baseName.startsWith('WHAT-IF: ')
+
+      if (hasPrefix) {
+        // Already has a prefix, use as-is
+        setScenarioName(baseName)
+      } else {
+        // Add prefix: "WHAT-IF: " for variants, "BASELINE: " for baselines
+        const nameWithPrefix = variantType
+          ? `WHAT-IF: ${baseName}`
+          : `BASELINE: ${baseName}`
+        setScenarioName(nameWithPrefix)
+      }
     }
   }, [isOpen, defaultName, variantType])
 
