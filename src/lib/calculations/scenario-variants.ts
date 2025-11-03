@@ -140,6 +140,42 @@ export function createExhaustPortfolioVariant(
 }
 
 /**
+ * Create "Lump Sum Withdrawal" variant
+ * Models impact of a large one-time withdrawal
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param amount - Withdrawal amount
+ * @param withdrawalAge - Age at which withdrawal occurs
+ * @param sourceAccount - Account to withdraw from ('smart' for tax-optimized)
+ */
+export function createLumpSumWithdrawalVariant(
+  baseScenario: Scenario,
+  amount: number,
+  withdrawalAge: number,
+  sourceAccount: 'non_registered' | 'rrsp' | 'tfsa' | 'smart' = 'smart'
+): Scenario {
+  const amountFormatted = amount >= 1_000_000
+    ? `$${(amount / 1_000_000).toFixed(1)}M`
+    : `$${Math.round(amount / 1000)}K`
+
+  return {
+    ...baseScenario,
+    name: `${amountFormatted} Lump Sum at ${withdrawalAge}`,
+    expenses: {
+      ...baseScenario.expenses,
+      one_time_withdrawals: [
+        {
+          age: withdrawalAge,
+          amount,
+          source: sourceAccount,
+          description: 'One-time withdrawal'
+        }
+      ]
+    }
+  }
+}
+
+/**
  * Calculate quick estimates for a scenario variant
  * (Client-side, no full calculation)
  */

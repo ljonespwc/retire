@@ -161,6 +161,20 @@ export interface AgeBasedExpenseChange {
 }
 
 /**
+ * One-time withdrawal (e.g., wedding, renovation, travel, gift)
+ */
+export interface OneTimeWithdrawal {
+  /** Age at which withdrawal occurs */
+  age: number;
+  /** Withdrawal amount */
+  amount: number;
+  /** Source account for withdrawal */
+  source: 'non_registered' | 'rrsp' | 'tfsa' | 'smart';
+  /** Optional description of withdrawal purpose */
+  description?: string;
+}
+
+/**
  * Annual expenses and spending
  */
 export interface Expenses {
@@ -174,6 +188,8 @@ export interface Expenses {
   age_based_changes?: AgeBasedExpenseChange[];
   /** Legacy preservation percentage (e.g., 0.25 = 25%) */
   legacy_preservation_percentage?: number;
+  /** One-time withdrawals (weddings, renovations, etc.) */
+  one_time_withdrawals?: OneTimeWithdrawal[];
 }
 
 /**

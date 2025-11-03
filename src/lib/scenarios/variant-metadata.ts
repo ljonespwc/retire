@@ -12,7 +12,8 @@ import {
   createDelayCppOasVariant,
   createRetireEarlyVariant,
   createExhaustPortfolioVariant,
-  createLegacyVariant
+  createLegacyVariant,
+  createLumpSumWithdrawalVariant
 } from '@/lib/calculations/scenario-variants'
 import { calculateCPPAdjustmentFactor, calculateOASAdjustmentFactor } from '@/lib/calculations/government-benefits'
 
@@ -25,6 +26,7 @@ export type VariantType =
   | 'retire-early'
   | 'exhaust-portfolio'
   | 'legacy'
+  | 'lump-sum'
 
 /**
  * Baseline snapshot stored with variants for standalone comparison context
@@ -139,6 +141,13 @@ export function regenerateVariant(
 
       return variant
     }
+    case 'lump-sum': {
+      // Use stored config values or defaults
+      const amount = config?.amount || 100000
+      const withdrawalAge = config?.withdrawalAge || baseScenario.basic_inputs.retirement_age + 5
+      const sourceAccount = config?.sourceAccount || 'smart'
+      return createLumpSumWithdrawalVariant(baseScenario, amount, withdrawalAge, sourceAccount)
+    }
     default:
       // Unknown variant type - return base scenario unchanged
       console.warn(`Unknown variant type: ${variantType}`)
@@ -155,7 +164,8 @@ export function getVariantDisplayName(variantType: VariantType): string {
     'delay-cpp-oas': 'Delay CPP/OAS to Age 70',
     'retire-early': 'Retire Early',
     'exhaust-portfolio': 'Exhaust Your Portfolio',
-    'legacy': 'Leave a Legacy'
+    'legacy': 'Leave a Legacy',
+    'lump-sum': 'Lump Sum Withdrawal'
   }
   const baseName = names[variantType] || variantType
   return `What-If Variant: ${baseName}`
@@ -181,6 +191,9 @@ export function detectVariantTypeFromName(name: string): VariantType | null {
   }
   if (lowercaseName.includes('legacy') || lowercaseName.includes('leave') || lowercaseName.includes('preserve')) {
     return 'legacy'
+  }
+  if (lowercaseName.includes('lump sum') || lowercaseName.includes('lump-sum') || lowercaseName.includes('withdrawal')) {
+    return 'lump-sum'
   }
 
   return null
@@ -433,6 +446,60 @@ export function getVariantDetails(
           {
             label: 'Strategy',
             value: 'Spending optimized to end at legacy target'
+          }
+        ]
+      }
+    }
+
+    case 'lump-sum': {
+      // Get withdrawal details from scenario
+      const withdrawal = scenario?.expenses.one_time_withdrawals?.[0]
+      const amount = withdrawal?.amount || 0
+      const withdrawalAge = withdrawal?.age || scenario?.basic_inputs.retirement_age || 65
+      const sourceAccount = withdrawal?.source || 'smart'
+
+      // Format amount
+      const amountFormatted = amount >= 1_000_000
+        ? `$${(amount / 1_000_000).toFixed(1)}M`
+        : `$${Math.round(amount / 1000).toLocaleString()}K`
+
+      // Format source account label
+      const sourceLabels: Record<string, string> = {
+        'smart': 'Tax-Optimized (Smart)',
+        'non_registered': 'Non-Registered Account',
+        'rrsp': 'RRSP/RRIF',
+        'tfsa': 'TFSA'
+      }
+      const sourceLabel = sourceLabels[sourceAccount] || sourceAccount
+
+      // Get baseline ending balance for comparison
+      const baselineEndingBalance = baselineSnapshot?.ending_balance
+      const comparisonNote = baselineEndingBalance
+        ? `(vs baseline: $${Math.round(baselineEndingBalance).toLocaleString()})`
+        : ''
+
+      return {
+        title: 'Lump Sum Withdrawal',
+        items: [
+          {
+            label: 'Withdrawal Amount',
+            value: amountFormatted
+          },
+          {
+            label: 'Withdrawal Age',
+            value: `Age ${withdrawalAge}`
+          },
+          {
+            label: 'Source Account',
+            value: sourceLabel
+          },
+          {
+            label: 'Purpose',
+            value: withdrawal?.description || 'One-time withdrawal'
+          },
+          {
+            label: 'Impact',
+            value: `Portfolio reduced by withdrawal amount ${comparisonNote}`
           }
         ]
       }

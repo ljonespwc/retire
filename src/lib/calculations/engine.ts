@@ -364,9 +364,18 @@ export async function calculateRetirementProjection(
     // After-tax income from external sources (pension/CPP/OAS/other)
     const afterTaxExternalIncome = governmentBenefits - preliminaryTaxCalc.total_tax;
 
+    // Check for one-time withdrawals at this age
+    let oneTimeWithdrawalAmount = 0;
+    const oneTimeWithdrawal = expenses.one_time_withdrawals?.find(w => w.age === age);
+    if (oneTimeWithdrawal) {
+      oneTimeWithdrawalAmount = oneTimeWithdrawal.amount;
+      console.log(`💵 One-time withdrawal at age ${age}: $${oneTimeWithdrawalAmount.toLocaleString()} from ${oneTimeWithdrawal.source}`);
+    }
+
     // Determine how much to withdraw from portfolio
     // Only withdraw if after-tax external income can't cover expenses
-    const targetWithdrawal = Math.max(0, annualExpenses - afterTaxExternalIncome);
+    // Plus any one-time withdrawals for this year
+    const targetWithdrawal = Math.max(0, annualExpenses - afterTaxExternalIncome) + oneTimeWithdrawalAmount;
 
     // Project account forward with withdrawals and post-retirement returns
     // NO surplus reinvestment - surplus cash is not tracked (spent on lifestyle/gifts/etc)

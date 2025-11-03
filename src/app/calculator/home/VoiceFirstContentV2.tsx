@@ -28,7 +28,7 @@ import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant, createLumpSumWithdrawalVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
@@ -773,6 +773,23 @@ export function VoiceFirstContentV2() {
             optimizedSpending: optimizationResult.optimizedSpending,
             iterations: optimizationResult.iterations,
             finalBalance: optimizationResult.finalBalance
+          }
+          break
+        }
+        case 'lump_sum': {
+          const amount = config?.amount || 100000
+          const withdrawalAge = config?.withdrawalAge || retirementAge + 5
+          const sourceAccount = config?.sourceAccount || 'smart'
+
+          console.log(`💵 Creating lump sum withdrawal variant: $${amount.toLocaleString()} at age ${withdrawalAge} from ${sourceAccount}`)
+
+          variant = createLumpSumWithdrawalVariant(baseScenario, amount, withdrawalAge, sourceAccount)
+
+          // Store config for regeneration
+          variantConfig = {
+            amount,
+            withdrawalAge,
+            sourceAccount
           }
           break
         }
