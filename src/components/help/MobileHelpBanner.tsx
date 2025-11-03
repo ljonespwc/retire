@@ -87,23 +87,20 @@ export function MobileHelpBanner({
     setIsDismissed(true)
   }
 
-  // Don't render on desktop (lg screens and up)
-  if (!isVisible) return null
-
+  // Don't render on desktop (lg screens and up) - but keep mounted on mobile for smooth transitions
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden pointer-events-none"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
       style={{
-        transform: `translateY(-${keyboardHeight}px)`,
-        transition: 'transform 0.2s ease-out'
+        transform: `translateY(${isVisible ? -keyboardHeight : window.innerHeight}px)`,
+        transition: isVisible ? 'transform 0.2s ease-out' : 'transform 0.3s ease-out',
+        pointerEvents: isVisible ? 'auto' : 'none'
       }}
     >
       <div
-        className={`pointer-events-auto ${theme.card} border-t-2 ${
+        className={`${theme.card} border-t-2 ${
           isDarkMode ? 'border-gray-700' : 'border-gray-200'
-        } rounded-t-3xl shadow-2xl transition-all duration-300 ease-out ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-        }`}
+        } rounded-t-3xl shadow-2xl`}
         style={{
           maxHeight: '50vh',
         }}
