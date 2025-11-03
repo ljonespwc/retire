@@ -30,7 +30,7 @@ export function MobileHelpBanner({
   theme,
   planningStarted
 }: MobileHelpBannerProps) {
-  const [isDismissed, setIsDismissed] = useState(false)
+  const [dismissedField, setDismissedField] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
 
   // Get current tip content
@@ -49,19 +49,19 @@ export function MobileHelpBanner({
       return
     }
 
-    // User manually dismissed - don't show again until they focus a new field
-    if (isDismissed) {
-      setIsDismissed(false) // Reset for next field
+    // User dismissed this specific field - don't show again for this field
+    if (dismissedField === focusedField) {
+      return
     }
 
-    // Field is focused - show banner (no delay needed since we're not hiding between fields)
+    // Different field focused - show banner
     setIsVisible(true)
-  }, [focusedField, planningStarted, isDismissed])
+  }, [focusedField, planningStarted, dismissedField])
 
   // Handle user closing the banner
   const handleClose = () => {
     setIsVisible(false)
-    setIsDismissed(true)
+    setDismissedField(focusedField)
   }
 
   // Don't render on desktop (lg screens and up) - but keep mounted on mobile for smooth transitions
