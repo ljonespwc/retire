@@ -222,7 +222,7 @@ export function FormSections({
           🏖️ In Retirement
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-          <WarmDataField label="Monthly Spending Goal (Pre-Tax)" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('monthlySpending')} />
+          <WarmDataField label="Monthly Spending Goal" value={monthlySpending} editMode={editMode} onEdit={setMonthlySpending} type="currency" isDarkMode={isDarkMode} theme={theme} onFocus={() => onFieldFocus('monthlySpending')} />
 
           {/* Pension field with checkboxes grouped together */}
           <div className="space-y-3">

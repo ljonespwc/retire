@@ -68,7 +68,7 @@ export const HELP_TIPS: Record<string, HelpTip> = {
   monthlySpending: {
     title: "Monthly Spending Goal",
     icon: "🛒",
-    content: "Your desired monthly spending in retirement (pre-tax). This is your gross spending target—your actual after-tax income will be lower.\n\nRule of thumb: 70-80% of pre-retirement income. Median Canadian retiree: ~$4,000-5,000/month. We'll calculate taxes and show your net income after taxes."
+    content: "Your desired monthly after-tax spending in retirement. This is what you want to have available to spend each month after taxes are paid.\n\nRule of thumb: 70-80% of pre-retirement income. Median Canadian retiree: ~$4,000-5,000/month after tax. The calculator will determine how much pre-tax income you need to achieve this spending goal."
   },
   pensionIncome: {
     title: "Pension Income",
