@@ -353,8 +353,8 @@ function CustomTooltip({
           Total: {formatCompactCurrency(totalIncome)}
         </div>
 
-        {/* Dynamic iteration in sorted order (bottom to top) */}
-        {sortedIncomeSources.map(source => {
+        {/* Dynamic iteration in reversed order (smallest to largest, matching chart visual order) */}
+        {[...sortedIncomeSources].reverse().map(source => {
           const incomeAmount = data[source.dataKey] || 0
           const isVisible = visibleSources[source.key]
 
