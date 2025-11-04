@@ -447,10 +447,10 @@ export function VoiceFirstContentV2() {
     setPensionHasBridge(formData.pensionHasBridge)
     setOtherIncome(formData.otherIncome)
     setCppStartAge(formData.cppStartAge)
-    // Round percentages to 1 decimal place
-    setInvestmentReturn(formData.investmentReturn !== null ? roundPercentage(formData.investmentReturn) : null)
-    setPostRetirementReturn(formData.postRetirementReturn !== null ? roundPercentage(formData.postRetirementReturn) : null)
-    setInflationRate(formData.inflationRate !== null ? roundPercentage(formData.inflationRate) : null)
+    // Percentages already rounded by scenarioToFormData
+    setInvestmentReturn(formData.investmentReturn)
+    setPostRetirementReturn(formData.postRetirementReturn)
+    setInflationRate(formData.inflationRate)
 
     setLoadedScenarioName(scenarioName)
     setPlanningStarted(true)

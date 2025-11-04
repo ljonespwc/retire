@@ -107,6 +107,12 @@ export function WarmDataField({
                 onEdit(parseInteger(e.target.value))
               }
             }}
+            onKeyDown={(e) => {
+              // Block decimal point for integer fields (ages, currency)
+              if ((type === 'number' || type === 'currency') && (e.key === '.' || e.key === ',')) {
+                e.preventDefault()
+              }
+            }}
             onFocus={handleFocus}
             autoComplete="off"
             className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-2xl text-base sm:text-lg focus:ring-2 transition-all ${theme.input} ${
