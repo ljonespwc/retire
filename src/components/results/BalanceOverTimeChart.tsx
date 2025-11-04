@@ -70,7 +70,7 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
               />
 
               {/* Tooltip content */}
-              <div className={`absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] p-4 rounded-lg shadow-xl text-sm leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+              <div className={`absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] p-4 rounded-lg shadow-xl text-sm leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
                 <div className={`font-semibold mb-2 ${textPrimary}`}>What This Shows</div>
                 <p className="mb-3">Your total portfolio value across all accounts (RRSP, TFSA, Non-Registered).</p>
 

@@ -69,7 +69,7 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
                     />
 
                     {/* Tooltip content */}
-                    <div className={`absolute left-0 bottom-full mb-2 w-64 max-w-[calc(100vw-2rem)] p-3 rounded-lg shadow-lg text-xs leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                    <div className={`absolute right-0 bottom-full mb-2 w-64 max-w-[calc(100vw-2rem)] p-3 rounded-lg shadow-lg text-xs leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
                       <div className="font-medium mb-1">On Taxable Income Only</div>
                       This rate applies only to taxable income. TFSA withdrawals are tax-free and excluded from this calculation, which is why the rate may seem low compared to total income.
                     </div>
