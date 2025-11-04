@@ -97,7 +97,7 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
         <div className={`flex justify-between items-center py-3 border-b ${dividerBorder}`}>
           <span className={textSecondary}>Total Tax Paid (Retirement)</span>
           <span className={`font-semibold ${textPrimary}`}>
-            {formatCompactCurrency(taxSummary.totalTaxPaid)}
+            {formatCurrency(taxSummary.totalTaxPaid)}
           </span>
         </div>
 
@@ -119,20 +119,17 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
 
         {/* Gross vs Net Comparison */}
         <div className={`${grayBox} rounded-lg p-4 mt-4`}>
-          <div className={`text-sm font-medium ${textPrimary} mb-3`}>
-            Gross vs Net Income
-          </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className={`text-sm ${textSecondary}`}>Total Gross Income</span>
               <span className={`font-medium ${textPrimary}`}>
-                {formatCompactCurrency(taxSummary.grossIncome)}
+                {formatCurrency(taxSummary.grossIncome)}
               </span>
             </div>
             <div className="flex justify-between items-center text-red-600">
               <span className="text-sm">Less: Total Tax</span>
               <span className="font-medium">
-                -{formatCompactCurrency(taxSummary.totalTaxPaid)}
+                -{formatCurrency(taxSummary.totalTaxPaid)}
               </span>
             </div>
             <div className={`flex justify-between items-center pt-2 border-t ${grayBorder}`}>
