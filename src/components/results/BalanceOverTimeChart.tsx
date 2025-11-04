@@ -7,8 +7,10 @@
  * with milestone markers for CPP/OAS start and RRIF conversion.
  */
 
+import { useState, useEffect } from 'react'
 import { CalculationResults } from '@/types/calculator'
 import { formatBalanceData, formatCompactCurrency } from '@/lib/calculations/results-formatter'
+import { HelpCircle } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -27,6 +29,7 @@ interface BalanceOverTimeChartProps {
 
 export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOverTimeChartProps) {
   const data = formatBalanceData(results)
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
 
   // Find milestones for markers
   const milestones = data.filter(d => d.milestone)
@@ -44,9 +47,49 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
 
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
-      <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
-        Portfolio Balance Over Time
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className={`text-lg font-semibold ${textPrimary}`}>
+          Portfolio Balance Over Time
+        </h3>
+        <div className="relative inline-flex items-center">
+          <button
+            onClick={() => setIsTooltipOpen(!isTooltipOpen)}
+            className={`cursor-help focus:outline-none ${isTooltipOpen ? 'opacity-100' : 'opacity-60 hover:opacity-100'} transition-opacity`}
+            aria-label="Help"
+          >
+            <HelpCircle className={`w-4 h-4 ${textSecondary}`} />
+          </button>
+
+          {/* Tooltip */}
+          {isTooltipOpen && (
+            <>
+              {/* Backdrop - tap to close on mobile */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsTooltipOpen(false)}
+              />
+
+              {/* Tooltip content */}
+              <div className={`absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] p-4 rounded-lg shadow-xl text-sm leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                <div className={`font-semibold mb-2 ${textPrimary}`}>What This Shows</div>
+                <p className="mb-3">Your total portfolio value across all accounts (RRSP, TFSA, Non-Registered).</p>
+
+                <div className={`font-semibold mb-1.5 ${textPrimary}`}>Balance Changes Due To:</div>
+                <ul className="space-y-1 ml-4 mb-3">
+                  <li className="list-disc">Investment returns (growth)</li>
+                  <li className="list-disc">Withdrawals to fund spending</li>
+                  <li className="list-disc">Required RRIF minimums (age 71+)</li>
+                </ul>
+
+                <p className="text-xs">
+                  <span className="font-medium">Rising balance:</span> Investments growing faster than withdrawals<br/>
+                  <span className="font-medium">Declining balance:</span> Withdrawals exceeding growth
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       <ResponsiveContainer width="100%" height={320}>
           <AreaChart

@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { CalculationResults } from '@/types/calculator'
 import { formatIncomeData, formatCompactCurrency } from '@/lib/calculations/results-formatter'
+import { HelpCircle } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -40,6 +41,9 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
     other: true
   })
 
+  // State for help tooltip
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
+
   // Find milestones for markers
   const milestones = data.filter(d => d.milestone)
 
@@ -65,9 +69,50 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
 
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
-      <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
-        Income Sources Over Time
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className={`text-lg font-semibold ${textPrimary}`}>
+          Income Sources Over Time
+        </h3>
+        <div className="relative inline-flex items-center">
+          <button
+            onClick={() => setIsTooltipOpen(!isTooltipOpen)}
+            className={`cursor-help focus:outline-none ${isTooltipOpen ? 'opacity-100' : 'opacity-60 hover:opacity-100'} transition-opacity`}
+            aria-label="Help"
+          >
+            <HelpCircle className={`w-4 h-4 ${textSecondary}`} />
+          </button>
+
+          {/* Tooltip */}
+          {isTooltipOpen && (
+            <>
+              {/* Backdrop - tap to close on mobile */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsTooltipOpen(false)}
+              />
+
+              {/* Tooltip content */}
+              <div className={`absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] p-4 rounded-lg shadow-xl text-sm leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                <div className={`font-semibold mb-2 ${textPrimary}`}>What This Shows</div>
+                <p className="mb-3">Where your retirement income comes from each year. Each color represents a different source stacked on top of each other.</p>
+
+                <div className={`font-semibold mb-1.5 ${textPrimary}`}>Income Sources Include:</div>
+                <ul className="space-y-1 ml-4 mb-3">
+                  <li className="list-disc">Portfolio withdrawals (RRSP/RRIF, TFSA, Non-Reg)</li>
+                  <li className="list-disc">CPP (starts at your chosen age: 60-70)</li>
+                  <li className="list-disc">OAS (starts at 65)</li>
+                  <li className="list-disc">Pension (if applicable)</li>
+                  <li className="list-disc">Other income (rental, part-time work, etc.)</li>
+                </ul>
+
+                <p className="text-xs">
+                  The mix changes as government benefits kick in and withdrawal strategies adjust over time.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       <ResponsiveContainer width="100%" height={320}>
           <AreaChart
