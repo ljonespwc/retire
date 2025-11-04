@@ -20,7 +20,9 @@ interface TaxSummaryCardProps {
 
 export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: TaxSummaryCardProps) {
   const taxSummary = formatTaxSummary(results, retirementAge)
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
+  const [isEffectiveTooltipOpen, setIsEffectiveTooltipOpen] = useState(false)
+  const [isMarginalTooltipOpen, setIsMarginalTooltipOpen] = useState(false)
+  const [isTaxSummaryTooltipOpen, setIsTaxSummaryTooltipOpen] = useState(false)
 
   // Theme-aware colors
   const cardBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -39,9 +41,37 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
 
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} p-6`}>
-      <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
-        Tax Impact Summary
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className={`text-lg font-semibold ${textPrimary}`}>
+          Tax Impact Summary
+        </h3>
+        <div className="relative inline-flex items-center">
+          <button
+            onClick={() => setIsTaxSummaryTooltipOpen(!isTaxSummaryTooltipOpen)}
+            className={`cursor-help focus:outline-none ${isTaxSummaryTooltipOpen ? 'opacity-100' : 'opacity-60 hover:opacity-100'} transition-opacity`}
+            aria-label="Help"
+          >
+            <HelpCircle className={`w-4 h-4 ${textSecondary}`} />
+          </button>
+
+          {/* Tooltip */}
+          {isTaxSummaryTooltipOpen && (
+            <>
+              {/* Backdrop - tap to close on mobile */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsTaxSummaryTooltipOpen(false)}
+              />
+
+              {/* Tooltip content - centered below icon */}
+              <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] p-3 rounded-lg shadow-lg text-xs leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                <div className="font-medium mb-1">Understanding Your Tax Picture</div>
+                This section shows the total tax you'll pay throughout retirement, your effective tax rate (average tax on all income), and your marginal rate (tax on your next dollar). Use these insights to optimize withdrawal timing and income sources.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       <div className="space-y-4">
         {/* Tax Rates - Side by Side */}
@@ -52,20 +82,20 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
               <span>Effective Tax Rate</span>
               <div className="relative inline-flex items-center">
                 <button
-                  onClick={() => setIsTooltipOpen(!isTooltipOpen)}
-                  className={`cursor-help focus:outline-none ${isTooltipOpen ? 'opacity-100' : 'opacity-60 hover:opacity-100'} transition-opacity`}
+                  onClick={() => setIsEffectiveTooltipOpen(!isEffectiveTooltipOpen)}
+                  className={`cursor-help focus:outline-none ${isEffectiveTooltipOpen ? 'opacity-100' : 'opacity-60 hover:opacity-100'} transition-opacity`}
                   aria-label="Help"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
                 </button>
 
                 {/* Tooltip */}
-                {isTooltipOpen && (
+                {isEffectiveTooltipOpen && (
                   <>
                     {/* Backdrop - tap to close on mobile */}
                     <div
                       className="fixed inset-0 z-40"
-                      onClick={() => setIsTooltipOpen(false)}
+                      onClick={() => setIsEffectiveTooltipOpen(false)}
                     />
 
                     {/* Tooltip content - centered above icon */}
@@ -84,8 +114,34 @@ export function TaxSummaryCard({ results, retirementAge, isDarkMode = false }: T
 
           {/* Marginal Tax Rate */}
           <div className={`${purpleBox} rounded-lg p-4 border`}>
-            <div className={`text-sm ${textSecondary} mb-1`}>
-              Marginal Tax Rate
+            <div className={`text-sm ${textSecondary} mb-1 flex items-center gap-1.5`}>
+              <span>Marginal Tax Rate</span>
+              <div className="relative inline-flex items-center">
+                <button
+                  onClick={() => setIsMarginalTooltipOpen(!isMarginalTooltipOpen)}
+                  className={`cursor-help focus:outline-none ${isMarginalTooltipOpen ? 'opacity-100' : 'opacity-60 hover:opacity-100'} transition-opacity`}
+                  aria-label="Help"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Tooltip */}
+                {isMarginalTooltipOpen && (
+                  <>
+                    {/* Backdrop - tap to close on mobile */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsMarginalTooltipOpen(false)}
+                    />
+
+                    {/* Tooltip content - centered below icon */}
+                    <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] p-3 rounded-lg shadow-lg text-xs leading-relaxed z-50 ${isDarkMode ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                      <div className="font-medium mb-1">Your Next Dollar's Tax Rate</div>
+                      The tax rate applied to your next dollar of income. Use this to evaluate the tax impact of additional income sources (part-time work, rental income, etc.).
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             <div className={`text-3xl font-bold ${purpleText}`}>
               {formatPercentage(taxSummary.marginalRate)}
