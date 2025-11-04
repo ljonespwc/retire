@@ -146,20 +146,20 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false, var
         {/* Net Portfolio Change */}
         <div className={`${cardBg} rounded-lg p-4`}>
           <div className={`text-sm ${labelColor} mb-1`}>Net Portfolio Change</div>
-          <div className={`text-2xl font-bold ${valueColor}`}>
+          <div className={`text-2xl font-bold ${valueColor} flex flex-wrap items-baseline gap-x-2`}>
             {avgAnnualWithdrawal >= 0 ? (
               // Portfolio depleting - show as negative with red indicator
               <>
-                -{formatCompactCurrency(avgAnnualWithdrawal)}/year
-                <span className={`text-sm ml-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                <span>-{formatCompactCurrency(avgAnnualWithdrawal)}/year</span>
+                <span className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
                   (depleting)
                 </span>
               </>
             ) : (
               // Portfolio growing - show as positive growth with green indicator
               <>
-                +{formatCompactCurrency(Math.abs(avgAnnualWithdrawal))}/year
-                <span className={`text-sm ml-2 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                <span>+{formatCompactCurrency(Math.abs(avgAnnualWithdrawal))}/year</span>
+                <span className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                   (growing!)
                 </span>
               </>
