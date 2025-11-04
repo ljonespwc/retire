@@ -17,6 +17,26 @@ Your job is to:
 3. Report the results to the user
 4. Let the user handle git/deployment
 
+## ⚠️ CRITICAL: Hands-Off Components
+
+**DO NOT modify the following critical components without explicit permission:**
+
+- **Calculation Engine** (`/src/lib/calculations/*`) - Core financial projection logic, tax calculations, government benefits
+- **Tax Data Queries** (`/src/lib/supabase/tax-data.ts`) - Database queries for Canadian tax rules
+- **Database Schema** (`/supabase/migrations/*`) - Production database structure
+- **API Routes** (`/src/app/api/*`) - Server-side calculation endpoints
+
+These components are heavily tested, financially critical, and changes could introduce calculation errors affecting real retirement planning decisions.
+
+**Always ask for permission before modifying:**
+- Calculation formulas or logic
+- Tax bracket handling
+- CPP/OAS benefit calculations
+- RRIF withdrawal sequencing
+- Database migrations
+
+**UI/UX changes are generally safe** - components, styling, forms, labels, tooltips, dark mode, etc.
+
 ## Project Overview
 
 A Canadian retirement income calculator with sophisticated financial modeling. The platform helps Canadians understand their retirement income potential, eliminating complex spreadsheets and financial jargon.
