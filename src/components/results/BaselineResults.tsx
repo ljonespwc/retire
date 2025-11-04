@@ -62,6 +62,7 @@ export function BaselineResults({
       <ResultsSummary
         results={calculationResults}
         retirementAge={retirementAge}
+        expenses={baselineScenario.expenses}
         isDarkMode={isDarkMode}
         variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
         actionButtons={

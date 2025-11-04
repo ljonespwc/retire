@@ -5,7 +5,7 @@
  * for visualization components.
  */
 
-import { CalculationResults, YearByYearResult } from '@/types/calculator'
+import { CalculationResults, YearByYearResult, Scenario, Expenses } from '@/types/calculator'
 
 /**
  * Summary metrics for top-level overview
@@ -19,6 +19,10 @@ export interface FormattedSummary {
   totalAssets: number
   endingBalance: number
   depletionAge?: number
+  // Lumpsum-specific fields (when one-time withdrawal detected in Year 1)
+  hasYear1Lumpsum?: boolean
+  year1LumpsumAmount?: number
+  recurringMonthlyIncome?: number
 }
 
 /**
@@ -61,7 +65,11 @@ export interface FormattedTaxSummary {
 /**
  * Format calculation results into summary metrics
  */
-export function formatSummary(results: CalculationResults, retirementAge: number): FormattedSummary {
+export function formatSummary(
+  results: CalculationResults,
+  retirementAge: number,
+  expenses?: Expenses
+): FormattedSummary {
   // Find first retirement year at/after retirement age
   // Use the FIRST year at/after retirement age, regardless of tax
   const firstRetirementYear = results.year_by_year.find(
@@ -76,6 +84,36 @@ export function formatSummary(results: CalculationResults, retirementAge: number
   // Calculate monthly after-tax income (first year of retirement)
   const annualAfterTax = firstRetirementYear.income.total - firstRetirementYear.tax.total
   const monthlyAfterTaxIncome = annualAfterTax / 12
+
+  // Detect lumpsum withdrawal in Year 1
+  let hasYear1Lumpsum = false
+  let year1LumpsumAmount: number | undefined
+  let recurringMonthlyIncome: number | undefined
+
+  if (expenses?.one_time_withdrawals) {
+    const year1Lumpsum = expenses.one_time_withdrawals.find(
+      w => w.age === retirementAge
+    )
+
+    if (year1Lumpsum) {
+      hasYear1Lumpsum = true
+      year1LumpsumAmount = year1Lumpsum.amount
+
+      // Use Year 2 income to show true recurring monthly income
+      // Year 2 doesn't have lumpsum distortion or massive one-time taxes
+      const year2 = results.year_by_year.find(
+        year => year.age === retirementAge + 1
+      )
+
+      if (year2) {
+        const year2AfterTax = year2.income.total - year2.tax.total
+        recurringMonthlyIncome = year2AfterTax / 12
+      } else {
+        // Fallback: use baseline calculation if Year 2 doesn't exist
+        recurringMonthlyIncome = monthlyAfterTaxIncome
+      }
+    }
+  }
 
   // Determine success indicator
   let successIndicator: 'sufficient' | 'concerning' | 'depleted'
@@ -105,7 +143,13 @@ export function formatSummary(results: CalculationResults, retirementAge: number
     yearsInRetirement,
     totalAssets: results.year_by_year[0].balances.total, // Starting balance (current age)
     endingBalance: results.final_portfolio_value,
-    depletionAge: results.portfolio_depleted_age
+    depletionAge: results.portfolio_depleted_age,
+    // Include lumpsum fields if detected
+    ...(hasYear1Lumpsum && {
+      hasYear1Lumpsum,
+      year1LumpsumAmount,
+      recurringMonthlyIncome
+    })
   }
 }
 

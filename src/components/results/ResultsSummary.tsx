@@ -7,12 +7,13 @@
  * monthly income, success indicator, and key metrics.
  */
 
-import { CalculationResults } from '@/types/calculator'
+import { CalculationResults, Expenses } from '@/types/calculator'
 import { formatSummary, formatCurrency, formatCompactCurrency } from '@/lib/calculations/results-formatter'
 
 interface ResultsSummaryProps {
   results: CalculationResults
   retirementAge: number
+  expenses?: Expenses
 }
 
 interface ExtendedResultsSummaryProps extends ResultsSummaryProps {
@@ -21,8 +22,8 @@ interface ExtendedResultsSummaryProps extends ResultsSummaryProps {
   actionButtons?: React.ReactNode // Optional buttons to display between income and banner
 }
 
-export function ResultsSummary({ results, retirementAge, isDarkMode = false, variantName, actionButtons }: ExtendedResultsSummaryProps) {
-  const summary = formatSummary(results, retirementAge)
+export function ResultsSummary({ results, retirementAge, expenses, isDarkMode = false, variantName, actionButtons }: ExtendedResultsSummaryProps) {
+  const summary = formatSummary(results, retirementAge, expenses)
 
   // Calculate additional helpful metrics
   const avgAnnualWithdrawal = summary.totalAssets > 0
@@ -70,9 +71,26 @@ export function ResultsSummary({ results, retirementAge, isDarkMode = false, var
         <div className={`text-sm ${labelColor} mb-2 font-medium`}>
           Year 1 After-Tax Income
         </div>
-        <div className={`text-6xl font-bold ${valueColor}`}>
-          {formatCurrency(summary.monthlyAfterTaxIncome)}/mth
-        </div>
+
+        {summary.hasYear1Lumpsum ? (
+          <>
+            {/* Split display for lumpsum scenarios */}
+            <div className={`text-6xl font-bold ${valueColor}`}>
+              {formatCurrency(summary.recurringMonthlyIncome!)}/mth
+            </div>
+            <div className={`text-sm ${labelColor} mt-3 font-medium`}>
+              (Plus: {formatCurrency(summary.year1LumpsumAmount!)} one-time withdrawal)
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Normal display */}
+            <div className={`text-6xl font-bold ${valueColor}`}>
+              {formatCurrency(summary.monthlyAfterTaxIncome)}/mth
+            </div>
+          </>
+        )}
+
         <div className={`text-sm ${subLabelColor} mt-2`}>
           Lifetime total: {formatCompactCurrency(summary.lifetimeNetIncome)} after taxes
         </div>

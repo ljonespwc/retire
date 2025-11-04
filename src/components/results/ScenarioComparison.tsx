@@ -277,6 +277,7 @@ function BaselineTab({
       <ResultsSummary
         results={results}
         retirementAge={scenario.basic_inputs.retirement_age}
+        expenses={scenario.expenses}
         isDarkMode={isDarkMode}
         actionButtons={
           onSave && (
@@ -523,6 +524,7 @@ function VariantTab({
       <ResultsSummary
         results={variantResults}
         retirementAge={variantScenario.basic_inputs.retirement_age}
+        expenses={variantScenario.expenses}
         isDarkMode={isDarkMode}
         actionButtons={
           onSave && (

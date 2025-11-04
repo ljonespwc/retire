@@ -198,6 +198,7 @@ export function SharedReport({
           <ResultsSummary
             results={results}
             retirementAge={scenario.basic_inputs.retirement_age}
+            expenses={scenario.expenses}
             isDarkMode={isDarkMode}
           />
         </div>
