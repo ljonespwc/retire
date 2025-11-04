@@ -362,6 +362,10 @@ export interface CalculationResults {
   total_cpp_received: number;
   /** Total OAS received over retirement */
   total_oas_received: number;
+  /** Total pension received over retirement */
+  total_pension_received: number;
+  /** Total other income received over retirement (rental, part-time work, etc.) */
+  total_other_income_received: number;
   /** Year-by-year detailed results */
   year_by_year: YearByYearResult[];
 }

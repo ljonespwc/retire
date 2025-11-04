@@ -23,6 +23,11 @@ export interface FormattedSummary {
   hasYear1Lumpsum?: boolean
   year1LumpsumAmount?: number
   recurringMonthlyIncome?: number
+  // Income coverage at depletion (for contextual warnings)
+  ongoingIncomeAtDepletion?: number   // Annual income (pension + CPP + OAS + other)
+  expensesAtDepletion?: number        // Annual expenses at depletion age
+  incomeShortfall?: number            // Shortfall (if any)
+  incomeCoverageRatio?: number        // Income / Expenses (e.g., 1.2 = 120% coverage)
 }
 
 /**
@@ -135,6 +140,35 @@ export function formatSummary(
     return sum + (year.income.total - year.tax.total)
   }, 0)
 
+  // If portfolio depletes, calculate ongoing income coverage for contextual warnings
+  let ongoingIncomeAtDepletion: number | undefined
+  let expensesAtDepletion: number | undefined
+  let incomeShortfall: number | undefined
+  let incomeCoverageRatio: number | undefined
+
+  if (results.portfolio_depleted_age !== undefined) {
+    const depletionYear = results.year_by_year.find(
+      year => year.age === results.portfolio_depleted_age
+    )
+
+    if (depletionYear) {
+      // Ongoing income = non-investment income (pension + CPP + OAS + other)
+      ongoingIncomeAtDepletion =
+        depletionYear.income.pension +
+        depletionYear.income.cpp +
+        depletionYear.income.oas +
+        depletionYear.income.other
+
+      expensesAtDepletion = depletionYear.expenses
+
+      // Calculate after-tax ongoing income (approximation using year's tax)
+      const afterTaxOngoingIncome = ongoingIncomeAtDepletion - depletionYear.tax.total
+
+      incomeShortfall = Math.max(0, expensesAtDepletion - afterTaxOngoingIncome)
+      incomeCoverageRatio = expensesAtDepletion > 0 ? afterTaxOngoingIncome / expensesAtDepletion : 0
+    }
+  }
+
   return {
     monthlyAfterTaxIncome,
     lifetimeNetIncome,
@@ -149,6 +183,13 @@ export function formatSummary(
       hasYear1Lumpsum,
       year1LumpsumAmount,
       recurringMonthlyIncome
+    }),
+    // Include income coverage fields if portfolio depletes
+    ...(results.portfolio_depleted_age !== undefined && {
+      ongoingIncomeAtDepletion,
+      expensesAtDepletion,
+      incomeShortfall,
+      incomeCoverageRatio
     })
   }
 }

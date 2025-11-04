@@ -540,6 +540,14 @@ export async function calculateRetirementProjection(
       (sum, y) => sum + y.income.oas,
       0
     ),
+    total_pension_received: retirementYears.reduce(
+      (sum, y) => sum + y.income.pension,
+      0
+    ),
+    total_other_income_received: retirementYears.reduce(
+      (sum, y) => sum + y.income.other,
+      0
+    ),
     year_by_year: yearByYear,
   };
 }

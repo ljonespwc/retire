@@ -12,6 +12,8 @@ interface ComparisonMetrics {
   portfolioPercent: number;
   cppDiff: number;
   oasDiff: number;
+  pensionDiff: number;
+  otherIncomeDiff: number;
   taxDiff: number;
   depletionDiff?: number;
   firstYearIncomeDiff: number;
@@ -31,6 +33,8 @@ function extractComparison(
 
   const cppDiff = variantResults.total_cpp_received - baselineResults.total_cpp_received;
   const oasDiff = variantResults.total_oas_received - baselineResults.total_oas_received;
+  const pensionDiff = variantResults.total_pension_received - baselineResults.total_pension_received;
+  const otherIncomeDiff = variantResults.total_other_income_received - baselineResults.total_other_income_received;
   const taxDiff = variantResults.total_taxes_paid_in_retirement - baselineResults.total_taxes_paid_in_retirement;
 
   const firstYearIncomeDiff = variantResults.first_year_retirement_income - baselineResults.first_year_retirement_income;
@@ -53,6 +57,8 @@ function extractComparison(
     portfolioPercent,
     cppDiff,
     oasDiff,
+    pensionDiff,
+    otherIncomeDiff,
     taxDiff,
     depletionDiff,
     firstYearIncomeDiff,
@@ -122,14 +128,18 @@ export async function generateVariantInsight(
 Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}
   - First year income: ${formatCurrency(baselineResults.first_year_retirement_income)}
+  - Total Pension: ${formatCurrency(baselineResults.total_pension_received)}
   - Total CPP: ${formatCurrency(baselineResults.total_cpp_received)}
-  - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}${spendingContext}
+  - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}
+  - Total Other Income: ${formatCurrency(baselineResults.total_other_income_received)}${spendingContext}
 
 Variant: ${variantName}
   - Ending balance: ${formatCurrency(variantResults.final_portfolio_value)} (${formatCurrency(metrics.portfolioDiff)} / ${metrics.portfolioPercent.toFixed(1)}%)
   - First year income: ${formatCurrency(variantResults.first_year_retirement_income)} (${formatCurrency(metrics.firstYearIncomeDiff)})
+  - Pension difference: ${formatCurrency(metrics.pensionDiff)}
   - CPP difference: ${formatCurrency(metrics.cppDiff)}
   - OAS difference: ${formatCurrency(metrics.oasDiff)}
+  - Other income difference: ${formatCurrency(metrics.otherIncomeDiff)}
   - Tax difference: ${formatCurrency(metrics.taxDiff)}
 ${metrics.depletionDiff !== undefined ? `  - Depletion impact: ${metrics.depletionDiff > 0 ? 'Lasts ' + Math.abs(metrics.depletionDiff) + ' years longer' : 'Depletes ' + Math.abs(metrics.depletionDiff) + ' years earlier'}` : ''}
     `.trim();

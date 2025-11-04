@@ -113,6 +113,11 @@ export function createRetireEarlyVariant(
       employment: baseScenario.income_sources.employment ? {
         ...baseScenario.income_sources.employment,
         until_age: targetAge
+      } : undefined,
+      // Update pension start age to match new retirement age
+      pension: baseScenario.income_sources.pension ? {
+        ...baseScenario.income_sources.pension,
+        start_age: targetAge
       } : undefined
     }
   }

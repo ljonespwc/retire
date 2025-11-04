@@ -982,7 +982,14 @@ export function VoiceFirstContentV2() {
   }
 
   const handleSaveVariant = async (index: number) => {
-    if (index < 0 || index >= variantScenarios.length) return
+    // Handle baseline save (index === -1)
+    if (index === -1) {
+      setShowScenarioSaveModal(true)
+      return
+    }
+
+    // Validate variant index
+    if (index >= variantScenarios.length) return
 
     // Set loading state and index
     setSavingVariantIndex(index)
