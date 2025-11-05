@@ -7,10 +7,16 @@
  *
  * Usage: npx tsx src/scripts/validate-ai-insights.ts
  *
+ * The tool automatically pulls AI content from the database (no copy-paste required):
+ * - Baseline narratives from inputs.__baseline_narrative
+ * - Variant key insights from inputs.__metadata.ai_insight
+ * - Variant narratives from inputs.__metadata.ai_narrative
+ *
  * Modes:
  * 1. Baseline Narrative Only - Validates standalone baseline AI narrative
- * 2. Variant Key Insight Only - Validates comparison between baseline and variant
- * 3. Both - Validates both baseline narrative and variant insight
+ * 2. Variant Key Insight Only - Validates comparison insight between baseline and variant
+ * 3. Variant AI Analysis - Validates standalone variant narrative
+ * 4. Full Variant Validation - Validates both comparison insight and variant narrative
  */
 
 import { config } from 'dotenv';
@@ -82,44 +88,6 @@ function prompt(question: string): Promise<string> {
   });
 }
 
-/**
- * Multiline input handler using a terminator string
- * to avoid closing stdin with Ctrl+D
- */
-async function promptMultiline(question: string): Promise<string> {
-  // Small delay to ensure previous prompt is fully cleared
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  return new Promise((resolve) => {
-    console.log('\n' + '='.repeat(80));
-    console.log(question);
-    console.log('='.repeat(80));
-    console.log('Instructions:');
-    console.log('  1. Paste your text (can be multiple lines)');
-    console.log('  2. Press Enter to go to a new line');
-    console.log('  3. Type: END');
-    console.log('  4. Press Enter');
-    console.log('---');
-
-    let lines: string[] = [];
-
-    // Remove any existing line listeners to avoid conflicts
-    rl.removeAllListeners('line');
-
-    const lineHandler = (line: string) => {
-      if (line.trim() === 'END') {
-        // Clean up handler and resolve
-        rl.removeListener('line', lineHandler);
-        const result = lines.join('\n').trim();
-        resolve(result);
-      } else {
-        lines.push(line);
-      }
-    };
-
-    rl.on('line', lineHandler);
-  });
-}
 
 // ============================================================================
 // SCENARIO FETCHING
@@ -428,10 +396,16 @@ async function main() {
   // Step 4: Get baseline narrative (if needed)
   let baselineNarrative: string | undefined;
   if (mode === 'baseline') {
-    baselineNarrative = await promptMultiline('BASELINE AI NARRATIVE');
+    // Auto-extract from database (stored in inputs.__baseline_narrative)
+    const narrativeFromDb = (baselineScenario as any).__baseline_narrative;
 
-    if (!baselineNarrative || baselineNarrative.length === 0) {
-      console.error('❌ No narrative provided. Exiting.');
+    if (narrativeFromDb && typeof narrativeFromDb === 'string' && narrativeFromDb.length > 0) {
+      baselineNarrative = narrativeFromDb;
+      console.log('✅ Baseline narrative found in database');
+    } else {
+      console.error('❌ No baseline narrative found in database.');
+      console.error('   This scenario needs to be saved from the UI first to generate AI content.');
+      console.error('   The narrative is stored automatically when you save a baseline scenario.');
       rl.close();
       process.exit(1);
     }
@@ -459,10 +433,17 @@ async function main() {
 
     // Get variant Key Insight (comparison) if needed
     if (mode === 'variant-insight' || mode === 'variant-full') {
-      variantInsight = await promptMultiline('VARIANT KEY INSIGHT (Comparison blurb from comparison tab)');
+      // Auto-extract from database (stored in inputs.__metadata.ai_insight)
+      const metadata = (variantScenario as any).__metadata;
+      const insightFromDb = metadata?.ai_insight;
 
-      if (!variantInsight || variantInsight.length === 0) {
-        console.error('❌ No Key Insight provided. Exiting.');
+      if (insightFromDb && typeof insightFromDb === 'string' && insightFromDb.length > 0) {
+        variantInsight = insightFromDb;
+        console.log('✅ Variant key insight found in database');
+      } else {
+        console.error('❌ No variant key insight found in database.');
+        console.error('   This variant needs to be saved from the UI first to generate AI content.');
+        console.error('   The key insight is stored automatically when you save a variant.');
         rl.close();
         process.exit(1);
       }
@@ -470,10 +451,17 @@ async function main() {
 
     // Get variant AI Analysis (narrative) if needed
     if (mode === 'variant-narrative' || mode === 'variant-full') {
-      variantNarrative = await promptMultiline('VARIANT AI ANALYSIS (Full narrative for variant scenario)');
+      // Auto-extract from database (stored in inputs.__metadata.ai_narrative)
+      const metadata = (variantScenario as any).__metadata;
+      const narrativeFromDb = metadata?.ai_narrative;
 
-      if (!variantNarrative || variantNarrative.length === 0) {
-        console.error('❌ No AI Analysis provided. Exiting.');
+      if (narrativeFromDb && typeof narrativeFromDb === 'string' && narrativeFromDb.length > 0) {
+        variantNarrative = narrativeFromDb;
+        console.log('✅ Variant AI narrative found in database');
+      } else {
+        console.error('❌ No variant AI narrative found in database.');
+        console.error('   This variant needs to be saved from the UI first to generate AI content.');
+        console.error('   The narrative is stored automatically when you save a variant.');
         rl.close();
         process.exit(1);
       }
