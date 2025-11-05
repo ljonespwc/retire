@@ -26,12 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🔢 Running calculation for scenario: ${scenario.name}`)
+    console.log('📋 OTHER INCOME DEBUG:', JSON.stringify(scenario.income_sources.other_income, null, 2))
 
     // Get Supabase server client (has proper access to database)
     const supabase = await createClient()
 
     // Run calculation
     const results = await calculateRetirementProjection(supabase, scenario)
+
+    console.log(`💰 RESULT: Final Portfolio = $${Math.round(results.final_portfolio_value).toLocaleString()}`)
 
     console.log(`✅ Calculation complete for ${scenario.name}`)
 

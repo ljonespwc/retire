@@ -190,6 +190,9 @@ npm run dev      # Start development server on http://localhost:3000
 npm run build    # Build for production
 npm run start    # Start production server
 npm run lint     # Run ESLint
+
+# Development Tools
+npx tsx src/scripts/validate-ai-insights.ts  # AI validation CLI (4 modes: baseline, variant insight, variant narrative, full)
 ```
 
 ## Repository Structure

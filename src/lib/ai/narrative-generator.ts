@@ -60,12 +60,28 @@ interface OneTimeWithdrawal {
   description?: string;
 }
 
+interface AgeBasedExpenseChange {
+  age: number;
+  monthly_amount: number;
+}
+
+interface PensionContext {
+  annual_amount: number;
+  indexed_to_inflation: boolean;
+  has_bridge_benefit: boolean;
+  bridge_reduction_amount?: number;
+  bridge_reduction_age?: number;
+  start_age?: number;
+}
+
 interface RichContext {
   userContext: UserContext;
   yearSnapshots: YearSnapshot[];
   taxAnalysis: TaxAnalysis;
   incomeStrategy: IncomeStrategy;
   oneTimeWithdrawals: OneTimeWithdrawal[];
+  ageBasedExpenseChanges: AgeBasedExpenseChange[];
+  pensionContext?: PensionContext;
   summary: {
     portfolioDepleted: boolean;
     depletionAge?: number;
@@ -249,12 +265,34 @@ function extractRichContext(results: CalculationResults, scenario: Scenario): Ri
     description: w.description,
   }));
 
+  // Extract age-based expense changes
+  const ageBasedExpenseChanges: AgeBasedExpenseChange[] = (scenario.expenses.age_based_changes || []).map(c => ({
+    age: c.age,
+    monthly_amount: c.monthly_amount,
+  }));
+
+  // Extract pension context
+  let pensionContext: PensionContext | undefined;
+  if (scenario.income_sources.pension) {
+    const p = scenario.income_sources.pension;
+    pensionContext = {
+      annual_amount: p.annual_amount,
+      indexed_to_inflation: p.indexed_to_inflation,
+      has_bridge_benefit: p.has_bridge_benefit || false,
+      bridge_reduction_amount: p.bridge_reduction_amount,
+      bridge_reduction_age: p.bridge_reduction_age,
+      start_age: p.start_age,
+    };
+  }
+
   return {
     userContext: extractUserContext(results, scenario),
     yearSnapshots: extractYearByYearSample(results),
     taxAnalysis: extractTaxAnalysis(results),
     incomeStrategy: extractIncomeStrategy(results),
     oneTimeWithdrawals,
+    ageBasedExpenseChanges,
+    pensionContext,
     summary: {
       portfolioDepleted: results.portfolio_depleted_age !== undefined,
       depletionAge: results.portfolio_depleted_age,
@@ -289,7 +327,7 @@ function formatPercent(value: number): string {
  * Build rich context string for LLM prompt
  */
 function buildRichContextPrompt(context: RichContext): string {
-  const { userContext, yearSnapshots, taxAnalysis, incomeStrategy, oneTimeWithdrawals, summary } = context;
+  const { userContext, yearSnapshots, taxAnalysis, incomeStrategy, oneTimeWithdrawals, ageBasedExpenseChanges, pensionContext, summary } = context;
 
   let prompt = `## User Profile\n`;
   prompt += `- Current Age: ${userContext.currentAge}\n`;
@@ -301,11 +339,24 @@ function buildRichContextPrompt(context: RichContext): string {
 
   prompt += `## Portfolio Outcome\n`;
   prompt += `- Peak Balance: ${formatCurrency(summary.peakBalance)} at age ${summary.peakAge}\n`;
-  prompt += `- Final Balance: ${formatCurrency(summary.finalBalance)} at age ${userContext.longevityAge}\n`;
-  if (summary.portfolioDepleted) {
-    prompt += `- ⚠️ Portfolio Depleted: Age ${summary.depletionAge}\n`;
+  prompt += `- Longevity Target: Age ${userContext.longevityAge}\n`;
+
+  if (summary.portfolioDepleted && summary.depletionAge) {
+    const gapYears = userContext.longevityAge - summary.depletionAge;
+    prompt += `- Portfolio Depletes: Age ${summary.depletionAge}\n`;
+
+    if (gapYears > 1) {
+      prompt += `- ⚠️ CRITICAL SHORTFALL: Portfolio runs out ${gapYears} YEARS BEFORE longevity target (ages ${summary.depletionAge}-${userContext.longevityAge} unfunded)\n`;
+    } else if (gapYears === 1) {
+      prompt += `- ⚠️ CAUTION: Portfolio runs out 1 year before longevity target\n`;
+    } else if (gapYears === 0) {
+      prompt += `- Portfolio Status: Depletes exactly at longevity target (tight timing, no cushion)\n`;
+    } else {
+      // gapYears is negative (depletes after longevity target)
+      prompt += `- Portfolio Status: Sustains through longevity target\n`;
+    }
   } else {
-    prompt += `- Portfolio Status: Sustains through longevity\n`;
+    prompt += `- Portfolio Status: Sustains through longevity with ${formatCurrency(summary.finalBalance)} remaining\n`;
   }
   prompt += `\n`;
 
@@ -323,6 +374,29 @@ function buildRichContextPrompt(context: RichContext): string {
       const desc = w.description ? ` for ${w.description}` : '';
       prompt += `- Age ${w.age}: ${formatCurrency(w.amount)}${desc}\n`;
     });
+    prompt += `\n`;
+  }
+
+  // Add age-based expense changes section if any exist
+  if (ageBasedExpenseChanges.length > 0) {
+    prompt += `## Age-Based Spending Strategy\n`;
+    ageBasedExpenseChanges.forEach(c => {
+      prompt += `- Age ${c.age}: ${formatCurrency(c.monthly_amount)}/month\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add pension context section if exists
+  if (pensionContext) {
+    prompt += `## Pension Details\n`;
+    prompt += `- Annual Amount: ${formatCurrency(pensionContext.annual_amount)}\n`;
+    if (pensionContext.start_age) {
+      prompt += `- Starts: Age ${pensionContext.start_age}\n`;
+    }
+    prompt += `- Indexed to Inflation: ${pensionContext.indexed_to_inflation ? 'Yes' : 'No'}\n`;
+    if (pensionContext.has_bridge_benefit) {
+      prompt += `- Bridge Benefit: Reduces by ${formatCurrency(pensionContext.bridge_reduction_amount || 0)} at age ${pensionContext.bridge_reduction_age || 65}\n`;
+    }
     prompt += `\n`;
   }
 
@@ -382,6 +456,11 @@ Style Guidelines:
 • Be analytical but accessible (explain WHY things happen)
 • Avoid jargon (say "retirement savings" not "portfolio")
 • Be reassuring if healthy, honest if concerning
+
+CRITICAL: Portfolio Depletion Rules
+• When you see "CRITICAL SHORTFALL" or "CAUTION" in the data: Lead paragraph 1 with the warning, emphasize the unfunded gap
+• When you see "tight timing, no cushion": Neutral tone, note the risk of living longer than planned
+• When you see "Sustains through longevity": Positive tone, mention the remaining balance as a cushion or legacy
 
 CRITICAL WORD LIMIT:
 • Target 150-250 words total

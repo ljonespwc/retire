@@ -477,11 +477,8 @@ export async function calculateRetirementProjection(
       nonRegCostBasis = Math.max(0, nonRegCostBasis * (1 - withdrawalRatio));
     }
 
-    // Check for portfolio depletion
-    if (currentBalances.total <= 0) {
-      // Portfolio depleted - this is important for success metrics
-      break;
-    }
+    // Note: Continue projection even if portfolio depletes
+    // CPP/OAS/pension income continues until longevity_age regardless of portfolio balance
   }
 
   // ==================================================

@@ -313,7 +313,7 @@ export function VoiceFirstContentV2() {
               description: 'Other Income',
               annual_amount: otherIncome,
               start_age: retirementAge || 65,
-              indexed_to_inflation: true
+              indexed_to_inflation: false // Fixed income - does not grow with inflation
             }] : [])
           ]
         },
@@ -665,7 +665,7 @@ export function VoiceFirstContentV2() {
         description: 'Other Income',
         annual_amount: otherIncome,
         start_age: retirementAge || 65,
-        indexed_to_inflation: true
+        indexed_to_inflation: false // Fixed income - does not grow with inflation
       })
     }
     if (otherIncomeItems.length > 0) {
@@ -843,6 +843,37 @@ export function VoiceFirstContentV2() {
             spendingComparison.legacyTarget = startingPortfolio * variantConfig.percentage
           }
 
+          // Build age-based expense changes
+          const baselineAgeBasedChanges = baseScenario.expenses.age_based_changes || []
+          const variantAgeBasedChanges = variant.expenses.age_based_changes || []
+
+          // Build pension context
+          const baselinePensionContext = baseScenario.income_sources.pension ? {
+            annual_amount: baseScenario.income_sources.pension.annual_amount,
+            indexed_to_inflation: baseScenario.income_sources.pension.indexed_to_inflation,
+            has_bridge_benefit: baseScenario.income_sources.pension.has_bridge_benefit || false,
+            bridge_reduction_amount: baseScenario.income_sources.pension.bridge_reduction_amount,
+            bridge_reduction_age: baseScenario.income_sources.pension.bridge_reduction_age,
+            start_age: baseScenario.income_sources.pension.start_age,
+          } : undefined
+
+          // Build retirement age comparison (for Retire Early variant)
+          const retirementAgeComparison = baseScenario.basic_inputs.retirement_age !== variant.basic_inputs.retirement_age ? {
+            baselineRetirementAge: baseScenario.basic_inputs.retirement_age,
+            variantRetirementAge: variant.basic_inputs.retirement_age,
+          } : undefined
+
+          // Build benefit start age comparison (for Delay Benefits variant)
+          const benefitStartAgeComparison = (
+            baseScenario.income_sources.cpp?.start_age !== variant.income_sources.cpp?.start_age ||
+            baseScenario.income_sources.oas?.start_age !== variant.income_sources.oas?.start_age
+          ) ? {
+            baselineCPPStartAge: baseScenario.income_sources.cpp?.start_age || 65,
+            variantCPPStartAge: variant.income_sources.cpp?.start_age || 65,
+            baselineOASStartAge: baseScenario.income_sources.oas?.start_age || 65,
+            variantOASStartAge: variant.income_sources.oas?.start_age || 65,
+          } : undefined
+
           const insightResult = await fetch('/api/generate-insight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -853,7 +884,13 @@ export function VoiceFirstContentV2() {
               baselineScenarioName: loadedScenarioName || undefined,
               spendingComparison,
               baselineOneTimeWithdrawals: baseScenario.expenses.one_time_withdrawals || [],
-              variantOneTimeWithdrawals: variant.expenses.one_time_withdrawals || []
+              variantOneTimeWithdrawals: variant.expenses.one_time_withdrawals || [],
+              baselineAgeBasedChanges,
+              variantAgeBasedChanges,
+              baselinePensionContext,
+              variantPensionContext: undefined, // Pension doesn't change in variants
+              retirementAgeComparison,
+              benefitStartAgeComparison,
             })
           })
             .then(res => res.json())

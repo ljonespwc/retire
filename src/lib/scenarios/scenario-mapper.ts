@@ -118,7 +118,7 @@ export function formDataToScenario(
               description: 'Other Income',
               annual_amount: formData.otherIncome,
               start_age: formData.retirementAge || 65,
-              indexed_to_inflation: false,
+              indexed_to_inflation: false, // Fixed income - does not grow with inflation
             },
           ]
         : [],

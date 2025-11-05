@@ -22,6 +22,32 @@ interface OneTimeWithdrawal {
   description?: string;
 }
 
+interface AgeBasedExpenseChange {
+  age: number;
+  monthly_amount: number;
+}
+
+interface PensionContext {
+  annual_amount: number;
+  indexed_to_inflation: boolean;
+  has_bridge_benefit: boolean;
+  bridge_reduction_amount?: number;
+  bridge_reduction_age?: number;
+  start_age?: number;
+}
+
+interface RetirementAgeComparison {
+  baselineRetirementAge: number;
+  variantRetirementAge: number;
+}
+
+interface BenefitStartAgeComparison {
+  baselineCPPStartAge: number;
+  variantCPPStartAge: number;
+  baselineOASStartAge: number;
+  variantOASStartAge: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -32,6 +58,12 @@ export async function POST(request: NextRequest) {
     const spendingComparison: SpendingComparison | undefined = body.spendingComparison;
     const baselineOneTimeWithdrawals: OneTimeWithdrawal[] | undefined = body.baselineOneTimeWithdrawals;
     const variantOneTimeWithdrawals: OneTimeWithdrawal[] | undefined = body.variantOneTimeWithdrawals;
+    const baselineAgeBasedChanges: AgeBasedExpenseChange[] | undefined = body.baselineAgeBasedChanges;
+    const variantAgeBasedChanges: AgeBasedExpenseChange[] | undefined = body.variantAgeBasedChanges;
+    const baselinePensionContext: PensionContext | undefined = body.baselinePensionContext;
+    const variantPensionContext: PensionContext | undefined = body.variantPensionContext;
+    const retirementAgeComparison: RetirementAgeComparison | undefined = body.retirementAgeComparison;
+    const benefitStartAgeComparison: BenefitStartAgeComparison | undefined = body.benefitStartAgeComparison;
 
     if (!baselineResults || !variantResults || !variantName) {
       return NextResponse.json(
@@ -54,7 +86,13 @@ export async function POST(request: NextRequest) {
       baselineScenarioName,
       spendingComparison,
       baselineOneTimeWithdrawals,
-      variantOneTimeWithdrawals
+      variantOneTimeWithdrawals,
+      baselineAgeBasedChanges,
+      variantAgeBasedChanges,
+      baselinePensionContext,
+      variantPensionContext,
+      retirementAgeComparison,
+      benefitStartAgeComparison
     );
 
     return NextResponse.json({ insight });

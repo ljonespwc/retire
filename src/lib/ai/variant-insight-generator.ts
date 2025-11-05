@@ -94,6 +94,32 @@ interface OneTimeWithdrawal {
   description?: string;
 }
 
+interface AgeBasedExpenseChange {
+  age: number;
+  monthly_amount: number;
+}
+
+interface PensionContext {
+  annual_amount: number;
+  indexed_to_inflation: boolean;
+  has_bridge_benefit: boolean;
+  bridge_reduction_amount?: number;
+  bridge_reduction_age?: number;
+  start_age?: number;
+}
+
+interface RetirementAgeComparison {
+  baselineRetirementAge: number;
+  variantRetirementAge: number;
+}
+
+interface BenefitStartAgeComparison {
+  baselineCPPStartAge: number;
+  variantCPPStartAge: number;
+  baselineOASStartAge: number;
+  variantOASStartAge: number;
+}
+
 /**
  * Generate variant insight using LLM
  */
@@ -104,7 +130,13 @@ export async function generateVariantInsight(
   baselineScenarioName?: string,
   spendingComparison?: SpendingComparison,
   baselineOneTimeWithdrawals?: OneTimeWithdrawal[],
-  variantOneTimeWithdrawals?: OneTimeWithdrawal[]
+  variantOneTimeWithdrawals?: OneTimeWithdrawal[],
+  baselineAgeBasedChanges?: AgeBasedExpenseChange[],
+  variantAgeBasedChanges?: AgeBasedExpenseChange[],
+  baselinePensionContext?: PensionContext,
+  variantPensionContext?: PensionContext,
+  retirementAgeComparison?: RetirementAgeComparison,
+  benefitStartAgeComparison?: BenefitStartAgeComparison
 ): Promise<string> {
   try {
     const metrics = extractComparison(baselineResults, variantResults);
@@ -155,6 +187,59 @@ export async function generateVariantInsight(
       });
     }
 
+    // Build age-based spending strategy context
+    let ageBasedContext = '';
+    if (baselineAgeBasedChanges && baselineAgeBasedChanges.length > 0) {
+      ageBasedContext += `
+  Baseline spending strategy: ${baselineAgeBasedChanges.length} age-based change${baselineAgeBasedChanges.length > 1 ? 's' : ''}`;
+      baselineAgeBasedChanges.forEach(c => {
+        ageBasedContext += `
+    • Age ${c.age}: ${formatCurrency(c.monthly_amount)}/month`;
+      });
+    }
+    if (variantAgeBasedChanges && variantAgeBasedChanges.length > 0) {
+      ageBasedContext += `
+  Variant spending strategy: ${variantAgeBasedChanges.length} age-based change${variantAgeBasedChanges.length > 1 ? 's' : ''}`;
+      variantAgeBasedChanges.forEach(c => {
+        ageBasedContext += `
+    • Age ${c.age}: ${formatCurrency(c.monthly_amount)}/month`;
+      });
+    }
+
+    // Build retirement age comparison context
+    let retirementAgeContext = '';
+    if (retirementAgeComparison) {
+      const diff = retirementAgeComparison.variantRetirementAge - retirementAgeComparison.baselineRetirementAge;
+      retirementAgeContext = `
+  Baseline retirement age: ${retirementAgeComparison.baselineRetirementAge}
+  Variant retirement age: ${retirementAgeComparison.variantRetirementAge} (${diff > 0 ? '+' : ''}${diff} years)`;
+    }
+
+    // Build benefit start age comparison context
+    let benefitContext = '';
+    if (benefitStartAgeComparison) {
+      benefitContext = `
+  Baseline CPP/OAS start ages: ${benefitStartAgeComparison.baselineCPPStartAge}/${benefitStartAgeComparison.baselineOASStartAge}
+  Variant CPP/OAS start ages: ${benefitStartAgeComparison.variantCPPStartAge}/${benefitStartAgeComparison.variantOASStartAge}`;
+    }
+
+    // Build pension context
+    let pensionContext = '';
+    if (baselinePensionContext) {
+      if (baselinePensionContext.has_bridge_benefit) {
+        pensionContext += `
+  Pension has bridge benefit: Reduces by ${formatCurrency(baselinePensionContext.bridge_reduction_amount || 0)} at age ${baselinePensionContext.bridge_reduction_age || 65}`;
+      }
+      if (baselinePensionContext.indexed_to_inflation) {
+        pensionContext += `
+  Pension indexed to inflation: Yes`;
+      }
+      if (!baselinePensionContext.indexed_to_inflation) {
+        pensionContext += `
+  Pension indexed to inflation: No (flat amount)`;
+      }
+    }
+
     const context = `
 Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}
@@ -162,7 +247,7 @@ Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Total Pension: ${formatCurrency(baselineResults.total_pension_received)}
   - Total CPP: ${formatCurrency(baselineResults.total_cpp_received)}
   - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}
-  - Total Other Income: ${formatCurrency(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}
+  - Total Other Income: ${formatCurrency(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}${ageBasedContext}${retirementAgeContext}${benefitContext}${pensionContext}
 
 Variant: ${variantName}
   - Ending balance: ${formatCurrency(variantResults.final_portfolio_value)} (${formatCurrency(metrics.portfolioDiff)} / ${metrics.portfolioPercent.toFixed(1)}%)

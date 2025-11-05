@@ -55,6 +55,7 @@ This document maps actual development progress against the [Comprehensive PRD](.
 - ✅ Calculation engine fully tested
 - ✅ Component tests for critical UI
 - ✅ Integration tests for user flows
+- ✅ AI validation CLI tool (validates AI narratives against actual calculations)
 
 ### Deployment
 
