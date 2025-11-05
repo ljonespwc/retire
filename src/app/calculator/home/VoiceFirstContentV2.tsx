@@ -851,7 +851,9 @@ export function VoiceFirstContentV2() {
               variantResults: results,
               variantName: variant.name,
               baselineScenarioName: loadedScenarioName || undefined,
-              spendingComparison
+              spendingComparison,
+              baselineOneTimeWithdrawals: baseScenario.expenses.one_time_withdrawals || [],
+              variantOneTimeWithdrawals: variant.expenses.one_time_withdrawals || []
             })
           })
             .then(res => res.json())

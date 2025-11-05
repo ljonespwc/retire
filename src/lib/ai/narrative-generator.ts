@@ -54,11 +54,18 @@ interface IncomeStrategy {
   registeredWithdrawalPercent: number;
 }
 
+interface OneTimeWithdrawal {
+  age: number;
+  amount: number;
+  description?: string;
+}
+
 interface RichContext {
   userContext: UserContext;
   yearSnapshots: YearSnapshot[];
   taxAnalysis: TaxAnalysis;
   incomeStrategy: IncomeStrategy;
+  oneTimeWithdrawals: OneTimeWithdrawal[];
   summary: {
     portfolioDepleted: boolean;
     depletionAge?: number;
@@ -235,11 +242,19 @@ function extractRichContext(results: CalculationResults, scenario: Scenario): Ri
 
   const lastYear = results.year_by_year[results.year_by_year.length - 1];
 
+  // Extract one-time withdrawals
+  const oneTimeWithdrawals: OneTimeWithdrawal[] = (scenario.expenses.one_time_withdrawals || []).map(w => ({
+    age: w.age,
+    amount: w.amount,
+    description: w.description,
+  }));
+
   return {
     userContext: extractUserContext(results, scenario),
     yearSnapshots: extractYearByYearSample(results),
     taxAnalysis: extractTaxAnalysis(results),
     incomeStrategy: extractIncomeStrategy(results),
+    oneTimeWithdrawals,
     summary: {
       portfolioDepleted: results.portfolio_depleted_age !== undefined,
       depletionAge: results.portfolio_depleted_age,
@@ -274,7 +289,7 @@ function formatPercent(value: number): string {
  * Build rich context string for LLM prompt
  */
 function buildRichContextPrompt(context: RichContext): string {
-  const { userContext, yearSnapshots, taxAnalysis, incomeStrategy, summary } = context;
+  const { userContext, yearSnapshots, taxAnalysis, incomeStrategy, oneTimeWithdrawals, summary } = context;
 
   let prompt = `## User Profile\n`;
   prompt += `- Current Age: ${userContext.currentAge}\n`;
@@ -300,6 +315,16 @@ function buildRichContextPrompt(context: RichContext): string {
   prompt += `- RRIF Conversion: Age ${incomeStrategy.rrifConversionAge}\n`;
   prompt += `- Government Benefits: ${formatPercent(incomeStrategy.govBenefitPercent)} of total retirement income\n`;
   prompt += `- Registered Withdrawals: ${formatPercent(incomeStrategy.registeredWithdrawalPercent)} of total retirement income\n\n`;
+
+  // Add one-time withdrawals section if any exist
+  if (oneTimeWithdrawals.length > 0) {
+    prompt += `## One-Time Withdrawals\n`;
+    oneTimeWithdrawals.forEach(w => {
+      const desc = w.description ? ` for ${w.description}` : '';
+      prompt += `- Age ${w.age}: ${formatCurrency(w.amount)}${desc}\n`;
+    });
+    prompt += `\n`;
+  }
 
   prompt += `## Tax Analysis\n`;
   prompt += `- Lifetime Tax Paid: ${formatCurrency(taxAnalysis.lifetimeTaxPaid)}\n`;

@@ -88,6 +88,12 @@ interface SpendingComparison {
   legacyTarget?: number;      // Target legacy amount
 }
 
+interface OneTimeWithdrawal {
+  age: number;
+  amount: number;
+  description?: string;
+}
+
 /**
  * Generate variant insight using LLM
  */
@@ -96,7 +102,9 @@ export async function generateVariantInsight(
   variantResults: CalculationResults,
   variantName: string,
   baselineScenarioName?: string,
-  spendingComparison?: SpendingComparison
+  spendingComparison?: SpendingComparison,
+  baselineOneTimeWithdrawals?: OneTimeWithdrawal[],
+  variantOneTimeWithdrawals?: OneTimeWithdrawal[]
 ): Promise<string> {
   try {
     const metrics = extractComparison(baselineResults, variantResults);
@@ -124,6 +132,29 @@ export async function generateVariantInsight(
       }
     }
 
+    // Build one-time withdrawals context if provided
+    let withdrawalsContext = '';
+    if (baselineOneTimeWithdrawals && baselineOneTimeWithdrawals.length > 0) {
+      const baselineTotal = baselineOneTimeWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+      withdrawalsContext += `
+  - Baseline withdrawals: ${formatCurrency(baselineTotal)} total (${baselineOneTimeWithdrawals.length} withdrawal${baselineOneTimeWithdrawals.length > 1 ? 's' : ''})`;
+      baselineOneTimeWithdrawals.forEach(w => {
+        const desc = w.description ? ` for ${w.description}` : '';
+        withdrawalsContext += `
+    • Age ${w.age}: ${formatCurrency(w.amount)}${desc}`;
+      });
+    }
+    if (variantOneTimeWithdrawals && variantOneTimeWithdrawals.length > 0) {
+      const variantTotal = variantOneTimeWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+      withdrawalsContext += `
+  - Variant withdrawals: ${formatCurrency(variantTotal)} total (${variantOneTimeWithdrawals.length} withdrawal${variantOneTimeWithdrawals.length > 1 ? 's' : ''})`;
+      variantOneTimeWithdrawals.forEach(w => {
+        const desc = w.description ? ` for ${w.description}` : '';
+        withdrawalsContext += `
+    • Age ${w.age}: ${formatCurrency(w.amount)}${desc}`;
+      });
+    }
+
     const context = `
 Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}
@@ -131,7 +162,7 @@ Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Total Pension: ${formatCurrency(baselineResults.total_pension_received)}
   - Total CPP: ${formatCurrency(baselineResults.total_cpp_received)}
   - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}
-  - Total Other Income: ${formatCurrency(baselineResults.total_other_income_received)}${spendingContext}
+  - Total Other Income: ${formatCurrency(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}
 
 Variant: ${variantName}
   - Ending balance: ${formatCurrency(variantResults.final_portfolio_value)} (${formatCurrency(metrics.portfolioDiff)} / ${metrics.portfolioPercent.toFixed(1)}%)

@@ -16,6 +16,12 @@ interface SpendingComparison {
   legacyTarget?: number;
 }
 
+interface OneTimeWithdrawal {
+  age: number;
+  amount: number;
+  description?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -24,6 +30,8 @@ export async function POST(request: NextRequest) {
     const variantName: string = body.variantName;
     const baselineScenarioName: string | undefined = body.baselineScenarioName;
     const spendingComparison: SpendingComparison | undefined = body.spendingComparison;
+    const baselineOneTimeWithdrawals: OneTimeWithdrawal[] | undefined = body.baselineOneTimeWithdrawals;
+    const variantOneTimeWithdrawals: OneTimeWithdrawal[] | undefined = body.variantOneTimeWithdrawals;
 
     if (!baselineResults || !variantResults || !variantName) {
       return NextResponse.json(
@@ -44,7 +52,9 @@ export async function POST(request: NextRequest) {
       variantResults,
       variantName,
       baselineScenarioName,
-      spendingComparison
+      spendingComparison,
+      baselineOneTimeWithdrawals,
+      variantOneTimeWithdrawals
     );
 
     return NextResponse.json({ insight });
