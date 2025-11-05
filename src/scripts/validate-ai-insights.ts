@@ -95,15 +95,19 @@ function prompt(question: string): Promise<string> {
 
 /**
  * Fetch scenario from database by ID or fuzzy-match name
+ * Only returns scenarios for lance.jones@precisionnutrition.com
  */
 async function fetchScenario(idOrName: string): Promise<Scenario | null> {
+  const USER_EMAIL = 'lance.jones@precisionnutrition.com';
+
   // Try exact ID match first (only if input looks like a UUID)
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidPattern.test(idOrName)) {
     const { data: byId, error: idError } = await supabase
       .from('scenarios')
-      .select('*')
+      .select('*, users!inner(email)')
       .eq('id', idOrName)
+      .eq('users.email', USER_EMAIL)
       .single();
 
     if (byId && !idError && byId.inputs) {
@@ -119,7 +123,8 @@ async function fetchScenario(idOrName: string): Promise<Scenario | null> {
   // Try fuzzy name match
   const { data: byName, error: nameError } = await supabase
     .from('scenarios')
-    .select('*')
+    .select('*, users!inner(email)')
+    .eq('users.email', USER_EMAIL)
     .ilike('name', `%${idOrName}%`)
     .limit(5);
 
@@ -163,6 +168,7 @@ async function fetchScenario(idOrName: string): Promise<Scenario | null> {
   }
 
   console.error(`❌ No scenario found matching: "${idOrName}"`);
+  console.error(`   (Only searching scenarios for ${USER_EMAIL})`);
   return null;
 }
 
