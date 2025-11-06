@@ -6,7 +6,8 @@
  */
 
 import Image from 'next/image'
-import { Sun, Moon, LogIn, LogOut, User } from 'lucide-react'
+import Link from 'next/link'
+import { Sun, Moon, LogIn, LogOut, User, BookOpen } from 'lucide-react'
 
 interface CalculatorHeaderProps {
   isDarkMode: boolean
@@ -49,8 +50,17 @@ export function CalculatorHeader({
             </div>
           </div>
 
-          {/* Auth & Theme Controls */}
+          {/* Navigation & Auth Controls */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Articles Link */}
+            <Link
+              href="/articles"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
+              aria-label="Articles"
+            >
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Articles</span>
+            </Link>
             {!authLoading && (
               <>
                 {isAnonymous ? (

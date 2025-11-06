@@ -362,6 +362,94 @@ export interface Database {
           }
         ];
       };
+      articles: {
+        Row: {
+          id: string;
+          title: string;
+          slug: string;
+          excerpt: string;
+          content: string;
+          featured_image_url: string | null;
+          cta_text: string | null;
+          status: 'draft' | 'published' | 'archived';
+          publish_date: string;
+          created_at: string;
+          updated_at: string;
+          author_id: string | null;
+          reading_time_minutes: number | null;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          slug: string;
+          excerpt: string;
+          content: string;
+          featured_image_url?: string | null;
+          cta_text?: string | null;
+          status?: 'draft' | 'published' | 'archived';
+          publish_date?: string;
+          created_at?: string;
+          updated_at?: string;
+          author_id?: string | null;
+          reading_time_minutes?: number | null;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          slug?: string;
+          excerpt?: string;
+          content?: string;
+          featured_image_url?: string | null;
+          cta_text?: string | null;
+          status?: 'draft' | 'published' | 'archived';
+          publish_date?: string;
+          created_at?: string;
+          updated_at?: string;
+          author_id?: string | null;
+          reading_time_minutes?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'articles_author_id_fkey';
+            columns: ['author_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      article_likes: {
+        Row: {
+          id: string;
+          article_id: string;
+          like_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          article_id: string;
+          like_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          article_id?: string;
+          like_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'article_likes_article_id_fkey';
+            columns: ['article_id'];
+            isOneToOne: true;
+            referencedRelation: 'articles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
