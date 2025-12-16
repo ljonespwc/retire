@@ -31,6 +31,49 @@
 
 ---
 
+## Upcoming: 2026 Tax Year Update (January 2026)
+
+**Priority**: High (data accuracy)
+**Timeline**: Early January 2026 (after CRA announces final numbers)
+
+All tax data is stored in Supabase database tables. When 2026 rates are announced, update the following:
+
+### Federal Updates
+- [ ] **Federal tax brackets** - Indexed annually to inflation (~2.7% expected)
+- [ ] **Basic Personal Amount** - Increases annually ($15,705 → ~$16,129 for 2026)
+- [ ] **Age Amount** - For seniors 65+ (indexed)
+
+### Provincial Updates (all 13 jurisdictions)
+- [ ] **Provincial tax brackets** - Each province indexes differently
+- [ ] **Provincial basic personal amounts**
+- [ ] Priority provinces: BC, ON, AB, QC (highest user base)
+
+### Government Benefits
+- [ ] **CPP** - Maximum pensionable earnings, contribution rates, max benefits
+- [ ] **OAS** - Payment amounts (indexed quarterly), clawback threshold (~$90K)
+- [ ] **GIS** - If we add support for low-income scenarios
+
+### Contribution Limits
+- [ ] **TFSA limit** - Usually $6,500-$7,000/year
+- [ ] **RRSP limit** - 18% of prior year income, up to max (~$32K)
+
+### Database Tables to Update
+```
+tax_years           - Add 2026 row
+federal_tax_brackets - Add 2026 brackets
+provincial_tax_brackets - Add 2026 for all 13 provinces
+government_benefits - Update CPP and OAS JSONB data
+tax_credits         - Update BASIC_PERSONAL_AMOUNT, AGE_AMOUNT
+tfsa_limits         - Add 2026 limit
+```
+
+### Sources
+- CRA: https://www.canada.ca/en/revenue-agency.html
+- CPP/OAS: https://www.canada.ca/en/services/benefits/publicpensions.html
+- Provincial finance ministry sites for each province
+
+---
+
 ## Overview
 
 This document maps actual development progress against the [Comprehensive PRD](./Retirement_Calculator_Comprehensive_PRD.md) roadmap.
