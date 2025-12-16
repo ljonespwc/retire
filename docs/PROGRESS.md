@@ -9,13 +9,25 @@
 
 ### 2025-12-16: Gross-Up Fix for Withdrawal Calculations
 
-**Problem**: Net income dropped significantly at age 68 (~$22K/mo → ~$17K/mo) when non-registered assets depleted and RRIF withdrawals began. Engine wasn't grossing up withdrawals for taxes.
+**Problem**: Net income didn't match expenses due to taxes on withdrawals. The engine withdrew the "gap" amount without accounting for taxes owed on those withdrawals.
 
-**Fix**: Implemented iterative gross-up in `engine.ts:378-415`. The engine now calculates the gross withdrawal needed to deliver target net spending after taxes (up to 5 iterations, $100 tolerance).
+**Root Cause**: Tax treatment varies dramatically by withdrawal source:
+- Non-registered: Only capital gains portion taxed at 50% inclusion (~7-15% effective rate)
+- RRSP/RRIF: 100% taxable as income (~30-53% marginal rate)
+- TFSA: 0% tax
 
-**Result**: Gap between net income and expenses is now $0 for all retirement years. Test validated on "Retirement Plan - Pension" scenario.
+**Fix**: Implemented source-aware iterative gross-up in `engine.ts:380-462`:
+1. Estimates withdrawal source mix based on account balances and withdrawal order (non-reg → RRSP → TFSA)
+2. Calculates capital gains for non-registered portion using unrealized gain ratio
+3. Applies correct effective marginal rate based on which account the next dollar comes from
+4. Iterates until net income ≈ expenses (within $100 tolerance, max 5 iterations)
 
-**Files**: `src/lib/calculations/engine.ts`, `test-gross-up.ts`
+**Result**:
+- Ages 60-64: Net income now matches expenses (was over-withdrawing by $160K/year)
+- Ages 68+: Continues to work correctly for RRIF-heavy years
+- Portfolio depletion pushed from age 77 → age 82 (5 extra years!)
+
+**Files**: `src/lib/calculations/engine.ts`, `src/scripts/test-gross-up.ts`
 
 ---
 

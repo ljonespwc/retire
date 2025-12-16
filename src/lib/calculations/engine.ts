@@ -378,20 +378,48 @@ export async function calculateRetirementProjection(
     const netGapNeeded = Math.max(0, annualExpenses - afterTaxExternalIncome) + oneTimeWithdrawalAmount;
 
     // Iteratively calculate withdrawal amount to meet NET spending target
-    // We need to gross up for taxes, but the tax rate depends on total income (circular)
-    // Solution: iterate until net income meets target (or max iterations)
+    // We need to gross up for taxes, but the tax rate depends on:
+    // 1. Total income (determines marginal rate)
+    // 2. Withdrawal SOURCE (non-reg vs RRSP vs TFSA have very different tax treatment)
+    // Solution: Estimate source mix based on balances, then iterate
     let targetWithdrawal = netGapNeeded; // Start with net gap as first estimate
     const maxIterations = 5;
     const tolerance = 100; // Within $100 of target
 
+    // Get current balances for source estimation
+    const nonRegAvailable = currentBalances.non_registered;
+    const rrspAvailable = currentBalances.rrsp_rrif;
+    const tfsaAvailable = currentBalances.tfsa;
+
+    // Calculate unrealized gain ratio for non-registered
+    // Capital gain = withdrawal × unrealizedGainRatio
+    const unrealizedGainRatio = nonRegAvailable > 0
+      ? Math.max(0, 1 - nonRegCostBasis / nonRegAvailable)
+      : 0;
+
     for (let i = 0; i < maxIterations; i++) {
-      // Estimate tax on withdrawal (assume all from RRIF for simplicity)
+      // Estimate withdrawal sources based on withdrawal sequencing order:
+      // Non-registered → RRSP/RRIF → TFSA
+      const estNonRegWithdrawal = Math.min(targetWithdrawal, nonRegAvailable);
+      const estRrspWithdrawal = Math.min(
+        Math.max(0, targetWithdrawal - estNonRegWithdrawal),
+        rrspAvailable
+      );
+      const estTfsaWithdrawal = Math.min(
+        Math.max(0, targetWithdrawal - estNonRegWithdrawal - estRrspWithdrawal),
+        tfsaAvailable
+      );
+
+      // Calculate capital gains from non-registered portion
+      const estCapitalGains = estNonRegWithdrawal * unrealizedGainRatio;
+
+      // Estimate tax with proper source breakdown
       const estimatedTaxCalc = await calculateTotalTax(
         client,
         {
-          rrsp_rrif: targetWithdrawal,
-          tfsa: 0,
-          capital_gains: 0,
+          rrsp_rrif: estRrspWithdrawal,
+          tfsa: 0, // TFSA withdrawals not taxable
+          capital_gains: estCapitalGains,
           cpp: cppIncome,
           oas: oasIncome,
           pension: pensionIncome,
@@ -411,17 +439,30 @@ export async function calculateRetirementProjection(
         break;
       }
 
-      // Adjust withdrawal: add shortfall grossed up by current marginal rate
-      const marginalRate = estimatedTaxCalc.combined_marginal_rate;
-      const grossUpFactor = marginalRate < 0.99 ? 1 / (1 - marginalRate) : 1;
+      // Calculate effective marginal rate on next dollar of withdrawal
+      // based on which account it would come from (following withdrawal order)
+      let effectiveMarginalRate: number;
+      if (estNonRegWithdrawal < nonRegAvailable) {
+        // Next dollar comes from non-registered (capital gains treatment)
+        // Only the gain portion is taxable, at 50% inclusion
+        effectiveMarginalRate = estimatedTaxCalc.combined_marginal_rate * 0.5 * unrealizedGainRatio;
+      } else if (estRrspWithdrawal < rrspAvailable) {
+        // Next dollar comes from RRSP/RRIF (fully taxable)
+        effectiveMarginalRate = estimatedTaxCalc.combined_marginal_rate;
+      } else {
+        // Next dollar comes from TFSA (no tax)
+        effectiveMarginalRate = 0;
+      }
+
+      const grossUpFactor = effectiveMarginalRate < 0.99 ? 1 / (1 - effectiveMarginalRate) : 1;
       targetWithdrawal += shortfall * grossUpFactor;
 
       // Ensure we don't go negative
       targetWithdrawal = Math.max(0, targetWithdrawal);
     }
 
-    // Add one-time withdrawal on top
-    targetWithdrawal += oneTimeWithdrawalAmount;
+    // Add one-time withdrawal on top (already accounted for in netGapNeeded, don't double-count)
+    // Note: oneTimeWithdrawalAmount was added to netGapNeeded above
 
     // Project account forward with withdrawals and post-retirement returns
     // NO surplus reinvestment - surplus cash is not tracked (spent on lifestyle/gifts/etc)
