@@ -51,6 +51,7 @@ export interface IncomeDataPoint {
   oasIncome: number
   pensionIncome: number
   otherIncome: number
+  netIncome: number  // After-tax income (gross - taxes)
   milestone?: string
 }
 
@@ -230,7 +231,8 @@ export function formatIncomeData(
       cppIncome: year.income.cpp || 0,
       oasIncome: year.income.oas || 0,
       pensionIncome: year.income.pension || 0,
-      otherIncome: year.income.other || 0
+      otherIncome: year.income.other || 0,
+      netIncome: year.income.total - year.tax.total  // After-tax income
     }
 
     // Income-specific milestones: CPP and OAS start

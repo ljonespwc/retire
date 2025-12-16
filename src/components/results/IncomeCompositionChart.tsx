@@ -14,6 +14,7 @@ import { HelpCircle } from 'lucide-react'
 import {
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -38,7 +39,8 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
     cpp: true,
     oas: true,
     pension: true,
-    other: true
+    other: true,
+    netIncome: true  // After-tax income line
   })
 
   // State for help tooltip
@@ -232,6 +234,19 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               )
             ))}
 
+            {/* After-tax income line overlay */}
+            {visibleSources.netIncome && (
+              <Line
+                type="monotone"
+                dataKey="netIncome"
+                stroke="#22c55e"
+                strokeWidth={3}
+                strokeDasharray="8 4"
+                dot={false}
+                name="After-Tax Income"
+              />
+            )}
+
             {/* Milestone markers */}
             {milestones.map((milestone, index) => {
               // Calculate total income at this age for marker positioning
@@ -281,6 +296,24 @@ export function IncomeCompositionChart({ results, isDarkMode = false }: IncomeCo
               </span>
             </button>
           ))}
+
+          {/* After-Tax Income Line Toggle */}
+          <button
+            onClick={() => setVisibleSources(prev => ({ ...prev, netIncome: !prev.netIncome }))}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all text-sm border-2 border-dashed ${
+              visibleSources.netIncome
+                ? `${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 border-green-500' : 'bg-gray-100 hover:bg-gray-200 border-green-500'} opacity-100`
+                : `${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-300'} opacity-40 hover:opacity-60`
+            }`}
+          >
+            <div
+              className="w-6 h-0.5 rounded-sm"
+              style={{ backgroundColor: '#22c55e', borderStyle: 'dashed' }}
+            />
+            <span className={`${textSecondary} font-medium ${!visibleSources.netIncome ? 'line-through' : ''}`}>
+              After-Tax Income
+            </span>
+          </button>
         </div>
       </div>
 
@@ -350,8 +383,16 @@ function CustomTooltip({
       <div className={`font-medium ${textPrimary} mb-2`}>Age {data.age}</div>
       <div className="space-y-1 text-sm">
         <div className={`font-semibold ${textPrimary} border-b ${tooltipBorder} pb-1`}>
-          Total: {formatCompactCurrency(totalIncome)}
+          Gross: {formatCompactCurrency(totalIncome)}
         </div>
+
+        {/* After-Tax Income (if visible) */}
+        {visibleSources.netIncome && data.netIncome > 0 && (
+          <div className="flex justify-between gap-4 text-green-600 font-semibold">
+            <span>After-Tax:</span>
+            <span>{formatCompactCurrency(data.netIncome)}</span>
+          </div>
+        )}
 
         {/* Dynamic iteration in reversed order (smallest to largest, matching chart visual order) */}
         {[...sortedIncomeSources].reverse().map(source => {
