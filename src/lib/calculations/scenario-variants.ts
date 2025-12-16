@@ -10,10 +10,28 @@ import { Scenario } from '@/types/calculator'
 /**
  * Create "Front-Load the Fun" variant
  * Models go-go, slow-go, no-go retirement phases
+ *
+ * The multipliers are calculated dynamically to account for inflation,
+ * so that NOMINAL spending actually drops at each phase transition.
+ * Without this adjustment, inflation would cause slow-go and no-go
+ * spending to inflate back up to near go-go levels.
  */
 export function createFrontLoadVariant(baseScenario: Scenario): Scenario {
   const baseline = baseScenario.expenses.fixed_monthly
   const retirementAge = baseScenario.basic_inputs.retirement_age
+  const inflationRate = baseScenario.assumptions.inflation_rate
+
+  const goGoMultiplier = 1.30
+
+  // Target: slow-go nominal = 65% of go-go nominal at retirement
+  // Pre-deflate by 10 years of inflation so inflated value hits target
+  const slowGoNominalTarget = baseline * goGoMultiplier * 0.65
+  const slowGoBase = slowGoNominalTarget / Math.pow(1 + inflationRate, 10)
+
+  // Target: no-go nominal = 50% of go-go nominal at retirement
+  // Pre-deflate by 20 years of inflation so inflated value hits target
+  const noGoNominalTarget = baseline * goGoMultiplier * 0.50
+  const noGoBase = noGoNominalTarget / Math.pow(1 + inflationRate, 20)
 
   return {
     ...baseScenario,
@@ -23,15 +41,15 @@ export function createFrontLoadVariant(baseScenario: Scenario): Scenario {
       age_based_changes: [
         {
           age: retirementAge, // Go-go years start
-          monthly_amount: baseline * 1.30 // +30% of current baseline
+          monthly_amount: baseline * goGoMultiplier // +30% of baseline
         },
         {
           age: retirementAge + 10, // Slow-go years start
-          monthly_amount: baseline * 0.85 // -15% of baseline
+          monthly_amount: slowGoBase // ~65% of go-go nominal
         },
         {
           age: retirementAge + 20, // No-go years start
-          monthly_amount: baseline * 0.75 // -25% of baseline
+          monthly_amount: noGoBase // ~50% of go-go nominal
         }
       ]
     }
