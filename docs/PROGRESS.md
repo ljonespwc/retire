@@ -1,7 +1,21 @@
 # Development Progress Tracker
 
-**Last Updated**: 2025-11-03
+**Last Updated**: 2025-12-16
 **Current Phase**: Between Phase 1 (Complete) and Phase 2 (70% Complete)
+
+---
+
+## Recent Updates
+
+### 2025-12-16: Gross-Up Fix for Withdrawal Calculations
+
+**Problem**: Net income dropped significantly at age 68 (~$22K/mo → ~$17K/mo) when non-registered assets depleted and RRIF withdrawals began. Engine wasn't grossing up withdrawals for taxes.
+
+**Fix**: Implemented iterative gross-up in `engine.ts:378-415`. The engine now calculates the gross withdrawal needed to deliver target net spending after taxes (up to 5 iterations, $100 tolerance).
+
+**Result**: Gap between net income and expenses is now $0 for all retirement years. Test validated on "Retirement Plan - Pension" scenario.
+
+**Files**: `src/lib/calculations/engine.ts`, `test-gross-up.ts`
 
 ---
 

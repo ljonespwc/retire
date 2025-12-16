@@ -375,7 +375,53 @@ export async function calculateRetirementProjection(
     // Determine how much to withdraw from portfolio
     // Only withdraw if after-tax external income can't cover expenses
     // Plus any one-time withdrawals for this year
-    const targetWithdrawal = Math.max(0, annualExpenses - afterTaxExternalIncome) + oneTimeWithdrawalAmount;
+    const netGapNeeded = Math.max(0, annualExpenses - afterTaxExternalIncome) + oneTimeWithdrawalAmount;
+
+    // Iteratively calculate withdrawal amount to meet NET spending target
+    // We need to gross up for taxes, but the tax rate depends on total income (circular)
+    // Solution: iterate until net income meets target (or max iterations)
+    let targetWithdrawal = netGapNeeded; // Start with net gap as first estimate
+    const maxIterations = 5;
+    const tolerance = 100; // Within $100 of target
+
+    for (let i = 0; i < maxIterations; i++) {
+      // Estimate tax on withdrawal (assume all from RRIF for simplicity)
+      const estimatedTaxCalc = await calculateTotalTax(
+        client,
+        {
+          rrsp_rrif: targetWithdrawal,
+          tfsa: 0,
+          capital_gains: 0,
+          cpp: cppIncome,
+          oas: oasIncome,
+          pension: pensionIncome,
+          other: otherIncome,
+        },
+        province,
+        age
+      );
+
+      // Calculate what we'd actually net after taxes
+      const grossIncome = governmentBenefits + targetWithdrawal;
+      const netIncome = grossIncome - estimatedTaxCalc.total_tax;
+      const shortfall = annualExpenses - netIncome;
+
+      // If we're close enough, stop iterating
+      if (Math.abs(shortfall) < tolerance) {
+        break;
+      }
+
+      // Adjust withdrawal: add shortfall grossed up by current marginal rate
+      const marginalRate = estimatedTaxCalc.combined_marginal_rate;
+      const grossUpFactor = marginalRate < 0.99 ? 1 / (1 - marginalRate) : 1;
+      targetWithdrawal += shortfall * grossUpFactor;
+
+      // Ensure we don't go negative
+      targetWithdrawal = Math.max(0, targetWithdrawal);
+    }
+
+    // Add one-time withdrawal on top
+    targetWithdrawal += oneTimeWithdrawalAmount;
 
     // Project account forward with withdrawals and post-retirement returns
     // NO surplus reinvestment - surplus cash is not tracked (spent on lifestyle/gifts/etc)

@@ -191,8 +191,9 @@ npm run build    # Build for production
 npm run start    # Start production server
 npm run lint     # Run ESLint
 
-# Development Tools
-npx tsx src/scripts/validate-ai-insights.ts  # AI validation CLI (4 modes: baseline, variant insight, variant narrative, full)
+# Test Scripts (in src/scripts/)
+npx tsx src/scripts/validate-ai-insights.ts  # AI validation CLI (4 modes)
+npx tsx src/scripts/test-gross-up.ts         # Validate withdrawal gross-up calculations
 ```
 
 ## Repository Structure
@@ -203,15 +204,27 @@ retire/
 │   ├── app/              # Next.js app router pages
 │   │   ├── layout.tsx    # Root layout
 │   │   ├── page.tsx      # Homepage
+│   │   ├── calculator/   # Calculator UI
+│   │   ├── api/          # API routes
 │   │   └── globals.css   # Global styles with Tailwind
 │   ├── components/       # React components
 │   ├── lib/              # Business logic utilities
-│   │   └── supabase/     # Supabase client and queries
+│   │   ├── calculations/ # Core calculation engine
+│   │   ├── supabase/     # Supabase client and queries
+│   │   └── ai/           # AI narrative generation
+│   ├── scripts/          # CLI tools and test scripts
+│   │   ├── validate-ai-insights.ts  # AI validation CLI
+│   │   └── test-gross-up.ts         # Withdrawal calculation tests
 │   ├── hooks/            # Custom React hooks
-│   ├── services/         # API integrations
 │   └── types/            # TypeScript type definitions
+├── docs/                 # All documentation
+│   ├── PROGRESS.md       # Development progress tracker
+│   ├── WITHDRAWAL_STRATEGY.md
+│   ├── PENSION_TEST_REPORT.md
+│   ├── MINDSET.md
+│   └── *_PRD.md          # Product requirement docs
 ├── public/               # Static assets
-├── docs/                 # Product documentation
+├── CLAUDE.md             # Claude Code instructions (this file)
 └── .env.local            # Environment variables (not committed)
 ```
 
