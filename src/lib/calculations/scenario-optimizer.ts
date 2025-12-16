@@ -6,8 +6,30 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Scenario } from '@/types/calculator'
+import { Scenario, CalculationResults } from '@/types/calculator'
 import { calculateRetirementProjection } from './engine'
+
+/**
+ * Get the shortfall amount when portfolio is depleted
+ *
+ * A "real" shortfall only occurs when:
+ * 1. Portfolio balance is effectively $0 (< $1000)
+ * 2. AND net cash flow is negative (can't cover expenses)
+ *
+ * Small negative cash flows when portfolio is still healthy are just
+ * gross-up calculation rounding errors, not real shortfalls.
+ */
+function getDepletedYearShortfall(results: CalculationResults): number {
+  if (results.year_by_year.length === 0) return 0
+
+  // Find years where portfolio is depleted AND there's a shortfall
+  const shortfalls = results.year_by_year
+    .filter(y => y.balances.total < 1000 && y.net_cash_flow < -1000)
+    .map(y => y.net_cash_flow)
+
+  if (shortfalls.length === 0) return 0
+  return Math.min(...shortfalls) // Most negative (worst shortfall)
+}
 
 /**
  * Result from optimization algorithm
@@ -72,11 +94,15 @@ export async function optimizeSpendingToExhaust(
         const results = await calculateRetirementProjection(client, testScenario)
         iterations++
 
-        if (!results.portfolio_depleted_age || results.portfolio_depleted_age >= longevityAge) {
-          // This spending level works (reaches longevity) - can we spend more?
+        const shortfall = getDepletedYearShortfall(results)
+        const reachesLongevity = !results.portfolio_depleted_age || results.portfolio_depleted_age >= longevityAge
+        const hasShortfall = shortfall < -1000
+
+        if (reachesLongevity && !hasShortfall) {
+          // This spending level works (reaches longevity without shortfall) - can we spend more?
           low = mid
         } else {
-          // Still exhausts too early - need to spend less
+          // Either exhausts too early OR has a shortfall - need to spend less
           high = mid
         }
       }
@@ -86,6 +112,18 @@ export async function optimizeSpendingToExhaust(
         ...baseScenario,
         expenses: { ...baseScenario.expenses, fixed_monthly: sustainableSpending }
       })
+
+      // Final validation - only reject if there's a real shortfall when portfolio is depleted
+      const finalShortfall = getDepletedYearShortfall(finalResults)
+      if (finalShortfall < -1000) {
+        return {
+          optimizedSpending: sustainableSpending,
+          iterations,
+          finalBalance: finalResults.final_portfolio_value,
+          success: false,
+          message: `Cannot find sustainable spending level. Government benefits alone cannot cover inflated expenses in later years.`
+        }
+      }
 
       return {
         optimizedSpending: sustainableSpending,
@@ -115,6 +153,7 @@ export async function optimizeSpendingToExhaust(
 
     const depletionAge = results.portfolio_depleted_age
     const finalBalance = results.final_portfolio_value
+    const shortfall = getDepletedYearShortfall(results)
 
     // Check depletion age, not just final balance
     if (depletionAge) {
@@ -122,8 +161,13 @@ export async function optimizeSpendingToExhaust(
       if (depletionAge < longevityAge) {
         // Depletes too early - need to spend LESS
         high = mid
+      } else if (shortfall < -1000) {
+        // Portfolio depletes at longevity but has a real shortfall
+        // (depleted AND can't cover expenses)
+        // Need to spend LESS to have enough for final years
+        high = mid
       } else {
-        // Depletes at or after longevity - this is good, but check if we can spend more
+        // Depletes at or after longevity with no shortfalls - this is good
         // If depletion is exactly at longevity (within 1 year), we're done
         if (Math.abs(depletionAge - longevityAge) <= 1) {
           return {
@@ -137,18 +181,24 @@ export async function optimizeSpendingToExhaust(
         low = mid
       }
     } else {
-      // Portfolio never depletes - has surplus
-      if (finalBalance <= tolerance) {
-        // Surplus is small enough - close to optimal
+      // Portfolio never depletes - has surplus (or edge case: barely depletes)
+      // Still need to check for shortfall in case of edge timing
+      if (shortfall < -1000) {
+        // Even though portfolio didn't "officially" deplete, there's a shortfall
+        // This can happen when depletion happens at the very end
+        high = mid
+      } else if (finalBalance <= tolerance) {
+        // Surplus is small enough and no shortfall - close to optimal
         return {
           optimizedSpending: mid,
           iterations,
           finalBalance,
           success: true
         }
+      } else {
+        // Large surplus - can spend more
+        low = mid
       }
-      // Large surplus - can spend more
-      low = mid
     }
   }
 
@@ -158,6 +208,20 @@ export async function optimizeSpendingToExhaust(
     ...baseScenario,
     expenses: { ...baseScenario.expenses, fixed_monthly: finalSpending }
   })
+
+  // Final validation: ensure no real shortfall when portfolio is depleted
+  const finalShortfall = getDepletedYearShortfall(finalResults)
+  if (finalShortfall < -1000) {
+    // Cannot find a valid spending level - government benefits alone
+    // cannot cover expenses in later years
+    return {
+      optimizedSpending: finalSpending,
+      iterations,
+      finalBalance: finalResults.final_portfolio_value,
+      success: false,
+      message: `Cannot fully exhaust portfolio while covering all expenses. Government benefits alone cannot cover inflated expenses in later years. Consider reducing longevity assumption or accepting a legacy balance.`
+    }
+  }
 
   return {
     optimizedSpending: finalSpending,
