@@ -544,6 +544,16 @@ export function VoiceFirstContentV2() {
     console.log(`💾 Scenario saved successfully - ID: ${newScenarioId}, Name: ${newScenarioName}`)
     setScenarioId(newScenarioId)
     setLoadedScenarioName(newScenarioName)
+
+    // Update baseline snapshot name so variants created after save can link correctly
+    // This fixes the issue where variants reference 'Your Baseline' instead of the saved name
+    if (baselineSnapshot) {
+      setBaselineSnapshot({
+        ...baselineSnapshot,
+        name: newScenarioName
+      })
+      console.log(`📸 Updated baseline snapshot name to: ${newScenarioName}`)
+    }
   }
 
   // Handle successful variant save
