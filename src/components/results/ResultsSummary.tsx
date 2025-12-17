@@ -68,12 +68,12 @@ export function ResultsSummary({ results, retirementAge, expenses, isDarkMode = 
         ? 'Portfolio depletes, but ongoing income covers expenses'
         : summary.incomeCoverageRatio && summary.incomeCoverageRatio >= 0.7
         ? 'Portfolio depletes with moderate income shortfall'
-        : 'Funds may run out before end of retirement',
+        : 'Lifestyle adjustment needed after portfolio depletes',
       icon: summary.incomeCoverageRatio && summary.incomeCoverageRatio >= 1.0
         ? '⚠️'
         : summary.incomeCoverageRatio && summary.incomeCoverageRatio >= 0.7
         ? '⚠️'
-        : '✕'
+        : '📊'
     }
   }
 
@@ -237,15 +237,15 @@ export function ResultsSummary({ results, retirementAge, expenses, isDarkMode = 
               </div>
             </div>
           ) : (
-            // Major shortfall or no income data - red warning (keep current behavior)
+            // Major shortfall or no income data - red warning with guaranteed income context
             <div className={`${isDarkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'} border rounded-lg p-4`}>
               <div className={isDarkMode ? 'text-red-300' : 'text-red-800'}>
                 <div className="font-medium mb-1">
-                  ✕ Funds Depleted at Age {summary.depletionAge}
+                  Transition Point at Age {summary.depletionAge}
                 </div>
                 <div className="text-sm">
-                  {summary.incomeShortfall && summary.incomeShortfall > 0
-                    ? `Significant shortfall: ${formatCurrency(summary.incomeShortfall)}/year. Consider retiring later, reducing spending, or increasing savings.`
+                  {summary.ongoingIncomeAtDepletion && summary.ongoingIncomeAtDepletion > 0
+                    ? `Guaranteed income: ${formatCurrency(summary.ongoingIncomeAtDepletion)}/year (pension + CPP + OAS). Spending adjustment of ${formatCurrency(summary.incomeShortfall || 0)}/year needed after this age.`
                     : 'Consider retiring later, reducing spending, or increasing savings to extend your retirement funds.'
                   }
                 </div>
