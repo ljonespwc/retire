@@ -324,12 +324,91 @@ function formatPercent(value: number): string {
 }
 
 /**
+ * Build CITABLE FACTS block - key facts the AI MUST use exactly as written
+ * This prevents the AI from miscalculating or misreading values from detailed data
+ */
+function buildCitableFacts(context: RichContext): string {
+  const { userContext, incomeStrategy, taxAnalysis, summary, pensionContext, oneTimeWithdrawals, ageBasedExpenseChanges } = context;
+
+  const facts: string[] = [];
+
+  // Timeline facts
+  facts.push(`- Retirement starts: Age ${userContext.retirementAge}`);
+  facts.push(`- Planning horizon: Age ${userContext.longevityAge} (${userContext.longevityAge - userContext.retirementAge} years in retirement)`);
+
+  // Portfolio outcome facts
+  facts.push(`- Portfolio peak: ${formatCurrency(summary.peakBalance)} at age ${summary.peakAge}`);
+  if (summary.portfolioDepleted && summary.depletionAge) {
+    const gapYears = userContext.longevityAge - summary.depletionAge;
+    facts.push(`- Portfolio depletes: Age ${summary.depletionAge}`);
+    if (gapYears > 0) {
+      facts.push(`- SHORTFALL: ${gapYears} years unfunded (ages ${summary.depletionAge}-${userContext.longevityAge})`);
+    }
+  } else {
+    facts.push(`- Portfolio survives: Ends with ${formatCurrency(summary.finalBalance)} at age ${userContext.longevityAge}`);
+  }
+
+  // Income strategy facts - use specific ages
+  facts.push(`- CPP starts: Age ${incomeStrategy.cppStartAge} at ${formatCurrency(incomeStrategy.cppAmount)}/year`);
+  facts.push(`- OAS starts: Age ${incomeStrategy.oasStartAge} at ${formatCurrency(incomeStrategy.oasAmount)}/year`);
+  facts.push(`- RRIF withdrawals begin: Age ${incomeStrategy.rrifConversionAge}`);
+
+  // Pension facts if exists
+  if (pensionContext) {
+    let pensionFact = `- Pension: ${formatCurrency(pensionContext.annual_amount)}/year`;
+    if (pensionContext.start_age) {
+      pensionFact += ` starting age ${pensionContext.start_age}`;
+    }
+    if (pensionContext.indexed_to_inflation) {
+      pensionFact += ' (inflation-indexed)';
+    }
+    facts.push(pensionFact);
+
+    if (pensionContext.has_bridge_benefit && pensionContext.bridge_reduction_amount && pensionContext.bridge_reduction_age) {
+      facts.push(`- Bridge benefit ends: Age ${pensionContext.bridge_reduction_age} (pension drops by ${formatCurrency(pensionContext.bridge_reduction_amount)})`);
+    }
+  }
+
+  // Tax facts
+  facts.push(`- Lifetime taxes in retirement: ${formatCurrency(taxAnalysis.lifetimeTaxPaid)}`);
+  facts.push(`- Average effective tax rate: ${formatPercent(taxAnalysis.avgEffectiveRate)}`);
+  if (taxAnalysis.oasClawbackYears > 0) {
+    facts.push(`- OAS clawback years: ${taxAnalysis.oasClawbackYears}`);
+  }
+
+  // One-time withdrawal facts
+  if (oneTimeWithdrawals.length > 0) {
+    oneTimeWithdrawals.forEach(w => {
+      const desc = w.description ? ` for ${w.description}` : '';
+      facts.push(`- One-time withdrawal: ${formatCurrency(w.amount)} at age ${w.age}${desc}`);
+    });
+  }
+
+  // Age-based spending changes
+  if (ageBasedExpenseChanges.length > 0) {
+    facts.push(`- Spending phases: ${ageBasedExpenseChanges.length} changes (ages: ${ageBasedExpenseChanges.map(c => c.age).join(', ')})`);
+  }
+
+  return `## CITABLE FACTS - Use these EXACT values when mentioning ages, amounts, or percentages:
+${facts.join('\n')}
+
+IMPORTANT: When citing specific numbers in your narrative, copy them EXACTLY from this list.
+Do NOT calculate your own values or round differently than shown above.`;
+}
+
+/**
  * Build rich context string for LLM prompt
  */
 function buildRichContextPrompt(context: RichContext): string {
   const { userContext, yearSnapshots, taxAnalysis, incomeStrategy, oneTimeWithdrawals, ageBasedExpenseChanges, pensionContext, summary } = context;
 
-  let prompt = `## User Profile\n`;
+  // Start with CITABLE FACTS prominently at the top
+  let prompt = buildCitableFacts(context);
+  prompt += '\n\n';
+
+  prompt += `## DETAILED CONTEXT (for background - but cite CITABLE FACTS above for specific numbers):\n\n`;
+
+  prompt += `### User Profile\n`;
   prompt += `- Current Age: ${userContext.currentAge}\n`;
   prompt += `- Retirement Age: ${userContext.retirementAge}\n`;
   prompt += `- Longevity Planning: Age ${userContext.longevityAge}\n`;
@@ -337,7 +416,7 @@ function buildRichContextPrompt(context: RichContext): string {
   prompt += `- Investment Returns: ${formatPercent(userContext.preRetirementReturn)} pre-retirement, ${formatPercent(userContext.postRetirementReturn)} post-retirement\n`;
   prompt += `- Inflation Assumption: ${formatPercent(userContext.inflationRate)}\n\n`;
 
-  prompt += `## Portfolio Outcome\n`;
+  prompt += `### Portfolio Outcome\n`;
   prompt += `- Peak Balance: ${formatCurrency(summary.peakBalance)} at age ${summary.peakAge}\n`;
   prompt += `- Longevity Target: Age ${userContext.longevityAge}\n`;
 
@@ -360,7 +439,7 @@ function buildRichContextPrompt(context: RichContext): string {
   }
   prompt += `\n`;
 
-  prompt += `## Income Strategy\n`;
+  prompt += `### Income Strategy\n`;
   prompt += `- CPP: Starts age ${incomeStrategy.cppStartAge} at ${formatCurrency(incomeStrategy.cppAmount)}/year\n`;
   prompt += `- OAS: Starts age ${incomeStrategy.oasStartAge} at ${formatCurrency(incomeStrategy.oasAmount)}/year\n`;
   prompt += `- RRIF Conversion: Age ${incomeStrategy.rrifConversionAge}\n`;
@@ -369,7 +448,7 @@ function buildRichContextPrompt(context: RichContext): string {
 
   // Add one-time withdrawals section if any exist
   if (oneTimeWithdrawals.length > 0) {
-    prompt += `## One-Time Withdrawals\n`;
+    prompt += `### One-Time Withdrawals\n`;
     oneTimeWithdrawals.forEach(w => {
       const desc = w.description ? ` for ${w.description}` : '';
       prompt += `- Age ${w.age}: ${formatCurrency(w.amount)}${desc}\n`;
@@ -379,7 +458,7 @@ function buildRichContextPrompt(context: RichContext): string {
 
   // Add age-based expense changes section if any exist
   if (ageBasedExpenseChanges.length > 0) {
-    prompt += `## Age-Based Spending Strategy\n`;
+    prompt += `### Age-Based Spending Strategy\n`;
     ageBasedExpenseChanges.forEach(c => {
       prompt += `- Age ${c.age}: ${formatCurrency(c.monthly_amount)}/month\n`;
     });
@@ -388,7 +467,7 @@ function buildRichContextPrompt(context: RichContext): string {
 
   // Add pension context section if exists
   if (pensionContext) {
-    prompt += `## Pension Details\n`;
+    prompt += `### Pension Details\n`;
     prompt += `- Annual Amount: ${formatCurrency(pensionContext.annual_amount)}\n`;
     if (pensionContext.start_age) {
       prompt += `- Starts: Age ${pensionContext.start_age}\n`;
@@ -400,7 +479,7 @@ function buildRichContextPrompt(context: RichContext): string {
     prompt += `\n`;
   }
 
-  prompt += `## Tax Analysis\n`;
+  prompt += `### Tax Analysis\n`;
   prompt += `- Lifetime Tax Paid: ${formatCurrency(taxAnalysis.lifetimeTaxPaid)}\n`;
   prompt += `- Average Effective Rate: ${formatPercent(taxAnalysis.avgEffectiveRate)}\n`;
   if (taxAnalysis.oasClawbackYears > 0) {
@@ -408,7 +487,7 @@ function buildRichContextPrompt(context: RichContext): string {
   }
   prompt += `- Tax Efficiency Score: ${Math.round(taxAnalysis.taxEfficiencyScore)}/100\n\n`;
 
-  prompt += `## Year-by-Year Snapshot (Key Years)\n`;
+  prompt += `### Year-by-Year Snapshot (Key Years)\n`;
   yearSnapshots.forEach(year => {
     prompt += `\nAge ${year.age}:\n`;
     // Build income breakdown - only show non-zero sources
@@ -443,6 +522,13 @@ export async function generateRetirementNarrative(
     // Enhanced system prompt for 150-250 word narratives
     const systemPrompt = `You are a Canadian retirement planning analyst. Create a compelling 2-3 paragraph narrative (150-250 words) that tells the user's financial story with specific insights.
 
+CRITICAL INSTRUCTION - CITING FACTS:
+• The data contains a "CITABLE FACTS" section at the top - you MUST use those EXACT values
+• When mentioning ages (CPP/OAS start, RRIF conversion, depletion age): Copy the EXACT age from CITABLE FACTS
+• When mentioning dollar amounts: Copy the EXACT formatted amount from CITABLE FACTS
+• Do NOT calculate your own values or round differently than shown
+• If you want to mention a specific number, find it in CITABLE FACTS first
+
 Structure:
 • Paragraph 1: Opening with current situation and key outcome (portfolio fate)
 • Paragraph 2: Income strategy and major transitions (government benefits, RRIF, tax impacts)
@@ -452,15 +538,14 @@ Style Guidelines:
 • Use **bold** for key ages and dollar amounts (e.g., **$1.2M at age 72**)
 • Embed short bullet lists for clarity where helpful (max 3 bullets)
 • Write conversationally in second person ("Your retirement savings...")
-• Cite specific numbers from the data
 • Be analytical but accessible (explain WHY things happen)
 • Avoid jargon (say "retirement savings" not "portfolio")
 • Be reassuring if healthy, honest if concerning
 
 CRITICAL: Portfolio Depletion Rules
-• When you see "CRITICAL SHORTFALL" or "CAUTION" in the data: Lead paragraph 1 with the warning, emphasize the unfunded gap
-• When you see "tight timing, no cushion": Neutral tone, note the risk of living longer than planned
-• When you see "Sustains through longevity": Positive tone, mention the remaining balance as a cushion or legacy
+• When you see "SHORTFALL" in CITABLE FACTS: Lead paragraph 1 with the warning, emphasize the unfunded gap
+• When portfolio depletes exactly at longevity: Neutral tone, note the risk of living longer than planned
+• When portfolio survives: Positive tone, mention the remaining balance as a cushion or legacy
 
 CRITICAL WORD LIMIT:
 • Target 150-250 words total

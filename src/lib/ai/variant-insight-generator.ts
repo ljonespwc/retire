@@ -81,6 +81,89 @@ function formatCurrency(amount: number): string {
   return `${sign}$${Math.round(absAmount)}`;
 }
 
+/**
+ * Format currency without sign for absolute values
+ */
+function formatCurrencyAbs(amount: number): string {
+  const absAmount = Math.abs(amount);
+
+  if (absAmount >= 1000000) {
+    return `$${(absAmount / 1000000).toFixed(1)}M`;
+  }
+  if (absAmount >= 1000) {
+    return `$${Math.round(absAmount / 1000)}K`;
+  }
+  return `$${Math.round(absAmount)}`;
+}
+
+/**
+ * Build REQUIRED FACTS block with explicit direction indicators
+ * This section tells the LLM exactly what values to cite
+ */
+function buildRequiredFacts(
+  metrics: ComparisonMetrics,
+  baselineResults: CalculationResults,
+  variantResults: CalculationResults,
+  baselineScenarioName?: string
+): string {
+  const facts: string[] = [];
+
+  // Portfolio difference with explicit direction
+  const portfolioDirection = metrics.portfolioDiff >= 0 ? 'MORE' : 'LESS';
+  const portfolioVerb = metrics.portfolioDiff >= 0 ? 'increases' : 'decreases';
+  facts.push(`- Portfolio ending balance: Variant has ${formatCurrencyAbs(metrics.portfolioDiff)} ${portfolioDirection} than baseline (${portfolioVerb} from ${formatCurrencyAbs(baselineResults.final_portfolio_value)} to ${formatCurrencyAbs(variantResults.final_portfolio_value)})`);
+
+  // Tax difference with explicit direction
+  const taxDirection = metrics.taxDiff >= 0 ? 'MORE' : 'LESS';
+  const taxVerb = metrics.taxDiff >= 0 ? 'pays' : 'saves';
+  facts.push(`- Lifetime taxes: Variant ${taxVerb} ${formatCurrencyAbs(metrics.taxDiff)} ${taxDirection === 'MORE' ? 'in taxes' : 'on taxes'} (${formatCurrencyAbs(baselineResults.total_taxes_paid_in_retirement)} → ${formatCurrencyAbs(variantResults.total_taxes_paid_in_retirement)})`);
+
+  // Depletion comparison with explicit direction
+  if (baselineResults.portfolio_depleted_age && variantResults.portfolio_depleted_age) {
+    const diff = variantResults.portfolio_depleted_age - baselineResults.portfolio_depleted_age;
+    if (diff > 0) {
+      facts.push(`- Portfolio depletion: Variant lasts ${Math.abs(diff)} years LONGER (depletes at age ${variantResults.portfolio_depleted_age} vs baseline age ${baselineResults.portfolio_depleted_age})`);
+    } else if (diff < 0) {
+      facts.push(`- Portfolio depletion: Variant depletes ${Math.abs(diff)} years EARLIER (depletes at age ${variantResults.portfolio_depleted_age} vs baseline age ${baselineResults.portfolio_depleted_age})`);
+    } else {
+      facts.push(`- Portfolio depletion: Both deplete at age ${baselineResults.portfolio_depleted_age}`);
+    }
+  } else if (baselineResults.portfolio_depleted_age && !variantResults.portfolio_depleted_age) {
+    facts.push(`- Portfolio depletion: Variant SURVIVES to end (baseline depletes at age ${baselineResults.portfolio_depleted_age}, variant ends with ${formatCurrencyAbs(variantResults.final_portfolio_value)})`);
+  } else if (!baselineResults.portfolio_depleted_age && variantResults.portfolio_depleted_age) {
+    facts.push(`- Portfolio depletion: Variant DEPLETES at age ${variantResults.portfolio_depleted_age} (baseline survives with ${formatCurrencyAbs(baselineResults.final_portfolio_value)})`);
+  } else {
+    facts.push(`- Portfolio depletion: Both survive to end`);
+  }
+
+  // CPP/OAS differences if significant
+  if (Math.abs(metrics.cppDiff) > 10000) {
+    const cppDir = metrics.cppDiff >= 0 ? 'MORE' : 'LESS';
+    facts.push(`- Lifetime CPP: Variant receives ${formatCurrencyAbs(metrics.cppDiff)} ${cppDir}`);
+  }
+  if (Math.abs(metrics.oasDiff) > 10000) {
+    const oasDir = metrics.oasDiff >= 0 ? 'MORE' : 'LESS';
+    facts.push(`- Lifetime OAS: Variant receives ${formatCurrencyAbs(metrics.oasDiff)} ${oasDir}`);
+  }
+
+  const baselineName = baselineScenarioName || 'Baseline Scenario';
+
+  return `## REQUIRED FACTS - You MUST cite these exact values:
+
+SCENARIOS BEING COMPARED:
+- BASELINE (reference scenario): "${baselineName}"
+- VARIANT (what you're describing): The scenario you're analyzing
+
+KEY DIFFERENCES (variant vs baseline):
+${facts.join('\n')}
+
+IMPORTANT:
+- Use the EXACT dollar amounts and directions from KEY DIFFERENCES above
+- Do NOT calculate your own values or round differently
+- The BASELINE is "${baselineName}" - reference it by this name in your response
+- You are describing how the VARIANT differs from the BASELINE`;
+}
+
 interface SpendingComparison {
   baselineMonthly: number;
   variantMonthly: number;
@@ -240,42 +323,48 @@ export async function generateVariantInsight(
       }
     }
 
+    // Build the required facts block with explicit direction indicators
+    const requiredFacts = buildRequiredFacts(metrics, baselineResults, variantResults, baselineScenarioName);
+
     const context = `
+${requiredFacts}
+
+## ADDITIONAL CONTEXT (for background, but cite REQUIRED FACTS above):
+
 Baseline: ${baselineScenarioName || 'Your baseline plan'}
-  - Ending balance: ${formatCurrency(baselineResults.final_portfolio_value)}
-  - First year income: ${formatCurrency(baselineResults.first_year_retirement_income)}
-  - Total Pension: ${formatCurrency(baselineResults.total_pension_received)}
-  - Total CPP: ${formatCurrency(baselineResults.total_cpp_received)}
-  - Total OAS: ${formatCurrency(baselineResults.total_oas_received)}
-  - Total Other Income: ${formatCurrency(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}${ageBasedContext}${retirementAgeContext}${benefitContext}${pensionContext}
+  - Ending balance: ${formatCurrencyAbs(baselineResults.final_portfolio_value)}
+  - First year income: ${formatCurrencyAbs(baselineResults.first_year_retirement_income)}
+  - Total Pension: ${formatCurrencyAbs(baselineResults.total_pension_received)}
+  - Total CPP: ${formatCurrencyAbs(baselineResults.total_cpp_received)}
+  - Total OAS: ${formatCurrencyAbs(baselineResults.total_oas_received)}
+  - Total Other Income: ${formatCurrencyAbs(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}${ageBasedContext}${retirementAgeContext}${benefitContext}${pensionContext}
 
 Variant: ${variantName}
-  - Ending balance: ${formatCurrency(variantResults.final_portfolio_value)} (${formatCurrency(metrics.portfolioDiff)} / ${metrics.portfolioPercent.toFixed(1)}%)
-  - First year income: ${formatCurrency(variantResults.first_year_retirement_income)} (${formatCurrency(metrics.firstYearIncomeDiff)})
-  - Pension difference: ${formatCurrency(metrics.pensionDiff)}
-  - CPP difference: ${formatCurrency(metrics.cppDiff)}
-  - OAS difference: ${formatCurrency(metrics.oasDiff)}
-  - Other income difference: ${formatCurrency(metrics.otherIncomeDiff)}
-  - Tax difference: ${formatCurrency(metrics.taxDiff)}
-${metrics.depletionDiff !== undefined ? `  - Depletion impact: ${metrics.depletionDiff > 0 ? 'Lasts ' + Math.abs(metrics.depletionDiff) + ' years longer' : 'Depletes ' + Math.abs(metrics.depletionDiff) + ' years earlier'}` : ''}
+  - Ending balance: ${formatCurrencyAbs(variantResults.final_portfolio_value)}
+  - First year income: ${formatCurrencyAbs(variantResults.first_year_retirement_income)}
+  - Total Pension: ${formatCurrencyAbs(variantResults.total_pension_received)}
+  - Total CPP: ${formatCurrencyAbs(variantResults.total_cpp_received)}
+  - Total OAS: ${formatCurrencyAbs(variantResults.total_oas_received)}
     `.trim();
 
-    const systemPrompt = `You are a retirement planning analyst who explains what-if scenario impacts in clear, actionable language. Create a comprehensive 3-4 sentence analysis using markdown formatting.
+    const systemPrompt = `You are a retirement planning analyst summarizing a scenario comparison.
+
+CRITICAL INSTRUCTION: You MUST use the EXACT values from the "REQUIRED FACTS" section in the data below.
+- Do NOT calculate your own values
+- Do NOT round differently than shown
+- Do NOT reverse the direction (MORE/LESS, LONGER/EARLIER)
+- Copy the dollar amounts and directions EXACTLY as provided
 
 Structure:
-- Sentence 1: Bottom-line comparison referencing baseline by name (e.g., "Compared to **${baselineName}**, this strategy...")
-- Sentence 2-3: Explain key tradeoffs with specific numbers (use **bold** for dollar amounts and percentages)
-- Sentence 4: Summarize the practical implication or decision point
+- Sentence 1: Bottom-line comparison referencing baseline by name (e.g., "Compared to **${baselineName}**, this variant...")
+- Sentence 2-3: Cite the key facts with **bold** dollar amounts - use the EXACT values from REQUIRED FACTS
+- Sentence 4: Practical implication
 
 Guidelines:
-- Use **bold** for key numbers (e.g., "ending balance drops by **$614K (3.5%)**")
-- Reference the baseline scenario by name in the opening
-- Explain WHY the outcome differs using specific metrics
-- Focus on portfolio balance, income, taxes, AND spending changes as primary metrics
-- For legacy preservation scenarios: ALWAYS mention spending adjustments needed to hit the legacy target
-- When spending increases/decreases by >10%, explain this tradeoff explicitly
-- Use plain English (no jargon)
-- Target: 60-100 words (3-4 sentences)`;
+- Use **bold** for dollar amounts (e.g., "**$507K more**" or "**$243K less**")
+- Reference the baseline scenario by name
+- For legacy/reduced spending scenarios: mention the spending reduction needed
+- Use plain English, 60-100 words total`;
 
     const userPrompt = `Summarize the key insight for this scenario comparison:
 
