@@ -369,13 +369,13 @@ export async function calculateRetirementProjection(
     const oneTimeWithdrawal = expenses.one_time_withdrawals?.find(w => w.age === age);
     if (oneTimeWithdrawal) {
       oneTimeWithdrawalAmount = oneTimeWithdrawal.amount;
-      console.log(`💵 One-time withdrawal at age ${age}: $${oneTimeWithdrawalAmount.toLocaleString()} from ${oneTimeWithdrawal.source}`);
     }
 
     // Determine how much to withdraw from portfolio
     // Only withdraw if after-tax external income can't cover expenses
     // Plus any one-time withdrawals for this year
-    const netGapNeeded = Math.max(0, annualExpenses - afterTaxExternalIncome) + oneTimeWithdrawalAmount;
+    const totalCashNeeded = annualExpenses + oneTimeWithdrawalAmount;
+    const netGapNeeded = Math.max(0, totalCashNeeded - afterTaxExternalIncome);
 
     // Iteratively calculate withdrawal amount to meet NET spending target
     // We need to gross up for taxes, but the tax rate depends on:
@@ -432,7 +432,7 @@ export async function calculateRetirementProjection(
       // Calculate what we'd actually net after taxes
       const grossIncome = governmentBenefits + targetWithdrawal;
       const netIncome = grossIncome - estimatedTaxCalc.total_tax;
-      const shortfall = annualExpenses - netIncome;
+      const shortfall = totalCashNeeded - netIncome;
 
       // If we're close enough, stop iterating
       if (Math.abs(shortfall) < tolerance) {
