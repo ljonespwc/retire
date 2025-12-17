@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { FileText, Loader2, ChevronDown, X, Trash2 } from 'lucide-react'
+import { FileText, Loader2, ChevronDown, X, Trash2, BarChart3, CornerDownRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getScenarios, deleteScenario } from '@/lib/supabase/queries'
 import { scenarioToFormData, type FormData } from '@/lib/scenarios/scenario-mapper'
@@ -28,6 +28,157 @@ interface SavedScenario {
   updated_at: string
   share_token?: string | null
   is_shared?: boolean
+}
+
+/**
+ * Group scenarios into baselines and their variants for hierarchical display
+ */
+interface ScenarioGroup {
+  baseline: SavedScenario
+  variants: SavedScenario[]
+}
+
+function groupScenariosByBaseline(scenarios: SavedScenario[]): { groups: ScenarioGroup[]; orphanVariants: SavedScenario[] } {
+  // Separate baselines (no variant metadata) from variants
+  const baselines: SavedScenario[] = []
+  const variants: SavedScenario[] = []
+
+  for (const scenario of scenarios) {
+    const metadata = getVariantMetadata(scenario.inputs)
+    if (metadata?.variant_type) {
+      variants.push(scenario)
+    } else {
+      baselines.push(scenario)
+    }
+  }
+
+  // Group variants under their parent baseline by matching baseline_snapshot.name
+  const groups: ScenarioGroup[] = baselines.map(baseline => ({
+    baseline,
+    variants: variants.filter(v => {
+      const metadata = getVariantMetadata(v.inputs)
+      return metadata?.baseline_snapshot?.name === baseline.name
+    })
+  }))
+
+  // Sort groups by baseline name, then sort variants within each group by name
+  groups.sort((a, b) => a.baseline.name.localeCompare(b.baseline.name))
+  groups.forEach(g => g.variants.sort((a, b) => a.name.localeCompare(b.name)))
+
+  // Find orphan variants (variants whose baseline no longer exists)
+  const orphanVariants = variants.filter(v => {
+    const metadata = getVariantMetadata(v.inputs)
+    const parentName = metadata?.baseline_snapshot?.name
+    return !baselines.some(b => b.name === parentName)
+  })
+
+  return { groups, orphanVariants }
+}
+
+/**
+ * Individual scenario item with baseline/variant styling
+ */
+interface ScenarioItemProps {
+  scenario: SavedScenario
+  isVariant: boolean
+  confirmDeleteId: string | null
+  isDeleting: boolean
+  onSelect: (scenario: SavedScenario) => void
+  onDelete: (id: string) => void
+  onConfirmDelete: (id: string | null) => void
+  isDarkMode: boolean
+  textPrimary: string
+  textMuted: string
+  buttonBg: string
+  itemHover: string
+}
+
+function ScenarioItem({
+  scenario,
+  isVariant,
+  confirmDeleteId,
+  isDeleting,
+  onSelect,
+  onDelete,
+  onConfirmDelete,
+  isDarkMode,
+  textPrimary,
+  textMuted,
+  buttonBg,
+  itemHover
+}: ScenarioItemProps) {
+  // Extract short variant name (remove prefix like "TINA: ")
+  const displayName = isVariant
+    ? scenario.name.replace(/^[^:]+:\s*/, '') // Remove "NAME: " prefix
+    : scenario.name
+
+  return (
+    <div
+      className={`group relative rounded-lg ${itemHover} transition-colors ${isVariant ? 'ml-4' : ''}`}
+    >
+      {confirmDeleteId === scenario.id ? (
+        // Confirmation state
+        <div className="px-3 py-3">
+          <div className={`text-sm ${textPrimary} mb-3`}>
+            Delete "{scenario.name}"?
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onDelete(scenario.id)}
+              disabled={isDeleting}
+              className="flex-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+            <button
+              onClick={() => onConfirmDelete(null)}
+              disabled={isDeleting}
+              className={`flex-1 px-3 py-1.5 ${buttonBg} text-xs rounded transition-colors disabled:opacity-50`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        // Normal state
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onSelect(scenario)}
+            className="flex-1 text-left px-3 py-2.5 flex items-start gap-2"
+          >
+            {/* Icon: chart for baseline, arrow for variant */}
+            {isVariant ? (
+              <CornerDownRight className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+            ) : (
+              <BarChart3 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className={`font-medium ${textPrimary} ${isVariant ? 'text-sm' : ''} truncate`}>
+                {displayName}
+              </div>
+              <div className={`text-xs ${textMuted}`}>
+                Updated {new Date(scenario.updated_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onConfirmDelete(scenario.id)
+            }}
+            className="opacity-0 group-hover:opacity-100 px-3 py-3 text-red-600 hover:text-red-700 transition-all"
+            aria-label="Delete scenario"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenarioDropdownProps) {
@@ -287,66 +438,76 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
               </button>
             </div>
 
-            {scenarios.map((scenario) => (
-              <div
-                key={scenario.id}
-                className={`group relative rounded-lg ${itemHover} transition-colors`}
-              >
-                {confirmDeleteId === scenario.id ? (
-                  // Confirmation state
-                  <div className="px-3 py-3">
-                    <div className={`text-sm ${textPrimary} mb-3`}>
-                      Delete "{scenario.name}"?
+            {(() => {
+              const { groups, orphanVariants } = groupScenariosByBaseline(scenarios)
+
+              return (
+                <>
+                  {/* Grouped baselines with their variants */}
+                  {groups.map((group) => (
+                    <div key={group.baseline.id} className="mb-1">
+                      {/* Baseline scenario */}
+                      <ScenarioItem
+                        scenario={group.baseline}
+                        isVariant={false}
+                        confirmDeleteId={confirmDeleteId}
+                        isDeleting={isDeleting}
+                        onSelect={handleSelectScenario}
+                        onDelete={handleDeleteScenario}
+                        onConfirmDelete={setConfirmDeleteId}
+                        isDarkMode={isDarkMode}
+                        textPrimary={textPrimary}
+                        textMuted={textMuted}
+                        buttonBg={buttonBg}
+                        itemHover={itemHover}
+                      />
+                      {/* Variant scenarios indented under baseline */}
+                      {group.variants.map((variant) => (
+                        <ScenarioItem
+                          key={variant.id}
+                          scenario={variant}
+                          isVariant={true}
+                          confirmDeleteId={confirmDeleteId}
+                          isDeleting={isDeleting}
+                          onSelect={handleSelectScenario}
+                          onDelete={handleDeleteScenario}
+                          onConfirmDelete={setConfirmDeleteId}
+                          isDarkMode={isDarkMode}
+                          textPrimary={textPrimary}
+                          textMuted={textMuted}
+                          buttonBg={buttonBg}
+                          itemHover={itemHover}
+                        />
+                      ))}
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleDeleteScenario(scenario.id)}
-                        disabled={isDeleting}
-                        className="flex-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors disabled:opacity-50"
-                      >
-                        {isDeleting ? 'Deleting...' : 'Delete'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        disabled={isDeleting}
-                        className={`flex-1 px-3 py-1.5 ${buttonBg} text-xs rounded transition-colors disabled:opacity-50`}
-                      >
-                        Cancel
-                      </button>
+                  ))}
+
+                  {/* Orphan variants (baseline was deleted) */}
+                  {orphanVariants.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className={`text-xs ${textMuted} px-3 py-1`}>Unlinked Variants</div>
+                      {orphanVariants.map((variant) => (
+                        <ScenarioItem
+                          key={variant.id}
+                          scenario={variant}
+                          isVariant={true}
+                          confirmDeleteId={confirmDeleteId}
+                          isDeleting={isDeleting}
+                          onSelect={handleSelectScenario}
+                          onDelete={handleDeleteScenario}
+                          onConfirmDelete={setConfirmDeleteId}
+                          isDarkMode={isDarkMode}
+                          textPrimary={textPrimary}
+                          textMuted={textMuted}
+                          buttonBg={buttonBg}
+                          itemHover={itemHover}
+                        />
+                      ))}
                     </div>
-                  </div>
-                ) : (
-                  // Normal state
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleSelectScenario(scenario)}
-                      className="flex-1 text-left px-3 py-3"
-                    >
-                      <div className={`font-medium ${textPrimary} mb-1`}>
-                        {scenario.name}
-                      </div>
-                      <div className={`text-xs ${textMuted}`}>
-                        Updated {new Date(scenario.updated_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setConfirmDeleteId(scenario.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 px-3 py-3 text-red-600 hover:text-red-700 transition-all"
-                      aria-label="Delete scenario"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}

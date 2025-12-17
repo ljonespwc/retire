@@ -237,7 +237,7 @@ export function WhatIfScenarioButtons({
       {/* Disabled message for saved variants */}
       {loadedVariantMetadata && (
         <p className={`text-sm text-center mt-4 ${theme.text.secondary}`}>
-          ℹ️ Not available for previously saved what-if scenarios
+          ℹ️ Not available for previously saved what-if scenarios. Click "Create New Plan" to start a new scenario.
         </p>
       )}
     </div>
