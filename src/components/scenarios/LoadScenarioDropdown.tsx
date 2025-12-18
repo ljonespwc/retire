@@ -136,14 +136,14 @@ function ScenarioItem({
         </div>
       ) : (
         // Normal state
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 overflow-hidden">
           <button
             onClick={() => onSelect(scenario)}
-            className="flex-1 text-left px-3 py-2.5 flex items-start gap-2"
+            className="flex-1 min-w-0 text-left px-3 py-2.5 flex items-start gap-2"
           >
             <BarChart3 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
             <div className="flex-1 min-w-0">
-              <div className={`font-medium ${textPrimary} truncate`}>
+              <div className={`text-sm font-medium ${textPrimary} truncate`}>
                 {scenario.name}
               </div>
               <div className={`text-xs ${textMuted}`}>
@@ -165,7 +165,7 @@ function ScenarioItem({
               e.stopPropagation()
               onConfirmDelete(scenario.id)
             }}
-            className="opacity-0 group-hover:opacity-100 px-3 py-3 text-red-600 hover:text-red-700 transition-all"
+            className="flex-shrink-0 px-2 py-2 text-red-400 hover:text-red-600 transition-colors"
             aria-label="Delete scenario"
           >
             <Trash2 className="w-4 h-4" />
@@ -393,7 +393,7 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
 
       {/* Dropdown Menu - Fixed positioning to escape overflow:hidden parent */}
       {isOpen && scenarios.length > 0 && dropdownPosition && (
-        <div className={`fixed ${dropdownBg} border ${dropdownBorder} rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto`}
+        <div className={`fixed ${dropdownBg} border ${dropdownBorder} rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto overflow-x-hidden`}
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,

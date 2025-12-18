@@ -554,7 +554,7 @@ function VariantTab({
                     Generating AI Analysis...
                   </>
                 ) : (
-                  'SAVE THIS WHAT-IF'
+                  '* SAVE THIS WHAT-IF'
                 )}
               </button>
             )}
