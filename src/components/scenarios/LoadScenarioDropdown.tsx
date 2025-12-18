@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { FileText, Loader2, ChevronDown, X, Trash2, BarChart3, CornerDownRight } from 'lucide-react'
+import { FileText, Loader2, ChevronDown, X, Trash2, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getScenarios, deleteScenario } from '@/lib/supabase/queries'
 import { scenarioToFormData, type FormData } from '@/lib/scenarios/scenario-mapper'
@@ -80,7 +80,7 @@ function groupScenariosByBaseline(scenarios: SavedScenario[]): { groups: Scenari
  */
 interface ScenarioItemProps {
   scenario: SavedScenario
-  isVariant: boolean
+  variantCount?: number
   confirmDeleteId: string | null
   isDeleting: boolean
   onSelect: (scenario: SavedScenario) => void
@@ -95,7 +95,7 @@ interface ScenarioItemProps {
 
 function ScenarioItem({
   scenario,
-  isVariant,
+  variantCount = 0,
   confirmDeleteId,
   isDeleting,
   onSelect,
@@ -107,14 +107,9 @@ function ScenarioItem({
   buttonBg,
   itemHover
 }: ScenarioItemProps) {
-  // Extract short variant name (remove prefix like "TINA: ")
-  const displayName = isVariant
-    ? scenario.name.replace(/^[^:]+:\s*/, '') // Remove "NAME: " prefix
-    : scenario.name
-
   return (
     <div
-      className={`group relative rounded-lg ${itemHover} transition-colors ${isVariant ? 'ml-4' : ''}`}
+      className={`group relative rounded-lg ${itemHover} transition-colors`}
     >
       {confirmDeleteId === scenario.id ? (
         // Confirmation state
@@ -146,15 +141,10 @@ function ScenarioItem({
             onClick={() => onSelect(scenario)}
             className="flex-1 text-left px-3 py-2.5 flex items-start gap-2"
           >
-            {/* Icon: chart for baseline, arrow for variant */}
-            {isVariant ? (
-              <CornerDownRight className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-            ) : (
-              <BarChart3 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
-            )}
+            <BarChart3 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
             <div className="flex-1 min-w-0">
-              <div className={`font-medium ${textPrimary} ${isVariant ? 'text-sm' : ''} truncate`}>
-                {displayName}
+              <div className={`font-medium ${textPrimary} truncate`}>
+                {scenario.name}
               </div>
               <div className={`text-xs ${textMuted}`}>
                 Updated {new Date(scenario.updated_at).toLocaleDateString('en-US', {
@@ -162,6 +152,11 @@ function ScenarioItem({
                   day: 'numeric',
                   year: 'numeric',
                 })}
+                {variantCount > 0 && (
+                  <span className={isDarkMode ? 'text-blue-400' : 'text-orange-600'}>
+                    {' '}&bull; {variantCount} variant{variantCount > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             </div>
           </button>
@@ -439,72 +434,28 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
             </div>
 
             {(() => {
-              const { groups, orphanVariants } = groupScenariosByBaseline(scenarios)
+              const { groups } = groupScenariosByBaseline(scenarios)
 
               return (
                 <>
-                  {/* Grouped baselines with their variants */}
+                  {/* Baselines only - variants auto-load when baseline is selected */}
                   {groups.map((group) => (
-                    <div key={group.baseline.id} className="mb-1">
-                      {/* Baseline scenario */}
-                      <ScenarioItem
-                        scenario={group.baseline}
-                        isVariant={false}
-                        confirmDeleteId={confirmDeleteId}
-                        isDeleting={isDeleting}
-                        onSelect={handleSelectScenario}
-                        onDelete={handleDeleteScenario}
-                        onConfirmDelete={setConfirmDeleteId}
-                        isDarkMode={isDarkMode}
-                        textPrimary={textPrimary}
-                        textMuted={textMuted}
-                        buttonBg={buttonBg}
-                        itemHover={itemHover}
-                      />
-                      {/* Variant scenarios indented under baseline */}
-                      {group.variants.map((variant) => (
-                        <ScenarioItem
-                          key={variant.id}
-                          scenario={variant}
-                          isVariant={true}
-                          confirmDeleteId={confirmDeleteId}
-                          isDeleting={isDeleting}
-                          onSelect={handleSelectScenario}
-                          onDelete={handleDeleteScenario}
-                          onConfirmDelete={setConfirmDeleteId}
-                          isDarkMode={isDarkMode}
-                          textPrimary={textPrimary}
-                          textMuted={textMuted}
-                          buttonBg={buttonBg}
-                          itemHover={itemHover}
-                        />
-                      ))}
-                    </div>
+                    <ScenarioItem
+                      key={group.baseline.id}
+                      scenario={group.baseline}
+                      variantCount={group.variants.length}
+                      confirmDeleteId={confirmDeleteId}
+                      isDeleting={isDeleting}
+                      onSelect={handleSelectScenario}
+                      onDelete={handleDeleteScenario}
+                      onConfirmDelete={setConfirmDeleteId}
+                      isDarkMode={isDarkMode}
+                      textPrimary={textPrimary}
+                      textMuted={textMuted}
+                      buttonBg={buttonBg}
+                      itemHover={itemHover}
+                    />
                   ))}
-
-                  {/* Orphan variants (baseline was deleted) */}
-                  {orphanVariants.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <div className={`text-xs ${textMuted} px-3 py-1`}>Unlinked Variants</div>
-                      {orphanVariants.map((variant) => (
-                        <ScenarioItem
-                          key={variant.id}
-                          scenario={variant}
-                          isVariant={true}
-                          confirmDeleteId={confirmDeleteId}
-                          isDeleting={isDeleting}
-                          onSelect={handleSelectScenario}
-                          onDelete={handleDeleteScenario}
-                          onConfirmDelete={setConfirmDeleteId}
-                          isDarkMode={isDarkMode}
-                          textPrimary={textPrimary}
-                          textMuted={textMuted}
-                          buttonBg={buttonBg}
-                          itemHover={itemHover}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </>
               )
             })()}

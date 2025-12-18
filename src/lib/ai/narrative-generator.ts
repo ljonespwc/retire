@@ -178,10 +178,11 @@ function extractTaxAnalysis(results: CalculationResults): TaxAnalysis {
   const totalIncome = retirementYears.reduce((sum, y) => sum + (y.income?.total || 0), 0);
   const avgEffectiveRate = totalIncome > 0 ? lifetimeTaxPaid / totalIncome : 0;
 
-  // Count years with OAS clawback (approximate: high income years)
+  // Count years with OAS clawback (only years when OAS is being received)
   const oasClawbackYears = retirementYears.filter(y => {
+    const oas = y.income?.oas || 0;
     const income = y.income?.total || 0;
-    return income > 86912; // 2025 OAS clawback threshold
+    return oas > 0 && income > 86912; // Only count when receiving OAS AND above threshold
   }).length;
 
   // Tax efficiency score (lower effective rate = higher score)
@@ -565,7 +566,7 @@ Write a 2-3 paragraph analysis highlighting the financial story, key transitions
     if (provider === 'gemini') {
       // Direct Gemini API call
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: {

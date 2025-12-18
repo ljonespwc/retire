@@ -38,3 +38,6 @@ next-env.d.ts
 
 # local scripts (not for deployment)
 /src/scripts
+
+# text files (validation reports, etc.)
+*.txt

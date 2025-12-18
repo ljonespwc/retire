@@ -117,9 +117,6 @@ export function VoiceFirstContentV2() {
   const [loadedVariantIds, setLoadedVariantIds] = useState<string[]>([])
   const [clickedVariantIndex, setClickedVariantIndex] = useState<number | null>(null)
 
-  // Track saved variants by type -> scenario ID (persists even when tab is closed)
-  // This allows reopening saved variants instead of regenerating them
-  const [savedVariants, setSavedVariants] = useState<Record<string, { id: string; index: number }>>({})
 
   const resultsRef = useRef<HTMLDivElement>(null)
 
@@ -153,19 +150,6 @@ export function VoiceFirstContentV2() {
     input: isDarkMode
       ? 'bg-gray-700 border-gray-600 text-white'
       : 'bg-white border-gray-200',
-  }
-
-  // Convert VariantType (e.g., 'front-load') to UI key (e.g., 'front_load')
-  const variantTypeToUiKey = (variantType: string): string => {
-    const mapping: Record<string, string> = {
-      'front-load': 'front_load',
-      'delay-cpp-oas': 'delay_benefits',
-      'exhaust-portfolio': 'exhaust',
-      'retire-early': 'retire_early',
-      'legacy': 'legacy',
-      'lump-sum': 'lump_sum'
-    }
-    return mapping[variantType] || variantType
   }
 
   // Confetti celebration effect
@@ -255,7 +239,6 @@ export function VoiceFirstContentV2() {
     setIsCompareMode(false)
     setLoadedVariantIds([])
     setClickedVariantIndex(null)
-    setSavedVariants({})
   }
 
   // Exit Compare Mode and enable editing
@@ -276,7 +259,6 @@ export function VoiceFirstContentV2() {
     setLoadedVariantIds([])
     setClickedVariantIndex(null)
     setActiveVariantTab(-1)  // Reset to baseline tab
-    setSavedVariants({})
 
     // Clear variant-related metadata (keep baseline data)
     setLoadedVariantMetadata(null)
@@ -607,6 +589,17 @@ export function VoiceFirstContentV2() {
       if (variants && variants.length > 0) {
         console.log(`📊 Found ${variants.length} variants for baseline "${baselineName}"`)
 
+        // Sort variants by fixed button order (matching what-if button layout)
+        const variantTypeOrder = ['front-load', 'delay-cpp-oas', 'exhaust-portfolio', 'retire-early', 'legacy', 'lump-sum']
+        const sortedVariants = [...variants].sort((a, b) => {
+          const aType = (a.inputs as any)?.__metadata?.variant_type || ''
+          const bType = (b.inputs as any)?.__metadata?.variant_type || ''
+          const aIndex = variantTypeOrder.indexOf(aType)
+          const bIndex = variantTypeOrder.indexOf(bType)
+          // Unknown types go to end
+          return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
+        })
+
         // Build variant arrays from loaded scenarios
         const loadedScenarios: Scenario[] = []
         const loadedResults: CalculationResults[] = []
@@ -616,12 +609,11 @@ export function VoiceFirstContentV2() {
         const loadedNarratives: string[] = []
         const loadedShareTokens: (string | null)[] = []
         const loadedIsShared: boolean[] = []
-        const loadedSavedVariants: Record<string, { id: string; index: number }> = {}
 
         let clickedIndex: number | null = null
 
-        for (let i = 0; i < variants.length; i++) {
-          const v = variants[i]
+        for (let i = 0; i < sortedVariants.length; i++) {
+          const v = sortedVariants[i]
           const vInputs = v.inputs as any
           const vMetadata = vInputs?.__metadata as VariantMetadata | undefined
 
@@ -644,12 +636,6 @@ export function VoiceFirstContentV2() {
           loadedShareTokens.push(v.share_token || null)
           loadedIsShared.push(v.is_shared || false)
 
-          // Track saved variant type -> scenario ID mapping
-          if (vMetadata?.variant_type) {
-            const uiKey = variantTypeToUiKey(vMetadata.variant_type)
-            loadedSavedVariants[uiKey] = { id: v.id, index: i }
-          }
-
           // Track if this is the variant the user clicked
           if (isLoadingVariant && v.id === scenarioId) {
             clickedIndex = i
@@ -666,7 +652,6 @@ export function VoiceFirstContentV2() {
         setVariantShareTokens(loadedShareTokens)
         setVariantIsShared(loadedIsShared)
         setLoadedVariantIds(loadedIds)
-        setSavedVariants(loadedSavedVariants)
 
         // Enter Compare Mode
         setIsCompareMode(true)
@@ -857,87 +842,8 @@ export function VoiceFirstContentV2() {
     }
   }
 
-  // Helper to check if a tab is currently open for a variant type
-  const isVariantTabOpen = (type: string): boolean => {
-    const namePatterns: Record<string, (name: string) => boolean> = {
-      'front_load': (name) => name.includes('Front-Load'),
-      'delay_benefits': (name) => name.includes('Delay CPP/OAS'),
-      'exhaust': (name) => name.includes('Exhaust'),
-      'retire_early': (name) => name.includes('Retire') && name.includes('Earlier'),
-      'legacy': (name) => name.includes('Leave') && name.includes('Legacy'),
-      'lump_sum': (name) => name.includes('Lump Sum')
-    }
-    return variantScenarios.some(v => namePatterns[type]?.(v.name))
-  }
-
-  // Reopen a saved variant by restoring it to the variant arrays
-  const reopenSavedVariant = async (type: string) => {
-    const saved = savedVariants[type]
-    if (!saved) return
-
-    console.log(`🔄 Reopening saved variant: ${type} (ID: ${saved.id})`)
-
-    // Fetch the variant from the database
-    const supabase = createClient()
-    const { data: variant, error } = await supabase
-      .from('scenarios')
-      .select('*')
-      .eq('id', saved.id)
-      .single()
-
-    if (error || !variant) {
-      console.error('Failed to fetch saved variant:', error)
-      return
-    }
-
-    const vInputs = variant.inputs as any
-    const vMetadata = vInputs?.__metadata as VariantMetadata | undefined
-
-    // Build scenario object
-    const vScenario: Scenario = {
-      name: variant.name,
-      basic_inputs: vInputs.basic_inputs,
-      assets: vInputs.assets,
-      income_sources: vInputs.income_sources,
-      expenses: vInputs.expenses,
-      assumptions: vInputs.assumptions
-    }
-
-    // Add to variant arrays
-    setVariantScenarios(prev => [...prev, vScenario])
-    setVariantResultsArray(prev => [...prev, variant.results as unknown as CalculationResults])
-    setVariantScenarioIds(prev => [...prev, variant.id])
-    setVariantConfigs(prev => [...prev, vMetadata?.variant_config])
-    setVariantInsights(prev => [...prev, vMetadata?.ai_insight || ''])
-    setVariantNarratives(prev => [...prev, vMetadata?.ai_narrative || ''])
-    setVariantShareTokens(prev => [...prev, variant.share_token || null])
-    setVariantIsShared(prev => [...prev, variant.is_shared || false])
-
-    // Update savedVariants with new index
-    const newIndex = variantScenarios.length  // This is the index after adding
-    setSavedVariants(prev => ({
-      ...prev,
-      [type]: { ...prev[type], index: newIndex }
-    }))
-
-    // Switch to the reopened tab
-    setActiveVariantTab(newIndex)
-    console.log(`✅ Variant reopened at tab index: ${newIndex}`)
-  }
-
   // Handle scenario button click
   const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum') => {
-    // Check if this variant is saved but tab is closed
-    const isSaved = !!savedVariants[scenarioType]
-    const tabOpen = isVariantTabOpen(scenarioType)
-
-    if (isSaved && !tabOpen) {
-      // Reopen the saved variant instead of generating new
-      reopenSavedVariant(scenarioType)
-      return
-    }
-
-    // Otherwise, show modal to generate new variant
     setSelectedScenarioType(scenarioType)
     setShowScenarioModal(true)
   }
@@ -1195,41 +1101,6 @@ export function VoiceFirstContentV2() {
     } finally {
       setIsCalculatingVariant(false)
       setGeneratingVariantType(null)
-    }
-  }
-
-  const handleResetVariant = (index?: number) => {
-    if (index !== undefined) {
-      // Remove specific variant by index
-      setVariantScenarios(variantScenarios.filter((_, i) => i !== index))
-      setVariantResultsArray(variantResultsArray.filter((_, i) => i !== index))
-      setVariantInsights(variantInsights.filter((_, i) => i !== index))
-      setVariantNarratives(variantNarratives.filter((_, i) => i !== index))
-      setVariantScenarioIds(variantScenarioIds.filter((_, i) => i !== index))
-      setVariantConfigs(variantConfigs.filter((_, i) => i !== index))
-      setVariantShareTokens(variantShareTokens.filter((_, i) => i !== index))
-      setVariantIsShared(variantIsShared.filter((_, i) => i !== index))
-
-      // Adjust active tab after removal
-      if (activeVariantTab === index) {
-        // If removing the active tab, switch to first variant
-        setActiveVariantTab(0)
-      } else if (activeVariantTab > index) {
-        // If active tab is after the removed tab, decrement index
-        setActiveVariantTab(activeVariantTab - 1)
-      }
-      // Otherwise keep activeVariantTab the same
-    } else {
-      // Clear all variants
-      setVariantScenarios([])
-      setVariantResultsArray([])
-      setVariantInsights([])
-      setVariantNarratives([])
-      setVariantScenarioIds([])
-      setVariantConfigs([])
-      setVariantShareTokens([])
-      setVariantIsShared([])
-      setActiveVariantTab(0)
     }
   }
 
@@ -1527,7 +1398,6 @@ export function VoiceFirstContentV2() {
                 theme={theme}
                 loadedVariantMetadata={loadedVariantMetadata}
                 variantScenarios={variantScenarios}
-                savedVariants={savedVariants}
                 generatingVariantType={generatingVariantType}
                 onScenarioClick={handleScenarioClick}
               />
@@ -1613,7 +1483,6 @@ export function VoiceFirstContentV2() {
                 onTabChange={setActiveVariantTab}
                 onSave={handleSaveVariant}
                 onShareChange={handleShareChange}
-                onReset={handleResetVariant}
                 isSavingNarrative={isSavingVariantNarrative}
               />
             )})()}

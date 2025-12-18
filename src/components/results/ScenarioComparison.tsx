@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { X, Share2, Loader2 } from 'lucide-react'
+import { Share2, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -41,7 +41,6 @@ interface ScenarioComparisonProps {
   onSave?: (index: number) => void
   onShareChange?: (index: number, shareToken: string | null, isShared: boolean) => void // Notify parent of share changes
   onTryAnother?: () => void
-  onReset: (index: number) => void
   isSavingNarrative?: boolean // Loading state while generating AI narrative for save
 }
 
@@ -66,7 +65,6 @@ export function ScenarioComparison({
   onSave,
   onShareChange,
   onTryAnother,
-  onReset,
   isSavingNarrative = false
 }: ScenarioComparisonProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
@@ -125,13 +123,25 @@ export function ScenarioComparison({
   const highlightGreen = isDarkMode ? 'text-green-400' : 'text-green-600'
   const highlightYellow = isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
 
-  // Tab styling
+  // Tab styling - compact pills
   const tabInactive = isDarkMode
     ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
   const tabActive = isDarkMode
-    ? 'text-white bg-gray-700 border-b-2 border-blue-500'
-    : 'text-gray-900 bg-gray-50 border-b-2 border-orange-500'
+    ? 'text-white bg-blue-600'
+    : 'text-white bg-orange-500'
+
+  // Helper to shorten variant names for compact tabs
+  const getShortTabLabel = (name: string): string => {
+    if (name.includes('Front-Load')) return 'Front-Load'
+    if (name.includes('Delay CPP') || name.includes('Delay Benefits')) return 'Delay CPP'
+    if (name.includes('Exhaust')) return 'Exhaust'
+    if (name.includes('Retire') && (name.includes('Early') || name.includes('Earlier'))) return 'Retire Early'
+    if (name.includes('Legacy')) return 'Legacy'
+    if (name.includes('Lump Sum')) return 'Lump Sum'
+    // Fallback: truncate long names
+    return name.length > 15 ? name.substring(0, 12) + '...' : name
+  }
 
   // Extract baseline metrics
   const baselineMonthly = baselineScenario.expenses.fixed_monthly
@@ -140,17 +150,17 @@ export function ScenarioComparison({
 
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} mt-8 mb-8`}>
-      {/* Tab Navigation */}
-      <div className={`border-b ${cardBorder} ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-100'}`}>
-        <div className="flex items-center flex-wrap">
+      {/* Tab Navigation - Compact single row with horizontal scroll */}
+      <div className={`border-b ${cardBorder} ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-100'} px-2 py-2`}>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           {/* Baseline Tab */}
           <button
             onClick={() => setActiveTab(-1)}
-            className={`px-6 py-4 font-medium transition-all ${
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === -1 ? tabActive : tabInactive
             }`}
           >
-            Your Baseline
+            Baseline
           </button>
 
           {/* Variant Tabs */}
@@ -158,18 +168,11 @@ export function ScenarioComparison({
             <button
               key={index}
               onClick={() => setActiveTab(index)}
-              className={`px-6 py-4 font-medium transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
                 activeTab === index ? tabActive : tabInactive
               }`}
             >
-              <span>{variant.name}</span>
-              <X
-                className="w-4 h-4 opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onReset(index)
-                }}
-              />
+              {getShortTabLabel(variant.name)}
             </button>
           ))}
         </div>
@@ -404,7 +407,7 @@ function VariantTab({
       {/* Comparison Table */}
       <div className="overflow-x-auto">
         <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
-          Comparison: {baselineName} vs {variantScenario.name}
+          Compare to Baseline
         </h3>
         <table className="w-full">
           <thead>

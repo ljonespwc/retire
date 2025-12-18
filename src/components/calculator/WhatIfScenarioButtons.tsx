@@ -5,9 +5,8 @@
  * Shows loading states, active states, and disabled states based on variant status.
  *
  * Button states:
- * - Tab open: disabled + "Active" badge
- * - Saved but tab closed: enabled + "Active" badge (clicking reopens)
- * - Not saved: enabled (clicking generates new)
+ * - Variant exists (tab open): disabled + "Active" badge
+ * - No variant: enabled (clicking generates new)
  */
 
 import { Heart } from 'lucide-react'
@@ -21,7 +20,6 @@ interface WhatIfScenarioButtonsProps {
   theme: any
   loadedVariantMetadata: VariantMetadata | null
   variantScenarios: Scenario[]
-  savedVariants: Record<string, { id: string; index: number }>  // Type -> scenario ID mapping
   generatingVariantType: VariantTypeKey | null
   onScenarioClick: (type: VariantTypeKey) => void
 }
@@ -44,22 +42,18 @@ export function WhatIfScenarioButtons({
   theme,
   loadedVariantMetadata,
   variantScenarios,
-  savedVariants,
   generatingVariantType,
   onScenarioClick
 }: WhatIfScenarioButtonsProps) {
 
   // Helper to get button state for a variant type
   const getButtonState = (type: VariantTypeKey) => {
-    const tabOpen = isTabOpen(variantScenarios, type)
-    const isSaved = !!savedVariants[type]
-    const isActive = tabOpen || isSaved
-    // Disabled only if: variant metadata loaded OR tab is already open
-    // NOT disabled if: saved but tab closed (allows reopen)
-    const isDisabled = !!loadedVariantMetadata || tabOpen
+    const isActive = isTabOpen(variantScenarios, type)
+    // Disabled if: variant metadata loaded OR variant already generated
+    const isDisabled = !!loadedVariantMetadata || isActive
     const isGenerating = generatingVariantType === type
 
-    return { tabOpen, isSaved, isActive, isDisabled, isGenerating }
+    return { isActive, isDisabled, isGenerating }
   }
 
   // Helper to get button className

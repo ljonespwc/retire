@@ -378,7 +378,7 @@ What's the one thing the user needs to know about this variant compared to the b
     if (provider === 'gemini') {
       // Direct Gemini API call
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: {
@@ -393,7 +393,7 @@ What's the one thing the user needs to know about this variant compared to the b
               }
             ],
             generationConfig: {
-              temperature: 0.6,
+              temperature: 0.3,  // Lower temperature for more deterministic fact-citing
               maxOutputTokens: 200,
             },
           }),
@@ -420,7 +420,7 @@ What's the one thing the user needs to know about this variant compared to the b
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          temperature: 0.6,
+          temperature: 0.3,  // Lower temperature for more deterministic fact-citing
           max_tokens: 200,
         }),
       });
