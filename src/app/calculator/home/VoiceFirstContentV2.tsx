@@ -522,9 +522,9 @@ export function VoiceFirstContentV2() {
       setIsScenarioShared(false)
     }
 
-    // Determine baseline name for fetching variants
-    // If loading a variant, use the baseline_snapshot.name; if loading baseline, use scenarioName
-    const baselineName = variantMetadata?.baseline_snapshot?.name || scenarioName
+    // Determine baseline ID for fetching what-if scenarios
+    // If loading a variant, use the metadata's created_from_baseline_id; if loading baseline, use scenarioId
+    const baselineIdForQuery = variantMetadata?.created_from_baseline_id || (!variantMetadata ? scenarioId : undefined)
     const isLoadingVariant = !!variantMetadata
 
     // Store variant metadata if present (for legacy single-variant display)
@@ -576,10 +576,10 @@ export function VoiceFirstContentV2() {
       setBaselineNarrative(null)
     }
 
-    // Fetch all variants for this baseline (Compare Mode)
+    // Fetch all what-if scenarios for this baseline (Compare Mode)
     try {
       const client = createClient()
-      const { data: variants, error } = await getVariantsForBaseline(client, baselineName)
+      const { data: variants, error } = await getVariantsForBaseline(client, baselineIdForQuery)
 
       if (error) {
         console.error('Error fetching variants:', error)
@@ -587,7 +587,7 @@ export function VoiceFirstContentV2() {
       }
 
       if (variants && variants.length > 0) {
-        console.log(`📊 Found ${variants.length} variants for baseline "${baselineName}"`)
+        console.log(`📊 Found ${variants.length} what-if scenarios for baseline "${scenarioName}"`)
 
         // Sort variants by fixed button order (matching what-if button layout)
         const variantTypeOrder = ['front-load', 'delay-cpp-oas', 'exhaust-portfolio', 'retire-early', 'legacy', 'lump-sum']
@@ -669,7 +669,7 @@ export function VoiceFirstContentV2() {
 
         console.log(`📊 Entered Compare Mode with ${loadedScenarios.length} variants`)
       } else {
-        console.log(`📊 No variants found for baseline "${baselineName}" - entering normal edit mode`)
+        console.log(`📊 No what-if scenarios found for baseline "${scenarioName}" - entering normal edit mode`)
       }
     } catch (err) {
       console.error('Error in Compare Mode setup:', err)
@@ -1515,6 +1515,7 @@ export function VoiceFirstContentV2() {
         variantType={savingVariantIndex !== null && variantScenarios[savingVariantIndex] ? detectVariantTypeFromName(variantScenarios[savingVariantIndex].name) || undefined : loadedVariantMetadata?.variant_type}
         variantConfig={savingVariantIndex !== null ? variantConfigs[savingVariantIndex] : loadedVariantMetadata?.variant_config}
         scenarioId={savingVariantIndex !== null ? variantScenarioIds[savingVariantIndex] : scenarioId}
+        baselineId={savingVariantIndex !== null ? scenarioId : undefined}
         baselineScenarioName={savingVariantIndex !== null ? (loadedScenarioName || 'Your Baseline') : undefined}
         baselineResults={savingVariantIndex !== null ? (calculationResults ?? undefined) : undefined}
         baselineSnapshot={savingVariantIndex !== null || loadedVariantMetadata ? baselineSnapshot : undefined}

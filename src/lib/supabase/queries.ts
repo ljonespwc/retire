@@ -289,15 +289,15 @@ export async function getSharedScenario(
 }
 
 /**
- * Get all variant scenarios linked to a baseline by name
- * Variants store their parent baseline name in inputs.__metadata.baseline_snapshot.name
+ * Get all what-if scenarios linked to a baseline
+ * Uses the baseline_id column for efficient indexed lookups
  * @param client - Supabase client instance
- * @param baselineName - Name of the baseline scenario
- * @returns Array of variant scenarios or error
+ * @param baselineId - ID of the baseline scenario
+ * @returns Array of what-if scenarios or error
  */
 export async function getVariantsForBaseline(
   client: TypedSupabaseClient,
-  baselineName: string
+  baselineId: string | undefined
 ) {
   const {
     data: { user },
@@ -307,14 +307,16 @@ export async function getVariantsForBaseline(
     return { data: null, error: new Error('User not authenticated') };
   }
 
-  // Query for scenarios where inputs.__metadata.baseline_snapshot.name matches
-  // and inputs.__metadata.variant_type exists (is a variant)
+  // No baseline ID means no variants to fetch
+  if (!baselineId) {
+    return { data: [], error: null };
+  }
+
   const { data, error } = await client
     .from('scenarios')
     .select('*')
     .eq('user_id', user.id)
-    .not('inputs->__metadata->variant_type', 'is', null)
-    .eq('inputs->__metadata->baseline_snapshot->>name', baselineName)
+    .eq('baseline_id', baselineId)
     .order('name');
 
   return { data, error };

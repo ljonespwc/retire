@@ -286,6 +286,7 @@ export interface Database {
           share_token: string | null;
           is_shared: boolean;
           shared_at: string | null;
+          baseline_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -300,6 +301,7 @@ export interface Database {
           share_token?: string | null;
           is_shared?: boolean;
           shared_at?: string | null;
+          baseline_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -314,6 +316,7 @@ export interface Database {
           share_token?: string | null;
           is_shared?: boolean;
           shared_at?: string | null;
+          baseline_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -323,6 +326,13 @@ export interface Database {
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'scenarios_baseline_id_fkey';
+            columns: ['baseline_id'];
+            isOneToOne: false;
+            referencedRelation: 'scenarios';
             referencedColumns: ['id'];
           }
         ];

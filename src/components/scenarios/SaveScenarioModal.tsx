@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { saveScenario, updateScenario } from '@/lib/supabase/queries'
+import { saveScenario } from '@/lib/supabase/queries'
 import { formDataToScenario, getDefaultScenarioName, type FormData } from '@/lib/scenarios/scenario-mapper'
 import { addVariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { CalculationResults } from '@/types/calculator'
@@ -131,38 +131,25 @@ export function SaveScenarioModal({
         inputs.__baseline_narrative = aiNarrative
       }
 
-      if (scenarioId) {
-        // UPDATE existing scenario
-        const { data, error: updateError } = await updateScenario(client, scenarioId, {
-          name: scenarioData.name,
-          inputs,
-          results: calculationResults as any,
-        })
+      // Always CREATE new scenario (no update path - simpler mental model)
+      const { data, error: saveError } = await saveScenario(client, {
+        name: scenarioData.name,
+        inputs,
+        results: calculationResults as any,
+        source: 'manual',  // Manually saved by user
+        // Link to parent baseline if this is a what-if scenario
+        baseline_id: variantType && baselineId ? baselineId : undefined,
+      })
 
-        if (updateError) {
-          throw updateError
-        }
+      if (saveError) {
+        throw saveError
+      }
 
-        console.log('✅ Scenario updated successfully:', scenarioId)
-      } else {
-        // CREATE new scenario
-        const { data, error: saveError } = await saveScenario(client, {
-          name: scenarioData.name,
-          inputs,
-          results: calculationResults as any,
-          source: 'manual',  // Manually saved by user
-        })
+      console.log('✅ Scenario created successfully:', data?.id)
 
-        if (saveError) {
-          throw saveError
-        }
-
-        console.log('✅ Scenario created successfully:', data?.id)
-
-        // Notify parent of successful save (so it can track the new ID)
-        if (onSaveSuccess && data?.id) {
-          onSaveSuccess(data.id, scenarioData.name)
-        }
+      // Notify parent of successful save
+      if (onSaveSuccess && data?.id) {
+        onSaveSuccess(data.id, scenarioData.name)
       }
 
       // Success!
@@ -195,7 +182,7 @@ export function SaveScenarioModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className={`text-2xl font-bold ${textPrimary}`}>
-            {scenarioId ? 'Update Scenario' : 'Save Scenario'}
+            Save Scenario
           </h3>
           <button
             onClick={handleClose}
@@ -216,15 +203,10 @@ export function SaveScenarioModal({
               type="text"
               value={scenarioName}
               onChange={(e) => setScenarioName(e.target.value)}
-              disabled={isSaving || success || !!scenarioId}
-              className={`w-full px-4 py-3 ${inputBg} border ${inputBorder} ${inputText} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all disabled:opacity-50 ${scenarioId ? 'cursor-not-allowed' : ''}`}
+              disabled={isSaving || success}
+              className={`w-full px-4 py-3 ${inputBg} border ${inputBorder} ${inputText} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all disabled:opacity-50`}
               placeholder="Enter a name for this scenario"
             />
-            {scenarioId && (
-              <p className={`text-xs ${textSecondary} mt-2`}>
-                Scenario name cannot be changed when updating
-              </p>
-            )}
           </div>
 
           {/* Error message */}
@@ -256,11 +238,7 @@ export function SaveScenarioModal({
             disabled={isSaving || !scenarioName.trim() || success}
             className={`flex-1 px-6 py-3 ${buttonPrimary} text-white rounded-lg font-medium transition-all disabled:opacity-50`}
           >
-            {isSaving
-              ? (scenarioId ? 'Updating...' : 'Saving...')
-              : success
-              ? (scenarioId ? 'Updated!' : 'Saved!')
-              : (scenarioId ? 'Update' : 'Save')}
+            {isSaving ? 'Saving...' : success ? 'Saved!' : 'Save'}
           </button>
         </div>
       </div>
