@@ -55,7 +55,7 @@ export default function Home() {
         isDarkMode={effectiveDarkMode}
         theme={theme}
         isAnonymous={true}
-        authLoading={false}
+        authLoading={true}
         user={null}
         onToggleDarkMode={handleToggleDarkMode}
         onLoginClick={() => {}}
