@@ -230,10 +230,22 @@ export function getVariantDetails(
 ): VariantDetails {
   switch (variantType) {
     case 'front-load': {
-      const baseline = scenario?.expenses.fixed_monthly || 0
+      const baseline = baselineSnapshot?.monthly_spending || scenario?.expenses.fixed_monthly || 0
       const retirementAge = scenario?.basic_inputs.retirement_age || 65
+      const inflationRate = scenario?.assumptions.inflation_rate || 0.02
 
-      // Format baseline spending reference (simplified since insight already mentions name)
+      // Match the actual formula from createFrontLoadVariant
+      const goGoMultiplier = 1.30
+      const goGoAmount = baseline * goGoMultiplier
+
+      // Pre-deflated amounts (what's actually stored in age_based_changes)
+      const slowGoNominalTarget = baseline * goGoMultiplier * 0.65
+      const slowGoBase = slowGoNominalTarget / Math.pow(1 + inflationRate, 10)
+
+      const noGoNominalTarget = baseline * goGoMultiplier * 0.50
+      const noGoBase = noGoNominalTarget / Math.pow(1 + inflationRate, 20)
+
+      // Format baseline spending reference
       const baselineSpendingLabel = baselineSnapshot
         ? 'Baseline Plan Spending'
         : 'Baseline Spending'
@@ -243,15 +255,15 @@ export function getVariantDetails(
         items: [
           {
             label: `Ages ${retirementAge}-${retirementAge + 9} (Go-Go Years)`,
-            value: `$${Math.round(baseline * 1.30).toLocaleString()}/month (+30%)`
+            value: `$${Math.round(goGoAmount).toLocaleString()}/month (+30%)`
           },
           {
             label: `Ages ${retirementAge + 10}-${retirementAge + 19} (Slow-Go Years)`,
-            value: `$${Math.round(baseline * 0.85).toLocaleString()}/month (-15%)`
+            value: `$${Math.round(slowGoBase).toLocaleString()}/month (→ ~$${Math.round(slowGoNominalTarget).toLocaleString()} with inflation)`
           },
           {
             label: `Ages ${retirementAge + 20}+ (No-Go Years)`,
-            value: `$${Math.round(baseline * 0.75).toLocaleString()}/month (-25%)`
+            value: `$${Math.round(noGoBase).toLocaleString()}/month (→ ~$${Math.round(noGoNominalTarget).toLocaleString()} with inflation)`
           },
           {
             label: baselineSpendingLabel,
