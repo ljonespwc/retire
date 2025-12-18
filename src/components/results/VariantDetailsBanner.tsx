@@ -145,7 +145,7 @@ export function VariantDetailsBanner({
               <div className={`border-t ${dividerColor} pt-3`} />
               <div className={`flex items-center justify-between text-xs ${textMuted}`}>
                 <span>
-                  Variant created: {new Date(variantMetadata.created_at).toLocaleDateString()}
+                  What-if scenario created: {new Date(variantMetadata.created_at).toLocaleDateString()}
                 </span>
                 {variantMetadata.created_from_baseline_id && (
                   <span className={`${labelBg} ${labelText} px-2 py-1 rounded-full font-medium`}>

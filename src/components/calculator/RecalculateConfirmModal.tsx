@@ -77,7 +77,7 @@ export function RecalculateConfirmModal({
         {/* Body */}
         <div className="space-y-4">
           <p className={`${textSecondary} leading-relaxed`}>
-            You have a what-if scenario open. Recalculating will update your baseline plan and clear the variant comparison.
+            You have a what-if scenario open. Recalculating will update your baseline plan and clear the what-if comparison.
           </p>
 
           <p className={`${textSecondary} leading-relaxed`}>

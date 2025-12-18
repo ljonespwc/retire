@@ -77,9 +77,9 @@ export function BaselineResults({
                     : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                 }`}
               >
-                {scenarioId && loadedScenarioName
-                  ? `UPDATE THIS SCENARIO: ${loadedScenarioName}`
-                  : 'SAVE THIS SCENARIO'}
+                {scenarioId
+                  ? 'UPDATE THIS SCENARIO'
+                  : '* SAVE THIS SCENARIO'}
               </button>
             )}
 

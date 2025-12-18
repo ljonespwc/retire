@@ -173,6 +173,9 @@ export function ScenarioComparison({
               }`}
             >
               {getShortTabLabel(variant.name)}
+              {!variantScenarioIds[index] && (
+                <span className="ml-1.5 text-xs opacity-60">*</span>
+              )}
             </button>
           ))}
         </div>
@@ -294,9 +297,9 @@ function BaselineTab({
                     : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                 }`}
               >
-                {scenarioId && scenarioName
-                  ? `UPDATE THIS SCENARIO: ${scenarioName}`
-                  : 'SAVE THIS SCENARIO: Baseline'}
+                {scenarioId
+                  ? 'UPDATE THIS SCENARIO'
+                  : '* SAVE THIS SCENARIO'}
               </button>
 
               {/* Share Button (only visible if scenario is saved) */}
@@ -552,7 +555,7 @@ function VariantTab({
                     Generating AI Analysis...
                   </>
                 ) : (
-                  `SAVE THIS SCENARIO: ${variantScenario.name}`
+                  '* SAVE THIS SCENARIO'
                 )}
               </button>
             )}

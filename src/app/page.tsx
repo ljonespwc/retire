@@ -266,7 +266,7 @@ export default function Home() {
                 Explore What-If Scenarios
               </h4>
               <p className={`${theme.text.secondary}`}>
-                Click any what-if button to instantly compare variants. Retire earlier? Delay CPP? Front-load spending? See side-by-side results.
+                Click any what-if button to instantly compare scenarios. Retire earlier? Delay CPP? Front-load spending? See side-by-side results.
               </p>
             </div>
           </div>
@@ -380,7 +380,7 @@ export default function Home() {
             <ul className={`${theme.text.secondary} space-y-2 text-sm`}>
               <li>• Save unlimited scenarios</li>
               <li>• Side-by-side comparisons</li>
-              <li>• One-click what-if variants</li>
+              <li>• One-click what-if scenarios</li>
               <li>• Load and modify saved plans</li>
             </ul>
           </div>

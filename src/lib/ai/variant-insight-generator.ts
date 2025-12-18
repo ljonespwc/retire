@@ -1,7 +1,7 @@
 /**
  * Variant Insight Generator
  *
- * Uses LLM to generate a 1-2 sentence key insight comparing baseline vs variant scenarios.
+ * Uses LLM to generate a 1-2 sentence key insight comparing baseline vs what-if scenarios.
  * Analyzes the financial impact and highlights the most important tradeoff.
  */
 
@@ -111,27 +111,27 @@ function buildRequiredFacts(
   // Portfolio difference with explicit direction
   const portfolioDirection = metrics.portfolioDiff >= 0 ? 'MORE' : 'LESS';
   const portfolioVerb = metrics.portfolioDiff >= 0 ? 'increases' : 'decreases';
-  facts.push(`- Portfolio ending balance: Variant has ${formatCurrencyAbs(metrics.portfolioDiff)} ${portfolioDirection} than baseline (${portfolioVerb} from ${formatCurrencyAbs(baselineResults.final_portfolio_value)} to ${formatCurrencyAbs(variantResults.final_portfolio_value)})`);
+  facts.push(`- Portfolio ending balance: What-if scenario has ${formatCurrencyAbs(metrics.portfolioDiff)} ${portfolioDirection} than baseline (${portfolioVerb} from ${formatCurrencyAbs(baselineResults.final_portfolio_value)} to ${formatCurrencyAbs(variantResults.final_portfolio_value)})`);
 
   // Tax difference with explicit direction
   const taxDirection = metrics.taxDiff >= 0 ? 'MORE' : 'LESS';
   const taxVerb = metrics.taxDiff >= 0 ? 'pays' : 'saves';
-  facts.push(`- Lifetime taxes: Variant ${taxVerb} ${formatCurrencyAbs(metrics.taxDiff)} ${taxDirection === 'MORE' ? 'in taxes' : 'on taxes'} (${formatCurrencyAbs(baselineResults.total_taxes_paid_in_retirement)} → ${formatCurrencyAbs(variantResults.total_taxes_paid_in_retirement)})`);
+  facts.push(`- Lifetime taxes: What-if scenario ${taxVerb} ${formatCurrencyAbs(metrics.taxDiff)} ${taxDirection === 'MORE' ? 'in taxes' : 'on taxes'} (${formatCurrencyAbs(baselineResults.total_taxes_paid_in_retirement)} → ${formatCurrencyAbs(variantResults.total_taxes_paid_in_retirement)})`);
 
   // Depletion comparison with explicit direction
   if (baselineResults.portfolio_depleted_age && variantResults.portfolio_depleted_age) {
     const diff = variantResults.portfolio_depleted_age - baselineResults.portfolio_depleted_age;
     if (diff > 0) {
-      facts.push(`- Portfolio depletion: Variant lasts ${Math.abs(diff)} years LONGER (depletes at age ${variantResults.portfolio_depleted_age} vs baseline age ${baselineResults.portfolio_depleted_age})`);
+      facts.push(`- Portfolio depletion: What-if scenario lasts ${Math.abs(diff)} years LONGER (depletes at age ${variantResults.portfolio_depleted_age} vs baseline age ${baselineResults.portfolio_depleted_age})`);
     } else if (diff < 0) {
-      facts.push(`- Portfolio depletion: Variant depletes ${Math.abs(diff)} years EARLIER (depletes at age ${variantResults.portfolio_depleted_age} vs baseline age ${baselineResults.portfolio_depleted_age})`);
+      facts.push(`- Portfolio depletion: What-if scenario depletes ${Math.abs(diff)} years EARLIER (depletes at age ${variantResults.portfolio_depleted_age} vs baseline age ${baselineResults.portfolio_depleted_age})`);
     } else {
       facts.push(`- Portfolio depletion: Both deplete at age ${baselineResults.portfolio_depleted_age}`);
     }
   } else if (baselineResults.portfolio_depleted_age && !variantResults.portfolio_depleted_age) {
-    facts.push(`- Portfolio depletion: Variant SURVIVES to end (baseline depletes at age ${baselineResults.portfolio_depleted_age}, variant ends with ${formatCurrencyAbs(variantResults.final_portfolio_value)})`);
+    facts.push(`- Portfolio depletion: What-if scenario SURVIVES to end (baseline depletes at age ${baselineResults.portfolio_depleted_age}, what-if scenario ends with ${formatCurrencyAbs(variantResults.final_portfolio_value)})`);
   } else if (!baselineResults.portfolio_depleted_age && variantResults.portfolio_depleted_age) {
-    facts.push(`- Portfolio depletion: Variant DEPLETES at age ${variantResults.portfolio_depleted_age} (baseline survives with ${formatCurrencyAbs(baselineResults.final_portfolio_value)})`);
+    facts.push(`- Portfolio depletion: What-if scenario DEPLETES at age ${variantResults.portfolio_depleted_age} (baseline survives with ${formatCurrencyAbs(baselineResults.final_portfolio_value)})`);
   } else {
     facts.push(`- Portfolio depletion: Both survive to end`);
   }
@@ -139,11 +139,11 @@ function buildRequiredFacts(
   // CPP/OAS differences if significant
   if (Math.abs(metrics.cppDiff) > 10000) {
     const cppDir = metrics.cppDiff >= 0 ? 'MORE' : 'LESS';
-    facts.push(`- Lifetime CPP: Variant receives ${formatCurrencyAbs(metrics.cppDiff)} ${cppDir}`);
+    facts.push(`- Lifetime CPP: What-if scenario receives ${formatCurrencyAbs(metrics.cppDiff)} ${cppDir}`);
   }
   if (Math.abs(metrics.oasDiff) > 10000) {
     const oasDir = metrics.oasDiff >= 0 ? 'MORE' : 'LESS';
-    facts.push(`- Lifetime OAS: Variant receives ${formatCurrencyAbs(metrics.oasDiff)} ${oasDir}`);
+    facts.push(`- Lifetime OAS: What-if scenario receives ${formatCurrencyAbs(metrics.oasDiff)} ${oasDir}`);
   }
 
   const baselineName = baselineScenarioName || 'Baseline Scenario';
@@ -152,16 +152,16 @@ function buildRequiredFacts(
 
 SCENARIOS BEING COMPARED:
 - BASELINE (reference scenario): "${baselineName}"
-- VARIANT (what you're describing): The scenario you're analyzing
+- WHAT-IF SCENARIO (what you're describing): The scenario you're analyzing
 
-KEY DIFFERENCES (variant vs baseline):
+KEY DIFFERENCES (what-if scenario vs baseline):
 ${facts.join('\n')}
 
 IMPORTANT:
 - Use the EXACT dollar amounts and directions from KEY DIFFERENCES above
 - Do NOT calculate your own values or round differently
 - The BASELINE is "${baselineName}" - reference it by this name in your response
-- You are describing how the VARIANT differs from the BASELINE`;
+- You are describing how the WHAT-IF SCENARIO differs from the BASELINE`;
 }
 
 interface SpendingComparison {
@@ -239,7 +239,7 @@ export async function generateVariantInsight(
 
       spendingContext = `
   - Baseline spending: ${formatCurrency(spendingComparison.baselineMonthly)}/month
-  - Variant spending: ${formatCurrency(spendingComparison.variantMonthly)}/month (${formatCurrency(spendingDiff)} / ${spendingPercent}%)`;
+  - What-if scenario spending: ${formatCurrency(spendingComparison.variantMonthly)}/month (${formatCurrency(spendingDiff)} / ${spendingPercent}%)`;
 
       if (spendingComparison.legacyPercentage !== undefined && spendingComparison.legacyTarget !== undefined) {
         spendingContext += `
@@ -262,7 +262,7 @@ export async function generateVariantInsight(
     if (variantOneTimeWithdrawals && variantOneTimeWithdrawals.length > 0) {
       const variantTotal = variantOneTimeWithdrawals.reduce((sum, w) => sum + w.amount, 0);
       withdrawalsContext += `
-  - Variant withdrawals: ${formatCurrency(variantTotal)} total (${variantOneTimeWithdrawals.length} withdrawal${variantOneTimeWithdrawals.length > 1 ? 's' : ''})`;
+  - What-if scenario withdrawals: ${formatCurrency(variantTotal)} total (${variantOneTimeWithdrawals.length} withdrawal${variantOneTimeWithdrawals.length > 1 ? 's' : ''})`;
       variantOneTimeWithdrawals.forEach(w => {
         const desc = w.description ? ` for ${w.description}` : '';
         withdrawalsContext += `
@@ -282,7 +282,7 @@ export async function generateVariantInsight(
     }
     if (variantAgeBasedChanges && variantAgeBasedChanges.length > 0) {
       ageBasedContext += `
-  Variant spending strategy: ${variantAgeBasedChanges.length} age-based change${variantAgeBasedChanges.length > 1 ? 's' : ''}`;
+  What-if scenario spending strategy: ${variantAgeBasedChanges.length} age-based change${variantAgeBasedChanges.length > 1 ? 's' : ''}`;
       variantAgeBasedChanges.forEach(c => {
         ageBasedContext += `
     • Age ${c.age}: ${formatCurrency(c.monthly_amount)}/month`;
@@ -295,7 +295,7 @@ export async function generateVariantInsight(
       const diff = retirementAgeComparison.variantRetirementAge - retirementAgeComparison.baselineRetirementAge;
       retirementAgeContext = `
   Baseline retirement age: ${retirementAgeComparison.baselineRetirementAge}
-  Variant retirement age: ${retirementAgeComparison.variantRetirementAge} (${diff > 0 ? '+' : ''}${diff} years)`;
+  What-if scenario retirement age: ${retirementAgeComparison.variantRetirementAge} (${diff > 0 ? '+' : ''}${diff} years)`;
     }
 
     // Build benefit start age comparison context
@@ -303,7 +303,7 @@ export async function generateVariantInsight(
     if (benefitStartAgeComparison) {
       benefitContext = `
   Baseline CPP/OAS start ages: ${benefitStartAgeComparison.baselineCPPStartAge}/${benefitStartAgeComparison.baselineOASStartAge}
-  Variant CPP/OAS start ages: ${benefitStartAgeComparison.variantCPPStartAge}/${benefitStartAgeComparison.variantOASStartAge}`;
+  What-if scenario CPP/OAS start ages: ${benefitStartAgeComparison.variantCPPStartAge}/${benefitStartAgeComparison.variantOASStartAge}`;
     }
 
     // Build pension context
@@ -339,7 +339,7 @@ Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Total OAS: ${formatCurrencyAbs(baselineResults.total_oas_received)}
   - Total Other Income: ${formatCurrencyAbs(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}${ageBasedContext}${retirementAgeContext}${benefitContext}${pensionContext}
 
-Variant: ${variantName}
+What-If Scenario: ${variantName}
   - Ending balance: ${formatCurrencyAbs(variantResults.final_portfolio_value)}
   - First year income: ${formatCurrencyAbs(variantResults.first_year_retirement_income)}
   - Total Pension: ${formatCurrencyAbs(variantResults.total_pension_received)}
@@ -356,7 +356,7 @@ CRITICAL INSTRUCTION: You MUST use the EXACT values from the "REQUIRED FACTS" se
 - Copy the dollar amounts and directions EXACTLY as provided
 
 Structure:
-- Sentence 1: Bottom-line comparison referencing baseline by name (e.g., "Compared to **${baselineName}**, this variant...")
+- Sentence 1: Bottom-line comparison referencing baseline by name (e.g., "Compared to **${baselineName}**, this what-if scenario...")
 - Sentence 2-3: Cite the key facts with **bold** dollar amounts - use the EXACT values from REQUIRED FACTS
 - Sentence 4: Practical implication
 
@@ -370,7 +370,7 @@ Guidelines:
 
 ${context}
 
-What's the one thing the user needs to know about this variant compared to the baseline?`;
+What's the one thing the user needs to know about this what-if scenario compared to the baseline?`;
 
     const provider = process.env.AI_PROVIDER || 'openai';
     let insight = '';
@@ -435,7 +435,7 @@ What's the one thing the user needs to know about this variant compared to the b
 
     return insight.trim();
   } catch (error) {
-    console.error('Failed to generate variant insight:', error);
+    console.error('Failed to generate what-if scenario insight:', error);
     throw error;
   }
 }
