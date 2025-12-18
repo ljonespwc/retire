@@ -395,6 +395,9 @@ What's the one thing the user needs to know about this what-if scenario compared
             generationConfig: {
               temperature: 0.3,  // Lower temperature for more deterministic fact-citing
               maxOutputTokens: 200,
+              thinkingConfig: {
+                thinkingBudget: 0,  // Disable thinking - not needed for simple insight generation
+              },
             },
           }),
         }

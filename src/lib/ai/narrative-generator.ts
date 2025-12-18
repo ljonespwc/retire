@@ -583,6 +583,9 @@ Write a 2-3 paragraph analysis highlighting the financial story, key transitions
             generationConfig: {
               temperature: 0.75,  // Slightly higher for richer narratives
               maxOutputTokens: 500,  // Safety buffer for 250 words (~375 tokens)
+              thinkingConfig: {
+                thinkingBudget: 0,  // Disable thinking - not needed for simple narrative generation
+              },
             },
           }),
         }
