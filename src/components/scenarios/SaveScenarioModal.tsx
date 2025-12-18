@@ -145,8 +145,6 @@ export function SaveScenarioModal({
         throw saveError
       }
 
-      console.log('✅ Scenario created successfully:', data?.id)
-
       // Notify parent of successful save
       if (onSaveSuccess && data?.id) {
         onSaveSuccess(data.id, scenarioData.name)

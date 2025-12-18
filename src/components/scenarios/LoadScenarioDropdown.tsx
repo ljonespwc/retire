@@ -200,29 +200,17 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
 
   // Wait for auth to initialize before loading scenarios
   useEffect(() => {
-    console.log('📂 LoadScenarioDropdown - Auth state:', {
-      authLoading,
-      hasUser: !!user,
-      userId: user?.id,
-      isAnonymous: user?.isAnonymous
-    })
-
     if (!authLoading && user) {
-      console.log('📂 LoadScenarioDropdown - Calling loadScenarios()')
       loadScenarios()
-    } else if (!authLoading && !user) {
-      console.log('📂 LoadScenarioDropdown - Auth complete but no user (should not happen)')
     }
   }, [authLoading, user])
 
   const loadScenarios = async () => {
-    console.log('📂 LoadScenarioDropdown - loadScenarios() started')
     setIsLoading(true)
     setError(null)
 
     try {
       const client = createClient()
-      console.log('📂 LoadScenarioDropdown - Supabase client created')
 
       // Get all scenarios, then filter to only manually saved ones
       const { data, error: fetchError } = await getScenarios(client, {
@@ -275,7 +263,6 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       // For variant scenarios, override form data with baseline snapshot values
       // so form displays baseline values, not variant values
       if (variantMetadata?.baseline_snapshot) {
-        console.log('🔄 Overriding form data with baseline snapshot values')
         formData = {
           ...formData,
           monthlySpending: variantMetadata.baseline_snapshot.monthly_spending,
@@ -284,11 +271,6 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
           // Note: OAS start age is always 65 in baseline, but variants may change it
           // For now, we only handle monthly_spending, retirement_age, cpp_start_age
         }
-        console.log('✅ Form data updated with baseline values:', {
-          monthlySpending: formData.monthlySpending,
-          retirementAge: formData.retirementAge,
-          cppStartAge: formData.cppStartAge
-        })
       }
 
       // Extract baseline narrative if present (for baselines) or from metadata (for variants)
@@ -330,8 +312,6 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
       if (deleteError) {
         throw deleteError
       }
-
-      console.log('✅ Scenario deleted successfully')
 
       // Refresh scenario list
       await loadScenarios()

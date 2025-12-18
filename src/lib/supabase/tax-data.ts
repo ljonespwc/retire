@@ -120,42 +120,6 @@ export async function getProvincialTaxBrackets(
 }
 
 /**
- * Get all provincial tax brackets for a specific year
- */
-export async function getAllProvincialTaxBrackets(
-  client: TypedSupabaseClient,
-  year: number = 2025
-): Promise<{ data: Record<Province, TaxBracket[]> | null; error: any }> {
-  const cacheKey = getCacheKey('all_provincial_brackets', year);
-  const cached = getFromCache<Record<Province, TaxBracket[]>>(cacheKey);
-  if (cached) return { data: cached, error: null };
-
-  const { data, error } = await client
-    .from('provincial_tax_brackets')
-    .select('province_code, income_limit, rate, bracket_index')
-    .eq('year', year)
-    .order('province_code')
-    .order('bracket_index');
-
-  if (error) return { data: null, error };
-
-  // Group by province
-  const bracketsMap: Record<string, TaxBracket[]> = {};
-  data.forEach((row: any) => {
-    if (!bracketsMap[row.province_code]) {
-      bracketsMap[row.province_code] = [];
-    }
-    bracketsMap[row.province_code].push({
-      limit: row.income_limit,
-      rate: parseFloat(row.rate),
-    });
-  });
-
-  setCache(cacheKey, bracketsMap);
-  return { data: bracketsMap as Record<Province, TaxBracket[]>, error: null };
-}
-
-/**
  * Get CPP amounts for a specific year
  */
 export async function getCPPAmounts(
@@ -264,27 +228,6 @@ export async function getTFSALimits(client: TypedSupabaseClient) {
 
   setCache(cacheKey, limits);
   return { data: limits, error: null };
-}
-
-/**
- * Calculate total TFSA contribution room since inception
- */
-export async function calculateTFSARoom(
-  client: TypedSupabaseClient,
-  birthYear: number,
-  currentYear: number = 2025
-): Promise<number> {
-  const { data: limits } = await getTFSALimits(client);
-  if (!limits) return 0;
-
-  const firstEligibleYear = Math.max(2009, birthYear + 18);
-  let totalRoom = 0;
-
-  for (let year = firstEligibleYear; year <= currentYear; year++) {
-    totalRoom += limits[year] || 7000; // Default to current limit
-  }
-
-  return totalRoom;
 }
 
 /**

@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Calculator, Share2, BarChart3, X } from 'lucide-react'
+import { Heart, Calculator, Share2, X } from 'lucide-react'
 import { MobileHelpBanner } from '@/components/help/MobileHelpBanner'
 import { roundPercentage } from '@/lib/utils/number-utils'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
@@ -346,12 +346,8 @@ export function VoiceFirstContentV2() {
 
       // If loaded variant metadata exists, regenerate the variant
       if (loadedVariantMetadata) {
-        console.log(`🔄 Regenerating variant: ${loadedVariantMetadata.variant_type}`)
         scenario = regenerateVariant(scenario, loadedVariantMetadata.variant_type, loadedVariantMetadata.variant_config)
-        console.log('✅ Variant regenerated:', scenario.name)
       }
-
-      console.log('📤 Sending calculation request for:', scenario.name)
 
       const response = await fetch('/api/calculate', {
         method: 'POST',
@@ -362,12 +358,6 @@ export function VoiceFirstContentV2() {
       const data = await response.json()
 
       if (data.success && data.results) {
-        console.log('🔍 BASELINE RESULTS:', {
-          final_portfolio: data.results.final_portfolio_value,
-          total_cpp: data.results.total_cpp_received,
-          total_oas: data.results.total_oas_received,
-          first_year_income: data.results.first_year_retirement_income
-        })
         setCalculationResults(data.results)
         setBaselineNarrative(data.narrative || null)
 
@@ -383,7 +373,6 @@ export function VoiceFirstContentV2() {
             portfolio_depleted_age: data.results.portfolio_depleted_age
           }
           setBaselineSnapshot(snapshot)
-          console.log('📸 Created baseline snapshot:', snapshot)
 
           // Clear scenario tracking for fresh calculations (enables save button)
           // After save, scenarioId gets set again, hiding the save button
@@ -492,7 +481,6 @@ export function VoiceFirstContentV2() {
     // Store scenario ID if present
     if (scenarioId) {
       setScenarioId(scenarioId)
-      console.log(`✅ Loaded scenario ID: ${scenarioId}`)
     }
 
     // Store sharing state
@@ -512,7 +500,6 @@ export function VoiceFirstContentV2() {
     // Store variant metadata if present (for legacy single-variant display)
     if (variantMetadata) {
       setLoadedVariantMetadata(variantMetadata)
-      console.log(`✅ Loaded variant scenario: ${scenarioName} (type: ${variantMetadata.variant_type})`)
 
       if (variantScenario) {
         setLoadedVariantScenario(variantScenario)
@@ -524,7 +511,6 @@ export function VoiceFirstContentV2() {
     } else {
       setLoadedVariantMetadata(null)
       setLoadedVariantScenario(null)
-      console.log(`✅ Loaded baseline scenario: ${scenarioName}`)
 
       // Create baseline snapshot from loaded data
       if (results) {
@@ -569,8 +555,6 @@ export function VoiceFirstContentV2() {
       }
 
       if (variants && variants.length > 0) {
-        console.log(`📊 Found ${variants.length} what-if scenarios for baseline "${scenarioName}"`)
-
         // Sort variants by fixed button order (matching what-if button layout)
         const variantTypeOrder = ['front-load', 'delay-cpp-oas', 'exhaust-portfolio', 'retire-early', 'legacy', 'lump-sum']
         const sortedVariants = [...variants].sort((a, b) => {
@@ -643,15 +627,9 @@ export function VoiceFirstContentV2() {
         if (clickedIndex !== null) {
           setClickedVariantIndex(clickedIndex)
           setActiveVariantTab(clickedIndex)
-          console.log(`🎯 Auto-selecting variant tab: ${clickedIndex}`)
         } else {
           setActiveVariantTab(-1)  // Show baseline tab when baseline is clicked
-          console.log(`🎯 Auto-selecting baseline tab`)
         }
-
-        console.log(`📊 Entered Compare Mode with ${loadedScenarios.length} variants`)
-      } else {
-        console.log(`📊 No what-if scenarios found for baseline "${scenarioName}" - entering normal edit mode`)
       }
     } catch (err) {
       console.error('Error in Compare Mode setup:', err)
@@ -660,7 +638,6 @@ export function VoiceFirstContentV2() {
 
   // Handle successful scenario save (baseline only, not variants)
   const handleSaveSuccess = (newScenarioId: string, newScenarioName: string) => {
-    console.log(`💾 Scenario saved successfully - ID: ${newScenarioId}, Name: ${newScenarioName}`)
     setScenarioId(newScenarioId)
     setLoadedScenarioName(newScenarioName)
 
@@ -671,14 +648,12 @@ export function VoiceFirstContentV2() {
         ...baselineSnapshot,
         name: newScenarioName
       })
-      console.log(`📸 Updated baseline snapshot name to: ${newScenarioName}`)
     }
   }
 
   // Handle successful variant save
   const handleVariantSaveSuccess = (newScenarioId: string, newScenarioName: string) => {
     if (savingVariantIndex === null) return
-    console.log(`💾 Variant saved successfully - Index: ${savingVariantIndex}, ID: ${newScenarioId}, Name: ${newScenarioName}`)
 
     // Update the scenario ID for this variant
     setVariantScenarioIds(prev => {
@@ -690,9 +665,7 @@ export function VoiceFirstContentV2() {
 
   // Handle login success
   const handleLoginSuccess = async () => {
-    console.log('🔐 Login successful, checking for anonymous scenarios...')
     const anonCount = await getAnonymousScenarioCount()
-    console.log(`📊 Found ${anonCount} anonymous scenarios`)
 
     if (anonCount > 0 && user?.id) {
       setAnonymousUserIdBeforeLogin(user.id)
@@ -703,11 +676,10 @@ export function VoiceFirstContentV2() {
 
   const handleLogout = async () => {
     await logout()
-    console.log('👋 Logged out successfully')
   }
 
   const handleMergeComplete = () => {
-    console.log('✅ Merge complete, scenarios should now be visible')
+    // Merge complete, scenarios should now be visible
   }
 
   const handleConfirmRecalculate = () => {
@@ -851,9 +823,6 @@ export function VoiceFirstContentV2() {
       const baseScenario = createScenarioFromFormData()
       const supabase = createClient()
 
-      console.log('🔍 BASE SCENARIO CPP:', baseScenario.income_sources.cpp)
-      console.log('🔍 BASE SCENARIO OAS:', baseScenario.income_sources.oas)
-
       // Create variant based on selected type
       let variant: Scenario
       let variantConfig: Record<string, any> | undefined
@@ -866,7 +835,6 @@ export function VoiceFirstContentV2() {
           break
         case 'retire_early': {
           const newRetirementAge = config?.newRetirementAge || baseScenario.basic_inputs.retirement_age - 3
-          console.log(`🚀 Creating retire early variant: Age ${newRetirementAge}`)
           variant = createRetireEarlyVariant(baseScenario, newRetirementAge)
 
           // Store config for regeneration
@@ -877,11 +845,8 @@ export function VoiceFirstContentV2() {
         }
         case 'exhaust': {
           // Run binary search optimization to find maximum spending
-          console.log('💰 Running binary search optimization...')
           const { optimizeSpendingToExhaust } = await import('@/lib/calculations/scenario-optimizer')
           const optimizationResult = await optimizeSpendingToExhaust(supabase, baseScenario)
-
-          console.log(`✅ Optimization complete: $${Math.round(optimizationResult.optimizedSpending)}/mo after ${optimizationResult.iterations} iterations`)
 
           variant = createExhaustPortfolioVariant(baseScenario, optimizationResult.optimizedSpending)
 
@@ -895,13 +860,10 @@ export function VoiceFirstContentV2() {
         }
         case 'legacy': {
           const percentage = config?.percentage || 0.25
-          console.log(`🏛️  Running legacy optimization for ${(percentage * 100).toFixed(0)}% preservation...`)
 
           // Run binary search optimization to find spending that preserves legacy target
           const { optimizeSpendingForLegacy } = await import('@/lib/calculations/scenario-optimizer')
           const optimizationResult = await optimizeSpendingForLegacy(supabase, baseScenario, percentage)
-
-          console.log(`✅ Legacy optimization complete: $${Math.round(optimizationResult.optimizedSpending)}/mo preserves $${Math.round(optimizationResult.finalBalance).toLocaleString()} after ${optimizationResult.iterations} iterations`)
 
           variant = createLegacyVariant(baseScenario, percentage)
           // Override spending with optimized amount
@@ -921,8 +883,6 @@ export function VoiceFirstContentV2() {
           const withdrawalAge = config?.withdrawalAge || retirementAge + 5
           const sourceAccount = config?.sourceAccount || 'smart'
 
-          console.log(`💵 Creating lump sum withdrawal variant: $${amount.toLocaleString()} at age ${withdrawalAge} from ${sourceAccount}`)
-
           variant = createLumpSumWithdrawalVariant(baseScenario, amount, withdrawalAge, sourceAccount)
 
           // Store config for regeneration
@@ -934,12 +894,8 @@ export function VoiceFirstContentV2() {
           break
         }
         default:
-          console.error(`Unknown scenario type: ${selectedScenarioType}`)
           return
       }
-
-      console.log('🔍 VARIANT CPP:', variant.income_sources.cpp)
-      console.log('🔍 VARIANT OAS:', variant.income_sources.oas)
 
       // Check if this variant already exists (by name)
       const existingIndex = variantScenarios.findIndex(v => v.name === variant.name)
@@ -948,13 +904,6 @@ export function VoiceFirstContentV2() {
       setLoadedVariantMetadata(null)
 
       const results = await calculateRetirementProjection(supabase, variant)
-
-      console.log('🔍 VARIANT RESULTS:', {
-        final_portfolio: results.final_portfolio_value,
-        total_cpp: results.total_cpp_received,
-        total_oas: results.total_oas_received,
-        first_year_income: results.first_year_retirement_income
-      })
 
       // Generate variant insight and narrative (non-blocking - if they fail, continue without them)
       let insight: string | undefined
@@ -1142,8 +1091,6 @@ export function VoiceFirstContentV2() {
     try {
       // Generate narrative for this variant if not already exists
       if (!variantNarratives[index]) {
-        console.log(`📝 Generating AI narrative for variant: ${variantScenarios[index].name}`)
-
         const narrativeResponse = await fetch('/api/generate-narrative', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1161,14 +1108,10 @@ export function VoiceFirstContentV2() {
           const newNarratives = [...variantNarratives]
           newNarratives[index] = narrative || ''
           setVariantNarratives(newNarratives)
-
-          console.log(`✅ AI narrative generated for variant: ${variantScenarios[index].name}`)
         } else {
           console.error('⚠️  Failed to generate variant narrative (non-critical):', await narrativeResponse.text())
           // Continue to save modal anyway - narrative is optional
         }
-      } else {
-        console.log(`✅ Using existing narrative for variant: ${variantScenarios[index].name}`)
       }
     } catch (error) {
       console.error('⚠️  Failed to generate variant narrative (non-critical):', error)
@@ -1278,27 +1221,6 @@ export function VoiceFirstContentV2() {
                 </div>
               </CardHeader>
 
-              {/* Compare Mode Banner */}
-              {isCompareMode && (
-                <div className={`mx-4 sm:mx-6 mt-4 p-4 rounded-xl border-2 ${
-                  isDarkMode
-                    ? 'bg-blue-900/30 border-blue-500/50 text-blue-200'
-                    : 'bg-orange-50 border-orange-300 text-orange-800'
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <BarChart3 className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
-                    <div>
-                      <div className="font-semibold">
-                        Compare Mode: {loadedScenarioName} + {variantScenarios.length} variant{variantScenarios.length !== 1 ? 's' : ''}
-                      </div>
-                      <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-orange-600'}`}>
-                        Recalculating will clear your variant{variantScenarios.length !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <CardContent className={`pt-6 sm:pt-8 px-4 sm:px-6 ${planningStarted ? 'pb-[25vh] lg:pb-6' : ''}`}>
                 <FormSections
                   currentAge={currentAge}
@@ -1398,12 +1320,9 @@ export function VoiceFirstContentV2() {
                 isAnonymous={isAnonymous}
                 theme={theme}
                 onSaveClick={() => {
-                  console.log('💾 Save Scenario clicked - isAnonymous:', isAnonymous, 'user:', user)
                   if (isAnonymous) {
-                    console.log('💾 Opening SaveWithAccountModal (anonymous user)')
                     setShowSaveWithAccountModal(true)
                   } else {
-                    console.log('💾 Opening SaveScenarioModal (authenticated user)')
                     setShowScenarioSaveModal(true)
                   }
                 }}

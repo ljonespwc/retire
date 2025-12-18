@@ -60,7 +60,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, isDarkMode = false
       const result = await login(email, password)
 
       if (result.success) {
-        console.log('✅ Login successful')
         // Call success callback (may trigger merge modal)
         onLoginSuccess?.()
         // Close this modal

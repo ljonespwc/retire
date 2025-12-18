@@ -44,8 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth state changes
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔔 Auth state changed:', event, session?.user?.is_anonymous ? 'anonymous' : 'authenticated')
-
       if (session?.user) {
         // Convert Supabase user to AuthUser immediately (no async delay)
         const authUser: AuthUser = {
@@ -54,15 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isAnonymous: session.user.is_anonymous || false,
           tier: 'basic'
         }
-        console.log('🔔 Auth state change - Setting user:', {
-          userId: authUser.id,
-          email: authUser.email,
-          isAnonymous: authUser.isAnonymous,
-          event
-        })
         setUser(authUser)
       } else {
-        console.log('🔔 Auth state change - No user, setting null')
         setUser(null)
       }
 
@@ -76,24 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function initializeAuth() {
-    console.log('🔐 AuthContext - initializeAuth() started')
     try {
       // Try to get existing session or create anonymous user
-      console.log('🔐 AuthContext - Calling getOrCreateAnonUser()')
-      const authUser = await getOrCreateAnonUser()
-      console.log('🔐 AuthContext - getOrCreateAnonUser() result:', {
-        hasUser: !!authUser,
-        userId: authUser?.id,
-        isAnonymous: authUser?.is_anonymous
-      })
+      await getOrCreateAnonUser()
       // Note: onAuthStateChange will update user state
     } catch (error) {
-      console.error('❌ AuthContext - Error initializing auth:', error)
+      console.error('Error initializing auth:', error)
     } finally {
       // Always set loading to false after initialization attempt
       // This prevents infinite loading state if auth fails or onAuthStateChange doesn't fire
       setLoading(false)
-      console.log('🔐 AuthContext - initializeAuth() complete, loading=false')
     }
   }
 

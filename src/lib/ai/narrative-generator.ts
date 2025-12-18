@@ -566,7 +566,7 @@ Write a 2-3 paragraph analysis highlighting the financial story, key transitions
     if (provider === 'gemini') {
       // Direct Gemini API call
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: {
@@ -603,7 +603,7 @@ Write a 2-3 paragraph analysis highlighting the financial story, key transitions
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-mini',
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },

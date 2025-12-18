@@ -427,25 +427,3 @@ export function shouldConvertToRRIF(age: number): boolean {
   return age >= 71;
 }
 
-/**
- * Calculate total account balances
- *
- * Simple helper to sum all account types.
- *
- * @param rrsp_rrif - RRSP or RRIF balance
- * @param tfsa - TFSA balance
- * @param non_registered - Non-registered balance
- * @returns AccountBalances object with total
- */
-export function calculateTotalBalance(
-  rrsp_rrif: number,
-  tfsa: number,
-  non_registered: number
-): AccountBalances {
-  return {
-    rrsp_rrif,
-    tfsa,
-    non_registered,
-    total: rrsp_rrif + tfsa + non_registered,
-  };
-}

@@ -63,7 +63,6 @@ export function MergeAnonymousScenariosModal({
       const result = await mergeAnonymousScenarios(anonymousUserId, authenticatedUserId)
 
       if (result.success) {
-        console.log('✅ Scenarios merged successfully')
         onMergeComplete()
         onClose()
       } else {
@@ -85,7 +84,6 @@ export function MergeAnonymousScenariosModal({
       const result = await deleteAnonymousScenarios(anonymousUserId)
 
       if (result.success) {
-        console.log('✅ Anonymous scenarios deleted successfully')
         onMergeComplete()
         onClose()
       } else {

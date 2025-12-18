@@ -298,7 +298,7 @@ function BaselineTab({
                     : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
                 }`}
               >
-                * SAVE THIS SCENARIO
+                SAVE THIS PLAN
               </button>
             )}
 
@@ -554,7 +554,7 @@ function VariantTab({
                     Generating AI Analysis...
                   </>
                 ) : (
-                  '* SAVE THIS SCENARIO'
+                  'SAVE THIS WHAT-IF'
                 )}
               </button>
             )}

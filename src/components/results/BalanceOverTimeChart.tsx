@@ -7,7 +7,7 @@
  * with milestone markers for CPP/OAS start and RRIF conversion.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { CalculationResults } from '@/types/calculator'
 import { formatBalanceData, formatCompactCurrency } from '@/lib/calculations/results-formatter'
 import { HelpCircle } from 'lucide-react'
@@ -41,8 +41,6 @@ export function BalanceOverTimeChart({ results, isDarkMode = false }: BalanceOve
   const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600'
   const gridStroke = isDarkMode ? '#374151' : '#e5e7eb'
   const axisStroke = isDarkMode ? '#9ca3af' : '#6b7280'
-  const tooltipBg = isDarkMode ? 'bg-gray-800' : 'bg-white'
-  const tooltipBorder = isDarkMode ? 'border-gray-700' : 'border-gray-200'
   const markerStroke = isDarkMode ? '#1f2937' : '#fff'
 
   return (

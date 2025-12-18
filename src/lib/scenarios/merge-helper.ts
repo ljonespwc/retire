@@ -60,7 +60,6 @@ export async function mergeAnonymousScenarios(
       return { success: false, error: error.message }
     }
 
-    console.log(`✅ Merged scenarios from ${anonymousUserId} to ${authenticatedUserId}`)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
@@ -89,7 +88,6 @@ export async function deleteAnonymousScenarios(
       return { success: false, error: error.message }
     }
 
-    console.log(`✅ Deleted anonymous scenarios for ${anonymousUserId}`)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'

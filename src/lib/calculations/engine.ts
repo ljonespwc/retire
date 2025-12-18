@@ -636,26 +636,3 @@ export async function calculateRetirementProjection(
   };
 }
 
-/**
- * Compare multiple scenarios side-by-side
- *
- * Runs calculations for multiple scenarios and returns results for comparison.
- * Useful for "what-if" analysis (e.g., retiring at 60 vs 65, different spending levels).
- *
- * @param client - Supabase client for database queries
- * @param scenarios - Array of scenarios to compare
- * @returns Array of calculation results, one per scenario
- */
-export async function compareScenarios(
-  client: TypedSupabaseClient,
-  scenarios: Scenario[]
-): Promise<CalculationResults[]> {
-  const results: CalculationResults[] = [];
-
-  for (const scenario of scenarios) {
-    const result = await calculateRetirementProjection(client, scenario);
-    results.push(result);
-  }
-
-  return results;
-}

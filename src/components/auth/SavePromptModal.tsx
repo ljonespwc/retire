@@ -55,7 +55,6 @@ export function SavePromptModal({ isOpen, onClose, scenarioName }: SavePromptMod
       const result = await upgradeAccount(email, password)
 
       if (result.success) {
-        console.log('✅ Account created successfully')
         onClose()
       } else {
         setError(result.error || 'Failed to create account')
@@ -69,7 +68,6 @@ export function SavePromptModal({ isOpen, onClose, scenarioName }: SavePromptMod
   }
 
   const handleSkip = () => {
-    console.log('⏭️ User skipped account creation')
     onClose()
   }
 

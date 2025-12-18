@@ -73,8 +73,6 @@ export function SaveWithAccountModal({
         return
       }
 
-      console.log('✅ Account created successfully')
-
       // Step 2: Save scenario with custom name
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -112,8 +110,6 @@ export function SaveWithAccountModal({
         setLoading(false)
         return
       }
-
-      console.log('✅ Scenario saved successfully:', savedScenario?.id)
 
       // Notify parent of successful save (so it can track the new ID)
       if (onSaveSuccess && savedScenario?.id) {

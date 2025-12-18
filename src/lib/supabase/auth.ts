@@ -36,27 +36,23 @@ export async function getOrCreateAnonUser(): Promise<User | null> {
     const { data: { session } } = await supabase.auth.getSession()
 
     if (session?.user) {
-      console.log('✅ Existing session found:', session.user.is_anonymous ? 'anonymous' : 'authenticated')
       return session.user
     }
 
     // No session - create anonymous user
-    console.log('📝 Creating anonymous user session...')
     const { data, error } = await supabase.auth.signInAnonymously()
 
     if (error || !data.user) {
-      console.error('❌ Failed to create anonymous user:', error)
+      console.error('Failed to create anonymous user:', error)
       return null
     }
-
-    console.log('✅ Anonymous user created:', data.user.id)
 
     // Create corresponding record in public.users table
     await createPublicUserRecord(data.user.id, true)
 
     return data.user
   } catch (error) {
-    console.error('❌ Error in getOrCreateAnonUser:', error)
+    console.error('Error in getOrCreateAnonUser:', error)
     return null
   }
 }
@@ -87,12 +83,10 @@ async function createPublicUserRecord(userId: string, isAnonymous: boolean, emai
       })
 
     if (error) {
-      console.error('❌ Failed to create public.users record:', error)
-    } else {
-      console.log('✅ Created public.users record for:', userId)
+      console.error('Failed to create public.users record:', error)
     }
   } catch (error) {
-    console.error('❌ Error creating public user record:', error)
+    console.error('Error creating public user record:', error)
   }
 }
 
@@ -125,7 +119,6 @@ export async function upgradeAnonUser(
     }
 
     const userId = user.id
-    console.log('🔄 Upgrading anonymous user to full account:', userId)
 
     // Step 1: Update user with email and password
     const { error: updateError } = await supabase.auth.updateUser({
@@ -134,7 +127,7 @@ export async function upgradeAnonUser(
     })
 
     if (updateError) {
-      console.error('❌ Failed to update user:', updateError)
+      console.error('Failed to update user:', updateError)
       return { success: false, error: updateError.message }
     }
 
@@ -148,7 +141,7 @@ export async function upgradeAnonUser(
     })
 
     if (signInError) {
-      console.error('❌ Failed to sign in after upgrade:', signInError)
+      console.error('Failed to sign in after upgrade:', signInError)
       return { success: false, error: signInError.message }
     }
 
@@ -158,11 +151,10 @@ export async function upgradeAnonUser(
       .update({ email })
       .eq('id', userId)
 
-    console.log('✅ User upgraded successfully - new JWT issued with is_anonymous=false')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('❌ Error upgrading user:', message)
+    console.error('Error upgrading user:', message)
     return { success: false, error: message }
   }
 }
@@ -187,20 +179,19 @@ export async function signUpUser(
     })
 
     if (error) {
-      console.error('❌ Signup failed:', error)
+      console.error('Signup failed:', error)
       return { success: false, error: error.message }
     }
 
     if (data.user) {
       // Create public.users record
       await createPublicUserRecord(data.user.id, false, email)
-      console.log('✅ User signed up:', data.user.id)
     }
 
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('❌ Error signing up:', message)
+    console.error('Error signing up:', message)
     return { success: false, error: message }
   }
 }
@@ -225,15 +216,14 @@ export async function loginUser(
     })
 
     if (error) {
-      console.error('❌ Login failed:', error)
+      console.error('Login failed:', error)
       return { success: false, error: error.message }
     }
 
-    console.log('✅ User logged in')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('❌ Error logging in:', message)
+    console.error('Error logging in:', message)
     return { success: false, error: message }
   }
 }
@@ -246,9 +236,8 @@ export async function logoutUser(): Promise<void> {
 
   try {
     await supabase.auth.signOut()
-    console.log('✅ User logged out')
   } catch (error) {
-    console.error('❌ Error logging out:', error)
+    console.error('Error logging out:', error)
   }
 }
 
@@ -279,7 +268,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       tier: publicUser?.tier || 'basic'
     }
   } catch (error) {
-    console.error('❌ Error getting current user:', error)
+    console.error('Error getting current user:', error)
     return null
   }
 }

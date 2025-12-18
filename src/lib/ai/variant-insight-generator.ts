@@ -378,7 +378,7 @@ What's the one thing the user needs to know about this what-if scenario compared
     if (provider === 'gemini') {
       // Direct Gemini API call
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: {
@@ -415,7 +415,7 @@ What's the one thing the user needs to know about this what-if scenario compared
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-mini',
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },

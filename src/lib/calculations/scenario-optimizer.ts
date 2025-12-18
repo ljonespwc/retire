@@ -262,8 +262,6 @@ export async function optimizeSpendingForLegacy(
   const legacyTarget = startingPortfolio * legacyPercentage
   const longevityAge = baseScenario.basic_inputs.longevity_age
 
-  console.log(`🏛️  Optimizing for legacy: ${(legacyPercentage * 100).toFixed(0)}% of ${Math.round(startingPortfolio).toLocaleString()} = ${Math.round(legacyTarget).toLocaleString()}`)
-
   // Binary search bounds: Need wide range since we might need to spend MUCH more or less
   // If baseline has large surplus, we may need to spend 3-5x baseline to reach legacy target
   let low = baselineMonthly * 0.3  // Could need to reduce spending significantly
@@ -285,12 +283,9 @@ export async function optimizeSpendingForLegacy(
 
     const finalBalance = results.final_portfolio_value
 
-    console.log(`  Iteration ${iterations}: Spending ${Math.round(mid)}/mo → Final balance ${Math.round(finalBalance).toLocaleString()} (target: ${Math.round(legacyTarget).toLocaleString()})`)
-
     // Check if final balance is close to legacy target
     if (Math.abs(finalBalance - legacyTarget) <= tolerance) {
-      // Found optimal spending!
-      console.log(`✅ Optimization complete: $${Math.round(mid)}/mo preserves $${Math.round(finalBalance).toLocaleString()}`)
+      // Found optimal spending
       return {
         optimizedSpending: mid,
         iterations,
@@ -314,8 +309,6 @@ export async function optimizeSpendingForLegacy(
     ...baseScenario,
     expenses: { ...baseScenario.expenses, fixed_monthly: finalSpending }
   })
-
-  console.log(`✅ Optimization complete after ${iterations} iterations: $${Math.round(finalSpending)}/mo`)
 
   return {
     optimizedSpending: finalSpending,
