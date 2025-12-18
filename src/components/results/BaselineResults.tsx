@@ -67,8 +67,8 @@ export function BaselineResults({
         variantName={loadedVariantMetadata ? getVariantDisplayName(loadedVariantMetadata.variant_type) : undefined}
         actionButtons={
           <div className="flex items-center gap-3">
-            {/* Save/Update Button - hidden for loaded variants */}
-            {!loadedVariantMetadata && (
+            {/* Save Button - only shown for fresh, unsaved baseline calculations */}
+            {!loadedVariantMetadata && !scenarioId && (
               <button
                 onClick={onSaveClick}
                 className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${

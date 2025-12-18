@@ -407,6 +407,11 @@ export function VoiceFirstContentV2() {
           }
           setBaselineSnapshot(snapshot)
           console.log('📸 Created baseline snapshot:', snapshot)
+
+          // Clear scenario tracking for fresh calculations (enables save button)
+          // After save, scenarioId gets set again, hiding the save button
+          setScenarioId(undefined)
+          setLoadedScenarioName(null)
         }
 
         setShowResults(true)

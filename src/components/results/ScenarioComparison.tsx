@@ -287,8 +287,9 @@ function BaselineTab({
         expenses={scenario.expenses}
         isDarkMode={isDarkMode}
         actionButtons={
-          onSave && (
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            {/* Save Button - only shown for fresh, unsaved baseline calculations */}
+            {onSave && !scenarioId && (
               <button
                 onClick={onSave}
                 className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
@@ -299,19 +300,19 @@ function BaselineTab({
               >
                 * SAVE THIS SCENARIO
               </button>
+            )}
 
-              {/* Share Button (only visible if scenario is saved) */}
-              {scenarioId && scenarioName && onShare && (
-                <button
-                  onClick={onShare}
-                  className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
-                >
-                  <Share2 className="w-4 h-4 inline mr-2" />
-                  SHARE
-                </button>
-              )}
-            </div>
-          )
+            {/* Share Button (only visible if scenario is saved) */}
+            {scenarioId && scenarioName && onShare && (
+              <button
+                onClick={onShare}
+                className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+              >
+                <Share2 className="w-4 h-4 inline mr-2" />
+                SHARE
+              </button>
+            )}
+          </div>
         }
       />
 
