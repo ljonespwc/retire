@@ -109,6 +109,7 @@ export function VoiceFirstContentV2() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [showRecalculateConfirmModal, setShowRecalculateConfirmModal] = useState(false)
+  const [showEditWarningModal, setShowEditWarningModal] = useState(false)
   const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
   const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
 
@@ -239,30 +240,6 @@ export function VoiceFirstContentV2() {
     setIsCompareMode(false)
     setLoadedVariantIds([])
     setClickedVariantIndex(null)
-  }
-
-  // Exit Compare Mode and enable editing
-  const handleExitCompareMode = () => {
-    console.log('👋 Exiting Compare Mode')
-    setIsCompareMode(false)
-    setEditMode(true)
-
-    // Clear all variant data
-    setVariantScenarios([])
-    setVariantResultsArray([])
-    setVariantScenarioIds([])
-    setVariantConfigs([])
-    setVariantInsights([])
-    setVariantNarratives([])
-    setVariantShareTokens([])
-    setVariantIsShared([])
-    setLoadedVariantIds([])
-    setClickedVariantIndex(null)
-    setActiveVariantTab(-1)  // Reset to baseline tab
-
-    // Clear variant-related metadata (keep baseline data)
-    setLoadedVariantMetadata(null)
-    setLoadedVariantScenario(null)
   }
 
   // Handle Calculate button click
@@ -748,6 +725,17 @@ export function VoiceFirstContentV2() {
       const button = document.querySelector('button[data-calculate-button]') as HTMLButtonElement
       if (button) button.click()
     }, 100)
+  }
+
+  // Handle confirmation to enter edit mode (when variants exist)
+  const handleConfirmEdit = () => {
+    // Close modal
+    setShowEditWarningModal(false)
+
+    // Enter edit mode (variants will be cleared when user recalculates)
+    setShowResults(false)
+    setEditMode(true)
+    setJustCalculated(false)
   }
 
   // Create scenario from current form data
@@ -1262,14 +1250,18 @@ export function VoiceFirstContentV2() {
                       Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
                     </CardTitle>
                   </div>
-                  {calculationResults && !loadedVariantMetadata && !isCompareMode && (
+                  {calculationResults && !loadedVariantMetadata && (
                     <Button
                       onClick={() => {
                         if (!editMode) {
-                          // Entering edit mode - hide results display to avoid stale data errors
+                          // Entering edit mode
+                          // If variants exist, show warning modal first
+                          if (variantScenarios.length > 0) {
+                            setShowEditWarningModal(true)
+                            return
+                          }
+                          // No variants - proceed normally
                           setShowResults(false)
-                          // Don't clear loadedVariantMetadata here - let it persist until recalculation
-                          // This allows users to edit/review without losing variant context
                         } else {
                           // Exiting edit mode - clear focused field to show contextual help
                           setFocusedField(null)
@@ -1293,30 +1285,16 @@ export function VoiceFirstContentV2() {
                     ? 'bg-blue-900/30 border-blue-500/50 text-blue-200'
                     : 'bg-orange-50 border-orange-300 text-orange-800'
                 }`}>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <BarChart3 className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
-                      <div>
-                        <div className="font-semibold">
-                          Compare Mode: {loadedScenarioName} + {variantScenarios.length} variant{variantScenarios.length !== 1 ? 's' : ''}
-                        </div>
-                        <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-orange-600'}`}>
-                          Form is locked while comparing scenarios
-                        </div>
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
+                    <div>
+                      <div className="font-semibold">
+                        Compare Mode: {loadedScenarioName} + {variantScenarios.length} variant{variantScenarios.length !== 1 ? 's' : ''}
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-orange-600'}`}>
+                        Recalculating will clear your variant{variantScenarios.length !== 1 ? 's' : ''}
                       </div>
                     </div>
-                    <Button
-                      onClick={handleExitCompareMode}
-                      variant="outline"
-                      size="sm"
-                      className={isDarkMode
-                        ? 'border-blue-500 text-blue-300 hover:bg-blue-800/50'
-                        : 'border-orange-400 text-orange-700 hover:bg-orange-100'
-                      }
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Exit & Edit
-                    </Button>
                   </div>
                 </div>
               )}
@@ -1369,7 +1347,6 @@ export function VoiceFirstContentV2() {
                   setInflationRate={setInflationRate}
                   setEditMode={setEditMode}
                   onFieldFocus={setFocusedField}
-                  isCompareMode={isCompareMode}
                 />
 
                 {/* Calculate Button */}
@@ -1383,7 +1360,6 @@ export function VoiceFirstContentV2() {
                     theme={theme}
                     onClick={handleCalculate}
                     loadedVariantMetadata={loadedVariantMetadata}
-                    isCompareMode={isCompareMode}
                   />
                 </div>
               </CardContent>
@@ -1587,6 +1563,16 @@ export function VoiceFirstContentV2() {
         onConfirm={handleConfirmRecalculate}
         variantName={variantScenarios.length === 1 ? variantScenarios[0].name : `${variantScenarios.length} active variants`}
         isDarkMode={isDarkMode}
+      />
+
+      {/* Edit Warning Modal - shown when clicking Edit with variants open */}
+      <RecalculateConfirmModal
+        isOpen={showEditWarningModal}
+        onClose={() => setShowEditWarningModal(false)}
+        onConfirm={handleConfirmEdit}
+        variantName={variantScenarios.length === 1 ? variantScenarios[0].name : `${variantScenarios.length} active variants`}
+        isDarkMode={isDarkMode}
+        actionType="edit"
       />
 
       {/* Mobile Help Banner (Auto-showing) */}

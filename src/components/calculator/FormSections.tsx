@@ -75,9 +75,6 @@ interface FormSectionsProps {
 
   // Focus handler
   onFieldFocus: (field: string) => void
-
-  // Compare Mode (locks form)
-  isCompareMode?: boolean
 }
 
 export function FormSections({
@@ -139,13 +136,10 @@ export function FormSections({
   setEditMode,
 
   // Focus handler
-  onFieldFocus,
-
-  // Compare Mode
-  isCompareMode = false
+  onFieldFocus
 }: FormSectionsProps) {
   return (
-    <div className={`space-y-6 sm:space-y-8 ${isCompareMode ? 'pointer-events-none opacity-60 select-none' : ''}`}>
+    <div className="space-y-6 sm:space-y-8">
       {/* Basic Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
         <WarmDataField

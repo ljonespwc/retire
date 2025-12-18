@@ -19,7 +19,6 @@ interface CalculateButtonProps {
   theme: any
   onClick: () => void
   loadedVariantMetadata?: VariantMetadata | null
-  isCompareMode?: boolean
 }
 
 export function CalculateButton({
@@ -30,12 +29,11 @@ export function CalculateButton({
   justCalculated,
   theme,
   onClick,
-  loadedVariantMetadata,
-  isCompareMode = false
+  loadedVariantMetadata
 }: CalculateButtonProps) {
-  // Disable button when a variant scenario is loaded or in Compare Mode
+  // Disable button when a variant scenario is loaded
   const isVariantLoaded = !!loadedVariantMetadata
-  const isDisabled = isCalculating || !isMandatoryFieldsComplete || (editMode && !!calculationResults) || justCalculated || isVariantLoaded || isCompareMode
+  const isDisabled = isCalculating || !isMandatoryFieldsComplete || (editMode && !!calculationResults) || justCalculated || isVariantLoaded
 
   return (
     <div className="space-y-2">

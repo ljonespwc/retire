@@ -3,7 +3,7 @@
 /**
  * Recalculate Confirmation Modal
  *
- * Warns users when recalculating will clear their active variant scenario.
+ * Warns users when recalculating or editing will affect their active variant scenarios.
  * Prevents confusion from stale variant data after baseline changes.
  */
 
@@ -15,6 +15,7 @@ interface RecalculateConfirmModalProps {
   onConfirm: () => void
   variantName: string
   isDarkMode?: boolean
+  actionType?: 'recalculate' | 'edit'  // Determines modal messaging
 }
 
 export function RecalculateConfirmModal({
@@ -22,7 +23,8 @@ export function RecalculateConfirmModal({
   onClose,
   onConfirm,
   variantName,
-  isDarkMode = false
+  isDarkMode = false,
+  actionType = 'recalculate'
 }: RecalculateConfirmModalProps) {
   // Early return if modal is closed
   if (!isOpen) return null
@@ -60,9 +62,9 @@ export function RecalculateConfirmModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="text-2xl">🔄</div>
+            <div className="text-2xl">{actionType === 'edit' ? '✏️' : '🔄'}</div>
             <h3 className={`text-2xl font-bold ${textPrimary}`}>
-              Recalculate Your Plan?
+              {actionType === 'edit' ? 'Edit Your Plan?' : 'Recalculate Your Plan?'}
             </h3>
           </div>
           <button
@@ -77,7 +79,9 @@ export function RecalculateConfirmModal({
         {/* Body */}
         <div className="space-y-4">
           <p className={`${textSecondary} leading-relaxed`}>
-            You have a what-if scenario open. Recalculating will update your baseline plan and clear the what-if comparison.
+            {actionType === 'edit'
+              ? 'You have what-if scenarios open. Editing your plan will allow you to make changes, but recalculating will clear your variants.'
+              : 'You have a what-if scenario open. Recalculating will update your baseline plan and clear the what-if comparison.'}
           </p>
 
           <p className={`${textSecondary} leading-relaxed`}>
@@ -89,7 +93,7 @@ export function RecalculateConfirmModal({
             <div className="flex items-start gap-2">
               <AlertCircle className={`w-5 h-5 ${warningText} flex-shrink-0 mt-0.5`} />
               <p className={`text-sm ${warningText}`}>
-                Your <strong>"{variantName}"</strong> scenario will be cleared.
+                Your <strong>"{variantName}"</strong> {actionType === 'edit' ? 'will be cleared when you recalculate.' : 'scenario will be cleared.'}
               </p>
             </div>
           </div>
@@ -107,7 +111,7 @@ export function RecalculateConfirmModal({
             onClick={onConfirm}
             className={`flex-1 px-6 py-3 ${buttonPrimary} text-white rounded-lg font-medium transition-all shadow-lg`}
           >
-            Recalculate
+            {actionType === 'edit' ? 'Edit Anyway' : 'Recalculate'}
           </button>
         </div>
       </div>
