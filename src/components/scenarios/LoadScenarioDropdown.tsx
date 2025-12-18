@@ -17,6 +17,8 @@ import { useAuth } from '@/contexts/AuthContext'
 interface LoadScenarioDropdownProps {
   onLoad: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata, scenarioId?: string, shareToken?: string | null, isShared?: boolean, results?: any | null, narrative?: string | null, variantScenario?: any | null) => void
   isDarkMode?: boolean
+  onDelete?: (scenarioId: string) => void  // Notify parent when a scenario is deleted
+  refreshTrigger?: number                   // Increment to force scenario list refresh
 }
 
 interface SavedScenario {
@@ -176,7 +178,7 @@ function ScenarioItem({
   )
 }
 
-export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenarioDropdownProps) {
+export function LoadScenarioDropdown({ onLoad, isDarkMode = false, onDelete, refreshTrigger }: LoadScenarioDropdownProps) {
   const { user, loading: authLoading } = useAuth()
   const [scenarios, setScenarios] = useState<SavedScenario[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -199,11 +201,12 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
   const itemHover = isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
 
   // Wait for auth to initialize before loading scenarios
+  // Also refresh when refreshTrigger changes (e.g., after saving a scenario)
   useEffect(() => {
     if (!authLoading && user) {
       loadScenarios()
     }
-  }, [authLoading, user])
+  }, [authLoading, user, refreshTrigger])
 
   const loadScenarios = async () => {
     setIsLoading(true)
@@ -315,6 +318,9 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false }: LoadScenari
 
       // Refresh scenario list
       await loadScenarios()
+
+      // Notify parent that a scenario was deleted (so it can reset if needed)
+      onDelete?.(scenarioId)
 
       // Clear confirmation state
       setConfirmDeleteId(null)

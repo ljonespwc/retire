@@ -20,6 +20,8 @@ interface HelpSidebarProps {
   theme: any
   onStartPlanning: () => void
   onLoadScenario: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => void
+  onScenarioDeleted?: (scenarioId: string) => void
+  dropdownRefreshTrigger?: number
   planningStarted: boolean
   calculationResults: CalculationResults | null
   isMandatoryFieldsComplete: () => boolean
@@ -31,6 +33,8 @@ export function HelpSidebar({
   theme,
   onStartPlanning,
   onLoadScenario,
+  onScenarioDeleted,
+  dropdownRefreshTrigger,
   planningStarted,
   calculationResults,
   isMandatoryFieldsComplete
@@ -71,6 +75,8 @@ export function HelpSidebar({
               <LoadScenarioDropdown
                 onLoad={onLoadScenario}
                 isDarkMode={isDarkMode}
+                onDelete={onScenarioDeleted}
+                refreshTrigger={dropdownRefreshTrigger}
               />
             </div>
 

@@ -118,6 +118,9 @@ export function VoiceFirstContentV2() {
   const [loadedVariantIds, setLoadedVariantIds] = useState<string[]>([])
   const [clickedVariantIndex, setClickedVariantIndex] = useState<number | null>(null)
 
+  // Dropdown refresh coordination - increment to trigger scenario list refresh
+  const [dropdownRefreshKey, setDropdownRefreshKey] = useState(0)
+
 
   const resultsRef = useRef<HTMLDivElement>(null)
 
@@ -649,6 +652,9 @@ export function VoiceFirstContentV2() {
         name: newScenarioName
       })
     }
+
+    // Trigger dropdown refresh so new/updated scenario appears in list
+    setDropdownRefreshKey(prev => prev + 1)
   }
 
   // Handle successful variant save
@@ -661,6 +667,18 @@ export function VoiceFirstContentV2() {
       updated[savingVariantIndex] = newScenarioId
       return updated
     })
+
+    // Trigger dropdown refresh so new variant appears in list
+    setDropdownRefreshKey(prev => prev + 1)
+  }
+
+  // Handle scenario deletion from dropdown
+  const handleScenarioDeleted = (deletedScenarioId: string) => {
+    // Only reset if the deleted scenario is the currently loaded one
+    if (scenarioId === deletedScenarioId) {
+      // Full reset - same as handleStartPlanning
+      handleStartPlanning()
+    }
   }
 
   // Handle login success
@@ -1165,6 +1183,8 @@ export function VoiceFirstContentV2() {
             theme={theme}
             onStartPlanning={handleStartPlanning}
             onLoadScenario={handleLoadScenario}
+            onScenarioDeleted={handleScenarioDeleted}
+            dropdownRefreshTrigger={dropdownRefreshKey}
           />
         )}
 
@@ -1177,6 +1197,8 @@ export function VoiceFirstContentV2() {
               theme={theme}
               onStartPlanning={handleStartPlanning}
               onLoadScenario={handleLoadScenario}
+              onScenarioDeleted={handleScenarioDeleted}
+              dropdownRefreshTrigger={dropdownRefreshKey}
               planningStarted={planningStarted}
               calculationResults={calculationResults}
               isMandatoryFieldsComplete={isMandatoryFieldsComplete}

@@ -17,13 +17,17 @@ interface MobileIntroCardProps {
   theme: any
   onStartPlanning: () => void
   onLoadScenario: (formData: FormData, scenarioName: string, variantMetadata?: VariantMetadata) => void
+  onScenarioDeleted?: (scenarioId: string) => void
+  dropdownRefreshTrigger?: number
 }
 
 export function MobileIntroCard({
   isDarkMode,
   theme,
   onStartPlanning,
-  onLoadScenario
+  onLoadScenario,
+  onScenarioDeleted,
+  dropdownRefreshTrigger
 }: MobileIntroCardProps) {
   return (
     <div className="lg:hidden">
@@ -43,6 +47,8 @@ export function MobileIntroCard({
               <LoadScenarioDropdown
                 onLoad={onLoadScenario}
                 isDarkMode={isDarkMode}
+                onDelete={onScenarioDeleted}
+                refreshTrigger={dropdownRefreshTrigger}
               />
             </div>
 
