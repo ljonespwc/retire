@@ -41,3 +41,7 @@ next-env.d.ts
 
 # text files (validation reports, etc.)
 *.txt
+
+# playwright browser testing
+.playwright/
+.playwright-mcp/

@@ -847,9 +847,11 @@ export function VoiceFirstContentV2() {
       switch (selectedScenarioType) {
         case 'front_load':
           variant = createFrontLoadVariant(baseScenario)
+          variantConfig = { variant_type: 'front-load' }
           break
         case 'delay_benefits':
           variant = createDelayCppOasVariant(baseScenario)
+          variantConfig = { variant_type: 'delay-cpp-oas' }
           break
         case 'retire_early': {
           const newRetirementAge = config?.newRetirementAge || baseScenario.basic_inputs.retirement_age - 3
@@ -857,6 +859,7 @@ export function VoiceFirstContentV2() {
 
           // Store config for regeneration
           variantConfig = {
+            variant_type: 'retire-early',
             newRetirementAge
           }
           break
@@ -870,6 +873,7 @@ export function VoiceFirstContentV2() {
 
           // Store optimized spending in config for regeneration
           variantConfig = {
+            variant_type: 'exhaust-portfolio',
             optimizedSpending: optimizationResult.optimizedSpending,
             iterations: optimizationResult.iterations,
             message: optimizationResult.message
@@ -889,6 +893,7 @@ export function VoiceFirstContentV2() {
 
           // Store percentage and optimized spending in config for regeneration
           variantConfig = {
+            variant_type: 'legacy',
             percentage,
             optimizedSpending: optimizationResult.optimizedSpending,
             iterations: optimizationResult.iterations,
@@ -905,6 +910,7 @@ export function VoiceFirstContentV2() {
 
           // Store config for regeneration
           variantConfig = {
+            variant_type: 'lump-sum',
             amount,
             withdrawalAge,
             sourceAccount
@@ -1400,6 +1406,7 @@ export function VoiceFirstContentV2() {
                 variantScenarioIds={variantScenarioIds}
                 variantShareTokens={variantShareTokens}
                 variantIsShared={variantIsShared}
+                variantConfigs={variantConfigs}
                 isDarkMode={isDarkMode}
                 activeTab={activeVariantTab}
                 onTabChange={setActiveVariantTab}

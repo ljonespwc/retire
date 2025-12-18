@@ -17,8 +17,9 @@ import { BalanceOverTimeChart } from './BalanceOverTimeChart'
 import { IncomeCompositionChart } from './IncomeCompositionChart'
 import { TaxSummaryCard } from './TaxSummaryCard'
 import { RetirementNarrative } from './RetirementNarrative'
+import { VariantDetailsBanner } from './VariantDetailsBanner'
 import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
-import { getVariantMetadata } from '@/lib/scenarios/variant-metadata'
+import { getVariantMetadata, type VariantMetadata, type VariantType } from '@/lib/scenarios/variant-metadata'
 
 interface ScenarioComparisonProps {
   baselineScenario: Scenario
@@ -35,6 +36,7 @@ interface ScenarioComparisonProps {
   variantScenarioIds?: (string | undefined)[]
   variantShareTokens?: (string | null)[]
   variantIsShared?: boolean[]
+  variantConfigs?: Array<Record<string, any> | undefined> // Variant configs with variant_type
   isDarkMode?: boolean
   activeTab?: number // Control active tab from parent
   onTabChange?: (index: number) => void // Notify parent of tab changes
@@ -59,6 +61,7 @@ export function ScenarioComparison({
   variantScenarioIds = [],
   variantShareTokens = [],
   variantIsShared = [],
+  variantConfigs = [],
   isDarkMode = false,
   activeTab: controlledActiveTab,
   onTabChange,
@@ -230,6 +233,7 @@ export function ScenarioComparison({
             scenarioId={variantScenarioIds[activeTab]}
             scenarioName={variantScenarios[activeTab].name}
             baselineScenarioName={baselineScenarioName}
+            variantConfig={variantConfigs[activeTab]}
           />
         )}
       </div>
@@ -365,7 +369,8 @@ function VariantTab({
   variantNarrative,
   scenarioId,
   scenarioName,
-  baselineScenarioName
+  baselineScenarioName,
+  variantConfig
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -394,18 +399,46 @@ function VariantTab({
   highlightYellow: string
   variantInsight?: string
   variantNarrative?: string
+  variantConfig?: Record<string, any>
 }) {
   // Theme colors for share button
   const buttonSecondary = isDarkMode
     ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
 
-  // Extract baseline name - prioritize passed prop over embedded metadata
-  const variantMetadata = getVariantMetadata(variantScenario)
+  // Construct variant metadata from variantConfig (for temporary variants)
+  // or extract from loaded scenario data
+  const variantMetadata: VariantMetadata | null = variantConfig?.variant_type
+    ? {
+        variant_type: variantConfig.variant_type as VariantType,
+        variant_config: variantConfig,
+        ai_insight: variantInsight,
+        baseline_snapshot: {
+          name: baselineScenarioName || baselineScenario.name || 'Your Baseline',
+          monthly_spending: baselineMonthly,
+          portfolio_depleted_age: baselineDepletion,
+          ending_balance: baselineEndBalance,
+          retirement_age: baselineScenario.basic_inputs.retirement_age,
+          cpp_start_age: baselineScenario.income_sources.cpp?.start_age || 65,
+          oas_start_age: baselineScenario.income_sources.oas?.start_age || 65,
+        }
+      }
+    : null
+
   const baselineName = baselineScenarioName || variantMetadata?.baseline_snapshot?.name || baselineScenario.name || 'Your Baseline'
 
   return (
     <div className="space-y-6">
+      {/* Variant Details Banner - What's Different */}
+      {variantMetadata && (
+        <VariantDetailsBanner
+          variantMetadata={variantMetadata}
+          scenario={variantScenario}
+          isDarkMode={isDarkMode}
+          isCollapsible={false}
+        />
+      )}
+
       {/* Comparison Table */}
       <div className="overflow-x-auto">
         <h3 className={`text-lg font-semibold ${textPrimary} mb-4`}>
@@ -501,8 +534,8 @@ function VariantTab({
         </table>
       </div>
 
-      {/* Key Insight - LLM Generated */}
-      {variantInsight && (
+      {/* Key Insight - Only show if banner doesn't have it (temporary variants) */}
+      {variantInsight && !variantMetadata?.ai_insight && (
         <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
