@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Province } from '@/types/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Calculator, Share2 } from 'lucide-react'
+import { Heart, Calculator, Share2, BarChart3, X } from 'lucide-react'
 import { MobileHelpBanner } from '@/components/help/MobileHelpBanner'
 import { roundPercentage } from '@/lib/utils/number-utils'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
@@ -32,6 +32,7 @@ import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfoli
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
+import { getVariantsForBaseline } from '@/lib/supabase/queries'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
 import { WarmDataField } from '@/components/calculator/WarmDataField'
@@ -111,6 +112,15 @@ export function VoiceFirstContentV2() {
   const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
   const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
 
+  // Compare Mode state - when baseline + variants are loaded together
+  const [isCompareMode, setIsCompareMode] = useState(false)
+  const [loadedVariantIds, setLoadedVariantIds] = useState<string[]>([])
+  const [clickedVariantIndex, setClickedVariantIndex] = useState<number | null>(null)
+
+  // Track saved variants by type -> scenario ID (persists even when tab is closed)
+  // This allows reopening saved variants instead of regenerating them
+  const [savedVariants, setSavedVariants] = useState<Record<string, { id: string; index: number }>>({})
+
   const resultsRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to results when they appear
@@ -143,6 +153,19 @@ export function VoiceFirstContentV2() {
     input: isDarkMode
       ? 'bg-gray-700 border-gray-600 text-white'
       : 'bg-white border-gray-200',
+  }
+
+  // Convert VariantType (e.g., 'front-load') to UI key (e.g., 'front_load')
+  const variantTypeToUiKey = (variantType: string): string => {
+    const mapping: Record<string, string> = {
+      'front-load': 'front_load',
+      'delay-cpp-oas': 'delay_benefits',
+      'exhaust-portfolio': 'exhaust',
+      'retire-early': 'retire_early',
+      'legacy': 'legacy',
+      'lump-sum': 'lump_sum'
+    }
+    return mapping[variantType] || variantType
   }
 
   // Confetti celebration effect
@@ -227,6 +250,37 @@ export function VoiceFirstContentV2() {
     setVariantConfigs([])
     setVariantInsights([])
     setVariantNarratives([])
+
+    // Exit Compare Mode
+    setIsCompareMode(false)
+    setLoadedVariantIds([])
+    setClickedVariantIndex(null)
+    setSavedVariants({})
+  }
+
+  // Exit Compare Mode and enable editing
+  const handleExitCompareMode = () => {
+    console.log('👋 Exiting Compare Mode')
+    setIsCompareMode(false)
+    setEditMode(true)
+
+    // Clear all variant data
+    setVariantScenarios([])
+    setVariantResultsArray([])
+    setVariantScenarioIds([])
+    setVariantConfigs([])
+    setVariantInsights([])
+    setVariantNarratives([])
+    setVariantShareTokens([])
+    setVariantIsShared([])
+    setLoadedVariantIds([])
+    setClickedVariantIndex(null)
+    setActiveVariantTab(-1)  // Reset to baseline tab
+    setSavedVariants({})
+
+    // Clear variant-related metadata (keep baseline data)
+    setLoadedVariantMetadata(null)
+    setLoadedVariantScenario(null)
   }
 
   // Handle Calculate button click
@@ -419,7 +473,7 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle loading a saved scenario
-  const handleLoadScenario = (
+  const handleLoadScenario = async (
     formData: FormData,
     scenarioName: string,
     variantMetadata?: VariantMetadata,
@@ -430,6 +484,7 @@ export function VoiceFirstContentV2() {
     narrative?: string | null,
     variantScenario?: any | null
   ) => {
+    // Set form state
     setCurrentAge(formData.currentAge)
     setRetirementAge(formData.retirementAge)
     setLongevityAge(formData.longevityAge)
@@ -447,7 +502,6 @@ export function VoiceFirstContentV2() {
     setPensionHasBridge(formData.pensionHasBridge)
     setOtherIncome(formData.otherIncome)
     setCppStartAge(formData.cppStartAge)
-    // Percentages already rounded by scenarioToFormData
     setInvestmentReturn(formData.investmentReturn)
     setPostRetirementReturn(formData.postRetirementReturn)
     setInflationRate(formData.inflationRate)
@@ -456,13 +510,20 @@ export function VoiceFirstContentV2() {
     setPlanningStarted(true)
     setEditMode(false)
 
-    // Clear any variant scenarios (when loading a baseline)
+    // Reset Compare Mode state initially
+    setIsCompareMode(false)
+    setLoadedVariantIds([])
+    setClickedVariantIndex(null)
+
+    // Clear variant scenarios initially (will populate if variants found)
     setVariantScenarios([])
     setVariantResultsArray([])
     setVariantScenarioIds([])
     setVariantConfigs([])
     setVariantInsights([])
     setVariantNarratives([])
+    setVariantShareTokens([])
+    setVariantIsShared([])
 
     // Store scenario ID if present
     if (scenarioId) {
@@ -470,38 +531,38 @@ export function VoiceFirstContentV2() {
       console.log(`✅ Loaded scenario ID: ${scenarioId}`)
     }
 
-    // Store sharing state if present
+    // Store sharing state
     if (shareToken || isShared !== undefined) {
       setShareToken(shareToken || null)
       setIsScenarioShared(isShared || false)
-      console.log(`✅ Loaded sharing state: shared=${isShared}, token=${shareToken ? 'present' : 'none'}`)
     } else {
       setShareToken(null)
       setIsScenarioShared(false)
     }
 
-    // Store variant metadata if present
+    // Determine baseline name for fetching variants
+    // If loading a variant, use the baseline_snapshot.name; if loading baseline, use scenarioName
+    const baselineName = variantMetadata?.baseline_snapshot?.name || scenarioName
+    const isLoadingVariant = !!variantMetadata
+
+    // Store variant metadata if present (for legacy single-variant display)
     if (variantMetadata) {
       setLoadedVariantMetadata(variantMetadata)
       console.log(`✅ Loaded variant scenario: ${scenarioName} (type: ${variantMetadata.variant_type})`)
 
-      // Store original variant scenario (with variant values) for comparison display
       if (variantScenario) {
         setLoadedVariantScenario(variantScenario)
-        console.log('📦 Stored original variant scenario for comparison')
       }
 
-      // Extract baseline snapshot from variant metadata and set to state
       if (variantMetadata.baseline_snapshot) {
         setBaselineSnapshot(variantMetadata.baseline_snapshot)
-        console.log('📸 Restored baseline snapshot from variant metadata:', variantMetadata.baseline_snapshot)
       }
     } else {
       setLoadedVariantMetadata(null)
       setLoadedVariantScenario(null)
-      console.log(`✅ Loaded scenario: ${scenarioName}`)
+      console.log(`✅ Loaded baseline scenario: ${scenarioName}`)
 
-      // When loading baseline, create snapshot from loaded data
+      // Create baseline snapshot from loaded data
       if (results) {
         const snapshot: BaselineSnapshot = {
           name: scenarioName,
@@ -513,29 +574,120 @@ export function VoiceFirstContentV2() {
           portfolio_depleted_age: results.portfolio_depleted_age
         }
         setBaselineSnapshot(snapshot)
-        console.log('📸 Created baseline snapshot from loaded scenario:', snapshot)
       }
     }
 
-    // Load stored results and narrative directly from database (no recalculation needed)
+    // Load stored results and narrative
     if (results) {
       setCalculationResults(results)
       setShowResults(true)
       setJustCalculated(true)
-      console.log(`✅ Loaded stored calculation results`)
     } else {
-      // If no results stored, reset to allow calculation
       setCalculationResults(null)
       setShowResults(false)
       setJustCalculated(false)
     }
 
-    // Load stored narrative if present
     if (narrative) {
       setBaselineNarrative(narrative)
-      console.log(`✅ Loaded stored narrative`)
     } else {
       setBaselineNarrative(null)
+    }
+
+    // Fetch all variants for this baseline (Compare Mode)
+    try {
+      const client = createClient()
+      const { data: variants, error } = await getVariantsForBaseline(client, baselineName)
+
+      if (error) {
+        console.error('Error fetching variants:', error)
+        return
+      }
+
+      if (variants && variants.length > 0) {
+        console.log(`📊 Found ${variants.length} variants for baseline "${baselineName}"`)
+
+        // Build variant arrays from loaded scenarios
+        const loadedScenarios: Scenario[] = []
+        const loadedResults: CalculationResults[] = []
+        const loadedIds: string[] = []
+        const loadedConfigs: Array<Record<string, any> | undefined> = []
+        const loadedInsights: string[] = []
+        const loadedNarratives: string[] = []
+        const loadedShareTokens: (string | null)[] = []
+        const loadedIsShared: boolean[] = []
+        const loadedSavedVariants: Record<string, { id: string; index: number }> = {}
+
+        let clickedIndex: number | null = null
+
+        for (let i = 0; i < variants.length; i++) {
+          const v = variants[i]
+          const vInputs = v.inputs as any
+          const vMetadata = vInputs?.__metadata as VariantMetadata | undefined
+
+          // Build scenario object from stored inputs
+          const vScenario: Scenario = {
+            name: v.name,
+            basic_inputs: vInputs.basic_inputs,
+            assets: vInputs.assets,
+            income_sources: vInputs.income_sources,
+            expenses: vInputs.expenses,
+            assumptions: vInputs.assumptions
+          }
+
+          loadedScenarios.push(vScenario)
+          loadedResults.push(v.results as unknown as CalculationResults)
+          loadedIds.push(v.id)
+          loadedConfigs.push(vMetadata?.variant_config)
+          loadedInsights.push(vMetadata?.ai_insight || '')
+          loadedNarratives.push(vMetadata?.ai_narrative || '')
+          loadedShareTokens.push(v.share_token || null)
+          loadedIsShared.push(v.is_shared || false)
+
+          // Track saved variant type -> scenario ID mapping
+          if (vMetadata?.variant_type) {
+            const uiKey = variantTypeToUiKey(vMetadata.variant_type)
+            loadedSavedVariants[uiKey] = { id: v.id, index: i }
+          }
+
+          // Track if this is the variant the user clicked
+          if (isLoadingVariant && v.id === scenarioId) {
+            clickedIndex = i
+          }
+        }
+
+        // Set all variant state
+        setVariantScenarios(loadedScenarios)
+        setVariantResultsArray(loadedResults)
+        setVariantScenarioIds(loadedIds)
+        setVariantConfigs(loadedConfigs)
+        setVariantInsights(loadedInsights)
+        setVariantNarratives(loadedNarratives)
+        setVariantShareTokens(loadedShareTokens)
+        setVariantIsShared(loadedIsShared)
+        setLoadedVariantIds(loadedIds)
+        setSavedVariants(loadedSavedVariants)
+
+        // Enter Compare Mode
+        setIsCompareMode(true)
+
+        // If user clicked a variant, set the tab to that variant
+        // If user clicked a baseline, show the baseline tab
+        if (clickedIndex !== null) {
+          setClickedVariantIndex(clickedIndex)
+          setActiveVariantTab(clickedIndex)
+          console.log(`🎯 Auto-selecting variant tab: ${clickedIndex}`)
+        } else {
+          setActiveVariantTab(-1)  // Show baseline tab when baseline is clicked
+          console.log(`🎯 Auto-selecting baseline tab`)
+        }
+
+        console.log(`📊 Entered Compare Mode with ${loadedScenarios.length} variants`)
+      } else {
+        console.log(`📊 No variants found for baseline "${baselineName}" - entering normal edit mode`)
+      }
+    } catch (err) {
+      console.error('Error in Compare Mode setup:', err)
     }
   }
 
@@ -705,8 +857,87 @@ export function VoiceFirstContentV2() {
     }
   }
 
+  // Helper to check if a tab is currently open for a variant type
+  const isVariantTabOpen = (type: string): boolean => {
+    const namePatterns: Record<string, (name: string) => boolean> = {
+      'front_load': (name) => name.includes('Front-Load'),
+      'delay_benefits': (name) => name.includes('Delay CPP/OAS'),
+      'exhaust': (name) => name.includes('Exhaust'),
+      'retire_early': (name) => name.includes('Retire') && name.includes('Earlier'),
+      'legacy': (name) => name.includes('Leave') && name.includes('Legacy'),
+      'lump_sum': (name) => name.includes('Lump Sum')
+    }
+    return variantScenarios.some(v => namePatterns[type]?.(v.name))
+  }
+
+  // Reopen a saved variant by restoring it to the variant arrays
+  const reopenSavedVariant = async (type: string) => {
+    const saved = savedVariants[type]
+    if (!saved) return
+
+    console.log(`🔄 Reopening saved variant: ${type} (ID: ${saved.id})`)
+
+    // Fetch the variant from the database
+    const supabase = createClient()
+    const { data: variant, error } = await supabase
+      .from('scenarios')
+      .select('*')
+      .eq('id', saved.id)
+      .single()
+
+    if (error || !variant) {
+      console.error('Failed to fetch saved variant:', error)
+      return
+    }
+
+    const vInputs = variant.inputs as any
+    const vMetadata = vInputs?.__metadata as VariantMetadata | undefined
+
+    // Build scenario object
+    const vScenario: Scenario = {
+      name: variant.name,
+      basic_inputs: vInputs.basic_inputs,
+      assets: vInputs.assets,
+      income_sources: vInputs.income_sources,
+      expenses: vInputs.expenses,
+      assumptions: vInputs.assumptions
+    }
+
+    // Add to variant arrays
+    setVariantScenarios(prev => [...prev, vScenario])
+    setVariantResultsArray(prev => [...prev, variant.results as unknown as CalculationResults])
+    setVariantScenarioIds(prev => [...prev, variant.id])
+    setVariantConfigs(prev => [...prev, vMetadata?.variant_config])
+    setVariantInsights(prev => [...prev, vMetadata?.ai_insight || ''])
+    setVariantNarratives(prev => [...prev, vMetadata?.ai_narrative || ''])
+    setVariantShareTokens(prev => [...prev, variant.share_token || null])
+    setVariantIsShared(prev => [...prev, variant.is_shared || false])
+
+    // Update savedVariants with new index
+    const newIndex = variantScenarios.length  // This is the index after adding
+    setSavedVariants(prev => ({
+      ...prev,
+      [type]: { ...prev[type], index: newIndex }
+    }))
+
+    // Switch to the reopened tab
+    setActiveVariantTab(newIndex)
+    console.log(`✅ Variant reopened at tab index: ${newIndex}`)
+  }
+
   // Handle scenario button click
   const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum') => {
+    // Check if this variant is saved but tab is closed
+    const isSaved = !!savedVariants[scenarioType]
+    const tabOpen = isVariantTabOpen(scenarioType)
+
+    if (isSaved && !tabOpen) {
+      // Reopen the saved variant instead of generating new
+      reopenSavedVariant(scenarioType)
+      return
+    }
+
+    // Otherwise, show modal to generate new variant
     setSelectedScenarioType(scenarioType)
     setShowScenarioModal(true)
   }
@@ -1155,7 +1386,7 @@ export function VoiceFirstContentV2() {
                       Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
                     </CardTitle>
                   </div>
-                  {calculationResults && !loadedVariantMetadata && (
+                  {calculationResults && !loadedVariantMetadata && !isCompareMode && (
                     <Button
                       onClick={() => {
                         if (!editMode) {
@@ -1178,6 +1409,42 @@ export function VoiceFirstContentV2() {
                   )}
                 </div>
               </CardHeader>
+
+              {/* Compare Mode Banner */}
+              {isCompareMode && (
+                <div className={`mx-4 sm:mx-6 mt-4 p-4 rounded-xl border-2 ${
+                  isDarkMode
+                    ? 'bg-blue-900/30 border-blue-500/50 text-blue-200'
+                    : 'bg-orange-50 border-orange-300 text-orange-800'
+                }`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <BarChart3 className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`} />
+                      <div>
+                        <div className="font-semibold">
+                          Compare Mode: {loadedScenarioName} + {variantScenarios.length} variant{variantScenarios.length !== 1 ? 's' : ''}
+                        </div>
+                        <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-orange-600'}`}>
+                          Form is locked while comparing scenarios
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleExitCompareMode}
+                      variant="outline"
+                      size="sm"
+                      className={isDarkMode
+                        ? 'border-blue-500 text-blue-300 hover:bg-blue-800/50'
+                        : 'border-orange-400 text-orange-700 hover:bg-orange-100'
+                      }
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Exit & Edit
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <CardContent className={`pt-6 sm:pt-8 px-4 sm:px-6 ${planningStarted ? 'pb-[25vh] lg:pb-6' : ''}`}>
                 <FormSections
                   currentAge={currentAge}
@@ -1226,6 +1493,7 @@ export function VoiceFirstContentV2() {
                   setInflationRate={setInflationRate}
                   setEditMode={setEditMode}
                   onFieldFocus={setFocusedField}
+                  isCompareMode={isCompareMode}
                 />
 
                 {/* Calculate Button */}
@@ -1239,6 +1507,7 @@ export function VoiceFirstContentV2() {
                     theme={theme}
                     onClick={handleCalculate}
                     loadedVariantMetadata={loadedVariantMetadata}
+                    isCompareMode={isCompareMode}
                   />
                 </div>
               </CardContent>
@@ -1258,6 +1527,7 @@ export function VoiceFirstContentV2() {
                 theme={theme}
                 loadedVariantMetadata={loadedVariantMetadata}
                 variantScenarios={variantScenarios}
+                savedVariants={savedVariants}
                 generatingVariantType={generatingVariantType}
                 onScenarioClick={handleScenarioClick}
               />

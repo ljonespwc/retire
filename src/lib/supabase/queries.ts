@@ -287,3 +287,35 @@ export async function getSharedScenario(
 
   return { data, error };
 }
+
+/**
+ * Get all variant scenarios linked to a baseline by name
+ * Variants store their parent baseline name in inputs.__metadata.baseline_snapshot.name
+ * @param client - Supabase client instance
+ * @param baselineName - Name of the baseline scenario
+ * @returns Array of variant scenarios or error
+ */
+export async function getVariantsForBaseline(
+  client: TypedSupabaseClient,
+  baselineName: string
+) {
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('User not authenticated') };
+  }
+
+  // Query for scenarios where inputs.__metadata.baseline_snapshot.name matches
+  // and inputs.__metadata.variant_type exists (is a variant)
+  const { data, error } = await client
+    .from('scenarios')
+    .select('*')
+    .eq('user_id', user.id)
+    .not('inputs->__metadata->variant_type', 'is', null)
+    .eq('inputs->__metadata->baseline_snapshot->>name', baselineName)
+    .order('name');
+
+  return { data, error };
+}

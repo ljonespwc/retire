@@ -3,19 +3,40 @@
  *
  * Displays clickable buttons for creating scenario variants.
  * Shows loading states, active states, and disabled states based on variant status.
+ *
+ * Button states:
+ * - Tab open: disabled + "Active" badge
+ * - Saved but tab closed: enabled + "Active" badge (clicking reopens)
+ * - Not saved: enabled (clicking generates new)
  */
 
 import { Heart } from 'lucide-react'
 import { Scenario } from '@/types/calculator'
 import { type VariantMetadata } from '@/lib/scenarios/variant-metadata'
 
+type VariantTypeKey = 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum'
+
 interface WhatIfScenarioButtonsProps {
   isDarkMode: boolean
   theme: any
   loadedVariantMetadata: VariantMetadata | null
   variantScenarios: Scenario[]
-  generatingVariantType: 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | null
-  onScenarioClick: (type: 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum') => void
+  savedVariants: Record<string, { id: string; index: number }>  // Type -> scenario ID mapping
+  generatingVariantType: VariantTypeKey | null
+  onScenarioClick: (type: VariantTypeKey) => void
+}
+
+// Helper to check if a tab is currently open for a variant type
+function isTabOpen(variantScenarios: Scenario[], type: VariantTypeKey): boolean {
+  const namePatterns: Record<VariantTypeKey, (name: string) => boolean> = {
+    'front_load': (name) => name.includes('Front-Load'),
+    'delay_benefits': (name) => name.includes('Delay CPP/OAS'),
+    'exhaust': (name) => name.includes('Exhaust'),
+    'retire_early': (name) => name.includes('Retire') && name.includes('Earlier'),
+    'legacy': (name) => name.includes('Leave') && name.includes('Legacy'),
+    'lump_sum': (name) => name.includes('Lump Sum')
+  }
+  return variantScenarios.some(v => namePatterns[type](v.name))
 }
 
 export function WhatIfScenarioButtons({
@@ -23,215 +44,136 @@ export function WhatIfScenarioButtons({
   theme,
   loadedVariantMetadata,
   variantScenarios,
+  savedVariants,
   generatingVariantType,
   onScenarioClick
 }: WhatIfScenarioButtonsProps) {
+
+  // Helper to get button state for a variant type
+  const getButtonState = (type: VariantTypeKey) => {
+    const tabOpen = isTabOpen(variantScenarios, type)
+    const isSaved = !!savedVariants[type]
+    const isActive = tabOpen || isSaved
+    // Disabled only if: variant metadata loaded OR tab is already open
+    // NOT disabled if: saved but tab closed (allows reopen)
+    const isDisabled = !!loadedVariantMetadata || tabOpen
+    const isGenerating = generatingVariantType === type
+
+    return { tabOpen, isSaved, isActive, isDisabled, isGenerating }
+  }
+
+  // Helper to get button className
+  const getButtonClassName = (type: VariantTypeKey) => {
+    const { isDisabled, isGenerating } = getButtonState(type)
+
+    if (isDisabled) {
+      return isDarkMode
+        ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed'
+        : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
+    }
+    if (isGenerating) {
+      return isDarkMode
+        ? 'border-blue-500 bg-blue-900/30 animate-pulse'
+        : 'border-orange-400 bg-orange-100/50 animate-pulse'
+    }
+    return isDarkMode
+      ? 'border-gray-700 hover:bg-gray-700'
+      : 'border-gray-200 hover:bg-gray-50'
+  }
+
+  // Variant button configuration
+  const variants: Array<{
+    type: VariantTypeKey
+    emoji: string
+    title: string
+    description: string
+    generatingText: string
+  }> = [
+    {
+      type: 'front_load',
+      emoji: '🎯',
+      title: 'Front-Load the Fun',
+      description: 'Spend more early, scale back later',
+      generatingText: 'Generating scenario...'
+    },
+    {
+      type: 'delay_benefits',
+      emoji: '⏰',
+      title: 'Delay CPP/OAS to 70',
+      description: 'Maximize government benefits',
+      generatingText: 'Generating scenario...'
+    },
+    {
+      type: 'exhaust',
+      emoji: '💰',
+      title: 'Exhaust Your Portfolio',
+      description: 'Maximize your lifestyle',
+      generatingText: 'Optimizing maximum spending...'
+    },
+    {
+      type: 'retire_early',
+      emoji: '🚀',
+      title: 'Retire Earlier',
+      description: 'Test retiring 1-5 years sooner',
+      generatingText: 'Generating scenario...'
+    },
+    {
+      type: 'legacy',
+      emoji: '🏛️',
+      title: 'Leave a Legacy',
+      description: 'Preserve 10-50% for heirs',
+      generatingText: 'Generating scenario...'
+    },
+    {
+      type: 'lump_sum',
+      emoji: '💵',
+      title: 'Lump Sum Withdrawal',
+      description: 'Weddings, renovations, travel, gifts',
+      generatingText: 'Generating scenario...'
+    }
+  ]
+
   return (
     <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-7xl mx-auto`}>
       <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4 text-center`}>
         Try What-If Scenarios
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <button
-          onClick={() => onScenarioClick('front_load')}
-          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')}
-          className={`text-left p-4 rounded-lg border transition-colors ${
-            loadedVariantMetadata || variantScenarios.some(v => v.name === 'Front-Load the Fun')
-              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-              : generatingVariantType === 'front_load'
-              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {generatingVariantType === 'front_load' ? (
-              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-            ) : (
-              <span className="text-2xl">🎯</span>
-            )}
-            <div className="flex-1">
-              <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                Front-Load the Fun
-              </div>
-              <p className={`text-sm ${theme.text.secondary}`}>
-                {generatingVariantType === 'front_load'
-                  ? 'Generating scenario...'
-                  : 'Spend more early, scale back later'}
-              </p>
-            </div>
-            {variantScenarios.some(v => v.name === 'Front-Load the Fun') && !generatingVariantType && (
-              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-            )}
-          </div>
-        </button>
+        {variants.map((variant) => {
+          const state = getButtonState(variant.type)
 
-        <button
-          onClick={() => onScenarioClick('delay_benefits')}
-          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')}
-          className={`text-left p-4 rounded-lg border transition-colors ${
-            loadedVariantMetadata || variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70')
-              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-              : generatingVariantType === 'delay_benefits'
-              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {generatingVariantType === 'delay_benefits' ? (
-              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-            ) : (
-              <span className="text-2xl">⏰</span>
-            )}
-            <div className="flex-1">
-              <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                Delay CPP/OAS to 70
+          return (
+            <button
+              key={variant.type}
+              onClick={() => onScenarioClick(variant.type)}
+              disabled={state.isDisabled}
+              className={`text-left p-4 rounded-lg border transition-colors ${getButtonClassName(variant.type)}`}
+            >
+              <div className="flex items-start gap-3">
+                {state.isGenerating ? (
+                  <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
+                ) : (
+                  <span className="text-2xl">{variant.emoji}</span>
+                )}
+                <div className="flex-1">
+                  <div className={`font-semibold ${theme.text.primary} mb-1`}>
+                    {variant.title}
+                  </div>
+                  <p className={`text-sm ${theme.text.secondary}`}>
+                    {state.isGenerating
+                      ? variant.generatingText
+                      : variant.description}
+                  </p>
+                </div>
+                {state.isActive && !state.isGenerating && (
+                  <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>
+                    Active
+                  </span>
+                )}
               </div>
-              <p className={`text-sm ${theme.text.secondary}`}>
-                {generatingVariantType === 'delay_benefits'
-                  ? 'Generating scenario...'
-                  : 'Maximize government benefits'}
-              </p>
-            </div>
-            {variantScenarios.some(v => v.name === 'Delay CPP/OAS to 70') && !generatingVariantType && (
-              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-            )}
-          </div>
-        </button>
-
-        <button
-          onClick={() => onScenarioClick('exhaust')}
-          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')}
-          className={`text-left p-4 rounded-lg border transition-colors ${
-            loadedVariantMetadata || variantScenarios.some(v => v.name === 'Exhaust Your Portfolio')
-              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-              : generatingVariantType === 'exhaust'
-              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {generatingVariantType === 'exhaust' ? (
-              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-            ) : (
-              <span className="text-2xl">💰</span>
-            )}
-            <div className="flex-1">
-              <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                Exhaust Your Portfolio
-              </div>
-              <p className={`text-sm ${theme.text.secondary}`}>
-                {generatingVariantType === 'exhaust'
-                  ? 'Optimizing maximum spending...'
-                  : 'Maximize your lifestyle'}
-              </p>
-            </div>
-            {variantScenarios.some(v => v.name === 'Exhaust Your Portfolio') && !generatingVariantType && (
-              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-            )}
-          </div>
-        </button>
-
-        {/* Retire Earlier - NOW ENABLED */}
-        <button
-          onClick={() => onScenarioClick('retire_early')}
-          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Retire') && v.name.includes('Earlier'))}
-          className={`text-left p-4 rounded-lg border transition-colors ${
-            loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Retire') && v.name.includes('Earlier'))
-              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-              : generatingVariantType === 'retire_early'
-              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {generatingVariantType === 'retire_early' ? (
-              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-            ) : (
-              <span className="text-2xl">🚀</span>
-            )}
-            <div className="flex-1">
-              <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                Retire Earlier
-              </div>
-              <p className={`text-sm ${theme.text.secondary}`}>
-                {generatingVariantType === 'retire_early'
-                  ? 'Generating scenario...'
-                  : 'Test retiring 1-5 years sooner'}
-              </p>
-            </div>
-            {variantScenarios.some(v => v.name.includes('Retire') && v.name.includes('Earlier')) && !generatingVariantType && (
-              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-            )}
-          </div>
-        </button>
-
-        {/* Leave a Legacy - NOW ENABLED */}
-        <button
-          onClick={() => onScenarioClick('legacy')}
-          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Leave') && v.name.includes('Legacy'))}
-          className={`text-left p-4 rounded-lg border transition-colors ${
-            loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Leave') && v.name.includes('Legacy'))
-              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-              : generatingVariantType === 'legacy'
-              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {generatingVariantType === 'legacy' ? (
-              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-            ) : (
-              <span className="text-2xl">🏛️</span>
-            )}
-            <div className="flex-1">
-              <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                Leave a Legacy
-              </div>
-              <p className={`text-sm ${theme.text.secondary}`}>
-                {generatingVariantType === 'legacy'
-                  ? 'Generating scenario...'
-                  : 'Preserve 10-50% for heirs'}
-              </p>
-            </div>
-            {variantScenarios.some(v => v.name.includes('Leave') && v.name.includes('Legacy')) && !generatingVariantType && (
-              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-            )}
-          </div>
-        </button>
-
-        {/* Lump Sum Withdrawal */}
-        <button
-          onClick={() => onScenarioClick('lump_sum')}
-          disabled={!!loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Lump Sum'))}
-          className={`text-left p-4 rounded-lg border transition-colors ${
-            loadedVariantMetadata || variantScenarios.some(v => v.name.includes('Lump Sum'))
-              ? isDarkMode ? 'border-gray-600 bg-gray-700/50 opacity-60 cursor-not-allowed' : 'border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed'
-              : generatingVariantType === 'lump_sum'
-              ? isDarkMode ? 'border-blue-500 bg-blue-900/30 animate-pulse' : 'border-orange-400 bg-orange-100/50 animate-pulse'
-              : isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {generatingVariantType === 'lump_sum' ? (
-              <Heart className="w-6 h-6 text-rose-500 animate-pulse mt-0.5" fill="currentColor" />
-            ) : (
-              <span className="text-2xl">💵</span>
-            )}
-            <div className="flex-1">
-              <div className={`font-semibold ${theme.text.primary} mb-1`}>
-                Lump Sum Withdrawal
-              </div>
-              <p className={`text-sm ${theme.text.secondary}`}>
-                {generatingVariantType === 'lump_sum'
-                  ? 'Generating scenario...'
-                  : 'Weddings, renovations, travel, gifts'}
-              </p>
-            </div>
-            {variantScenarios.some(v => v.name.includes('Lump Sum')) && !generatingVariantType && (
-              <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>Active</span>
-            )}
-          </div>
-        </button>
+            </button>
+          )
+        })}
       </div>
 
       {/* Disabled message for saved variants */}

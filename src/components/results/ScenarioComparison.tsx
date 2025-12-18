@@ -223,6 +223,7 @@ export function ScenarioComparison({
             variantNarrative={variantNarratives[activeTab]}
             scenarioId={variantScenarioIds[activeTab]}
             scenarioName={variantScenarios[activeTab].name}
+            baselineScenarioName={baselineScenarioName}
           />
         )}
       </div>
@@ -358,7 +359,8 @@ function VariantTab({
   variantInsight,
   variantNarrative,
   scenarioId,
-  scenarioName
+  scenarioName,
+  baselineScenarioName
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -370,6 +372,7 @@ function VariantTab({
   isSavingNarrative?: boolean
   scenarioId?: string
   scenarioName?: string
+  baselineScenarioName?: string
   baselineMonthly: number
   baselineDepletion: number | undefined
   baselineEndBalance: number
@@ -392,10 +395,9 @@ function VariantTab({
     ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
 
-  // Extract baseline name from variant metadata (for standalone saved variants)
-  // or use current baseline scenario name (for active comparisons)
+  // Extract baseline name - prioritize passed prop over embedded metadata
   const variantMetadata = getVariantMetadata(variantScenario)
-  const baselineName = variantMetadata?.baseline_snapshot?.name || baselineScenario.name || 'Your Baseline'
+  const baselineName = baselineScenarioName || variantMetadata?.baseline_snapshot?.name || baselineScenario.name || 'Your Baseline'
 
   return (
     <div className="space-y-6">
@@ -527,8 +529,9 @@ function VariantTab({
         expenses={variantScenario.expenses}
         isDarkMode={isDarkMode}
         actionButtons={
-          onSave && (
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            {/* Save Button - only shown for unsaved variants */}
+            {onSave && !scenarioId && (
               <button
                 onClick={onSave}
                 disabled={isSavingNarrative}
@@ -545,25 +548,23 @@ function VariantTab({
                     <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
                     Generating AI Analysis...
                   </>
-                ) : scenarioId && scenarioName ? (
-                  `UPDATE THIS SCENARIO: ${scenarioName}`
                 ) : (
                   `SAVE THIS SCENARIO: ${variantScenario.name}`
                 )}
               </button>
+            )}
 
-              {/* Share Button (only visible if scenario is saved) */}
-              {scenarioId && scenarioName && onShare && (
-                <button
-                  onClick={onShare}
-                  className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
-                >
-                  <Share2 className="w-4 h-4 inline mr-2" />
-                  SHARE
-                </button>
-              )}
-            </div>
-          )
+            {/* Share Button - only shown for saved variants */}
+            {scenarioId && onShare && (
+              <button
+                onClick={onShare}
+                className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+              >
+                <Share2 className="w-4 h-4 inline mr-2" />
+                SHARE
+              </button>
+            )}
+          </div>
         }
       />
 
