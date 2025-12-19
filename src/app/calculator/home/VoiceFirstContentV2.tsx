@@ -43,6 +43,7 @@ import { WhatIfScenarioButtons } from '@/components/calculator/WhatIfScenarioBut
 import { CalculateButton } from '@/components/calculator/CalculateButton'
 import { BaselineResults } from '@/components/results/BaselineResults'
 import { FormSections } from '@/components/calculator/FormSections'
+import posthog from 'posthog-js'
 
 export function VoiceFirstContentV2() {
   const { user, isAnonymous, loading: authLoading, logout } = useAuth()
@@ -132,6 +133,11 @@ export function VoiceFirstContentV2() {
       }, 300)
     }
   }, [calculationResults])
+
+  // PostHog: Track calculator page view
+  useEffect(() => {
+    posthog.capture('calculator_page_viewed')
+  }, [])
 
   // Theme configuration
   const theme = {
