@@ -97,6 +97,7 @@ export function ShareScenarioModal({
       onSharingChange?.(data.share_token, true)
 
       // PostHog: Track share link created
+      console.log('[PostHog] Firing share_link_created event', { is_variant: isVariant })
       posthog.capture('share_link_created', {
         is_variant: isVariant
       })
