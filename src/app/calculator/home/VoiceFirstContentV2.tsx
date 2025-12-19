@@ -199,6 +199,11 @@ export function VoiceFirstContentV2() {
     setPlanningStarted(true)
     setEditMode(true)
 
+    // PostHog: Track when user starts/restarts planning from calculator
+    posthog.capture('planning_started', {
+      source: 'calculator'
+    })
+
     // Clear ALL form fields (user is starting completely fresh)
     setCurrentAge(null)
     setRetirementAge(null)

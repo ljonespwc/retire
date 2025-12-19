@@ -222,7 +222,8 @@ If you're testing and want to exclude your own activity:
 - `variant_type` - Which variant: front_load, delay_benefits, exhaust, retire_early, legacy, lump_sum
 
 ### planning_started
-- `is_returning_user` - Boolean: does user have a real account?
+- `source` - Where user started: "homepage" (Start Planning button) or "calculator" (Create New Plan button)
+- `is_returning_user` - Boolean: does user have a real account? (homepage only)
 
 ### account_created
 - `had_anonymous_scenarios` - Boolean: did they have scenarios before signing up?

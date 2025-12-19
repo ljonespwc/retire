@@ -22,9 +22,11 @@
 | `share_link_created` | Viral potential - are they sharing with others? |
 | `account_created` | Conversion - free to registered |
 
-**Key Properties**: Province, retirement age, asset range (bucketed for privacy), variant type, scenario age, returning user status.
+**Key Properties**: Province, retirement age, asset range (bucketed for privacy), variant type, scenario age, returning user status, source (homepage vs calculator).
 
 **Privacy**: No PII captured. Asset values are bucketed into ranges. Autocapture disabled - only explicit events tracked.
+
+**Update**: Added `source` property to `planning_started` to distinguish homepage "Start Planning" button from calculator "Create New Plan" button.
 
 ---
 

@@ -18,9 +18,10 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  // PostHog: Track planning started
+  // PostHog: Track planning started from homepage
   const handleStartPlanning = () => {
     posthog.capture('planning_started', {
+      source: 'homepage',
       is_returning_user: !!(user && !isAnonymous)
     })
   }
