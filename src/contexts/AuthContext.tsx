@@ -10,6 +10,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import posthog from 'posthog-js'
 import {
   getOrCreateAnonUser,
   upgradeAnonUser,
@@ -86,14 +87,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function handleUpgradeAccount(email: string, password: string) {
+    const hadAnonymousScenarios = user?.isAnonymous || false
     const result = await upgradeAnonUser(email, password)
     // No need to manually refresh - onAuthStateChange will handle it
+    if (result.success) {
+      // PostHog: Track account created (via upgrade from anonymous)
+      posthog.capture('account_created', {
+        had_anonymous_scenarios: hadAnonymousScenarios
+      })
+    }
     return result
   }
 
   async function handleSignUp(email: string, password: string) {
     const result = await signUpUser(email, password)
     if (result.success) {
+      // PostHog: Track account created (direct sign up)
+      posthog.capture('account_created', {
+        had_anonymous_scenarios: false
+      })
       await refreshUser()
     }
     return result

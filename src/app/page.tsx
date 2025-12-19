@@ -5,15 +5,25 @@ import { useEffect, useState } from 'react'
 import { CalculatorHeader } from '@/components/calculator/CalculatorHeader'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { Calculator, TrendingUp, Shield, Zap, Users, FileText, CheckCircle, ArrowRight, DollarSign, Calendar, PiggyBank, BarChart3, Home as HomeIcon, Briefcase } from 'lucide-react'
+import posthog from 'posthog-js'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
   const [mounted, setMounted] = useState(false)
+  const { user, isAnonymous } = useAuth()
 
   // Avoid hydration mismatch by only rendering theme-dependent content after mount
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // PostHog: Track planning started
+  const handleStartPlanning = () => {
+    posthog.capture('planning_started', {
+      is_returning_user: !!(user && !isAnonymous)
+    })
+  }
 
   // Use false (light mode) until mounted to match server render
   const effectiveDarkMode = mounted ? isDarkMode : false
@@ -73,6 +83,7 @@ export default function Home() {
           </p>
           <Link
             href="/calculator/home"
+            onClick={handleStartPlanning}
             className={`inline-flex items-center gap-3 px-8 py-4 rounded-xl ${theme.button.primary} text-white text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105`}
           >
             Start Planning Now

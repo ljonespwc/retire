@@ -1,11 +1,32 @@
 # Development Progress Tracker
 
-**Last Updated**: 2025-12-16
+**Last Updated**: 2025-12-19
 **Current Phase**: Between Phase 1 (Complete) and Phase 2 (70% Complete)
 
 ---
 
 ## Recent Updates
+
+### 2025-12-19: PostHog Analytics Integration
+
+**Why**: Understand user behavior to improve the product. Track the funnel from landing to calculation to save/share.
+
+**Events**:
+| Event | Why We Track It |
+|-------|-----------------|
+| `planning_started` | Funnel top - are visitors converting to users? |
+| `calculation_completed` | Core value delivery - are they using the calculator? |
+| `scenario_saved` | Engagement - are they invested enough to save work? |
+| `scenario_loaded` | Retention - are they coming back? |
+| `what_if_created` | Feature adoption - which variants are popular? |
+| `share_link_created` | Viral potential - are they sharing with others? |
+| `account_created` | Conversion - free to registered |
+
+**Key Properties**: Province, retirement age, asset range (bucketed for privacy), variant type, scenario age, returning user status.
+
+**Privacy**: No PII captured. Asset values are bucketed into ranges. Autocapture disabled - only explicit events tracked.
+
+---
 
 ### 2025-12-16: Gross-Up Fix for Withdrawal Calculations
 

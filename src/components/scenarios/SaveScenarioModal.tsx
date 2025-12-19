@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import posthog from 'posthog-js'
 import { saveScenario } from '@/lib/supabase/queries'
 import { formDataToScenario, getDefaultScenarioName, type FormData } from '@/lib/scenarios/scenario-mapper'
 import { addVariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
@@ -149,6 +150,12 @@ export function SaveScenarioModal({
       if (onSaveSuccess && data?.id) {
         onSaveSuccess(data.id, scenarioData.name)
       }
+
+      // PostHog: Track scenario saved
+      posthog.capture('scenario_saved', {
+        is_new: !scenarioId,
+        is_variant: !!variantType
+      })
 
       // Success!
       setSuccess(true)

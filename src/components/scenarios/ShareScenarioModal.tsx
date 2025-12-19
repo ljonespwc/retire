@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react'
 import { X, Share2, Copy, Check, ExternalLink, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import posthog from 'posthog-js'
 import { enableScenarioSharing, disableScenarioSharing } from '@/lib/supabase/queries'
 
 interface ShareScenarioModalProps {
@@ -92,6 +93,9 @@ export function ShareScenarioModal({
       setIsShared(true)
       setSuccessMessage('Share link created successfully!')
       onSharingChange?.(data.share_token, true)
+
+      // PostHog: Track share link created
+      posthog.capture('share_link_created')
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000)

@@ -370,6 +370,19 @@ export function VoiceFirstContentV2() {
         setCalculationResults(data.results)
         setBaselineNarrative(data.narrative || null)
 
+        // PostHog: Track calculation completed
+        const totalAssets = (rrsp || 0) + (tfsa || 0) + (nonRegistered || 0)
+        const assetRange = totalAssets < 100000 ? 'under_100k' :
+                          totalAssets < 500000 ? '100k_500k' :
+                          totalAssets < 1000000 ? '500k_1m' :
+                          totalAssets < 2000000 ? '1m_2m' : 'over_2m'
+        posthog.capture('calculation_completed', {
+          province,
+          retirement_age: retirementAge,
+          has_pension: !!pensionIncome,
+          total_assets_range: assetRange
+        })
+
         // Create baseline snapshot for variant comparisons (only for non-variant calculations)
         if (!loadedVariantMetadata) {
           const snapshot: BaselineSnapshot = {
@@ -1068,6 +1081,11 @@ export function VoiceFirstContentV2() {
         // Focus on the newly created variant tab
         setActiveVariantTab(newIndex)
       }
+
+      // PostHog: Track what-if variant created
+      posthog.capture('what_if_created', {
+        variant_type: selectedScenarioType
+      })
     } catch (error) {
       console.error('Variant calculation failed:', error)
     } finally {

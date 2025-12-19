@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { FileText, Loader2, ChevronDown, X, Trash2, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import posthog from 'posthog-js'
 import { getScenarios, deleteScenario } from '@/lib/supabase/queries'
 import { scenarioToFormData, type FormData } from '@/lib/scenarios/scenario-mapper'
 import { getVariantMetadata, type VariantMetadata } from '@/lib/scenarios/variant-metadata'
@@ -297,6 +298,13 @@ export function LoadScenarioDropdown({ onLoad, isDarkMode = false, onDelete, ref
         narrative,
         originalScenario
       )
+
+      // PostHog: Track scenario loaded
+      const scenarioAgeDays = Math.floor((Date.now() - new Date(scenario.created_at).getTime()) / (1000 * 60 * 60 * 24))
+      posthog.capture('scenario_loaded', {
+        scenario_age_days: scenarioAgeDays
+      })
+
       setIsOpen(false)
     } catch (err) {
       console.error('Error loading scenario:', err)
