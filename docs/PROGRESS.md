@@ -564,6 +564,444 @@ Week 6: Polish & Testing
 
 ---
 
+---
+
+## 🎯 NEXT PRIORITY: 6 New What-If Scenarios
+
+**Objective**: Expand the what-if scenario library with high-curiosity variants that drive engagement and create upsell opportunities.
+
+**Current What-Ifs** (already built):
+1. Front-Load the Fun
+2. Delay CPP/OAS to 70
+3. Exhaust Your Portfolio
+4. Retire Earlier
+5. Leave a Legacy
+6. Lump Sum Withdrawal
+
+**New What-Ifs** (to build):
+
+---
+
+### Scenario 1: 📉 "What If Markets Crash at 65?"
+
+**Hook**: *"A 40% drop in your first year of retirement. Can your plan survive?"*
+
+**Appeal**: Broad - #1 retirement fear, 2008/2022 still fresh in memory
+
+#### User Input
+- Crash magnitude: -30% / -40% / -50% (default: -40%)
+- Recovery period: 3 / 5 / 7 years (default: 5 years)
+- Crash timing: First year of retirement (fixed)
+
+#### Calculation Logic
+```typescript
+interface MarketCrashVariant {
+  variant_type: 'market_crash'
+  crash_magnitude: number       // e.g., -0.40 for 40% drop
+  recovery_years: number        // Years to return to baseline
+  crash_year: number            // Year 1 of retirement
+}
+
+// Implementation:
+// 1. Apply crash_magnitude to portfolio in retirement year 1
+// 2. Calculate recovery rate: (1 / (1 + crash_magnitude))^(1/recovery_years) - 1
+// 3. Apply recovery rate for recovery_years, then normal returns after
+// Example: -40% crash, 5yr recovery = 10.7% annual return for 5 years to recover
+```
+
+#### UI Flow
+1. User clicks "Markets Crash at 65" button
+2. Modal appears with sliders:
+   - "How severe?" → -30%, -40%, -50%
+   - "Recovery time?" → 3, 5, 7 years
+3. User clicks "Run Scenario"
+4. Results show comparison: baseline vs crash scenario
+
+#### Output Display
+- "Your portfolio would drop from $1.2M to $720K in year 1"
+- "Recovery takes until age 70"
+- "Portfolio depletes X years earlier / survives with $Y less"
+- Chart overlay showing crash trajectory vs baseline
+
+#### Natural Upsell
+> *"Want to see the probability your plan survives a crash? [Unlock Monte Carlo Stress Test →]"*
+
+---
+
+### Scenario 2: 💝 "What If I Receive an Inheritance?"
+
+**Hook**: *"Expecting an inheritance? See how it changes your retirement picture."*
+
+**Appeal**: Broad + emotionally charged - taboo topic everyone secretly thinks about
+
+#### User Input
+- Expected amount: $25K / $50K / $100K / $250K / $500K / Custom
+- Expected age when received: slider (current age to 85)
+- Type: Cash / RRSP-RRIF / Investments / Property
+
+#### Calculation Logic
+```typescript
+interface InheritanceVariant {
+  variant_type: 'inheritance'
+  amount: number
+  received_at_age: number
+  source_type: 'cash' | 'rrsp_rrif' | 'investments' | 'property'
+}
+
+// Tax treatment by source_type:
+// - 'cash': No tax (estate paid taxes)
+// - 'rrsp_rrif': Fully taxable as income in year received (unless spouse rollover)
+// - 'investments': No tax on receipt, inherited ACB = FMV at death
+// - 'property': No tax on principal residence, capital gains on other property paid by estate
+
+// Implementation:
+// 1. At received_at_age, add amount to appropriate account
+// 2. If RRSP/RRIF: add to taxable income that year (big tax hit)
+// 3. If cash/investments: add to non-registered account
+// 4. If property: user specifies if selling (add cash) or keeping (no immediate impact)
+```
+
+#### UI Flow
+1. User clicks "Receive an Inheritance" button
+2. Modal with inputs:
+   - Amount selector (preset buttons + custom input)
+   - Age slider
+   - Type dropdown (with tax implications explained)
+3. User clicks "Run Scenario"
+4. Results show impact
+
+#### Output Display
+- "Receiving $200K at age 68 extends your portfolio by X years"
+- "If from an RRSP: $60K goes to taxes that year, net benefit $140K"
+- Chart showing step-up in portfolio at inheritance age
+
+#### Sensitivity
+- Acknowledge the delicacy: "Planning for the unexpected" framing
+- Option to model uncertainty: "What if it's 50% less than expected?"
+
+---
+
+### Scenario 3: 🏠 "What If I Downsize My Home?"
+
+**Hook**: *"Unlock $300K in home equity. How does that change everything?"*
+
+**Appeal**: Broad - common retirement decision, big numbers, emotionally charged
+
+#### User Input
+- Current home value: $ (default from user's area median or manual)
+- Downsized home cost: $ (or "Rent instead" option)
+- Age when downsizing: slider
+- Selling costs: % (default 5% for realtor, legal, moving)
+
+#### Calculation Logic
+```typescript
+interface DownsizeVariant {
+  variant_type: 'downsize'
+  current_home_value: number
+  new_home_cost: number         // 0 if renting
+  downsize_age: number
+  selling_costs_pct: number     // e.g., 0.05
+  monthly_rent?: number         // If renting instead of buying
+}
+
+// Implementation:
+// 1. At downsize_age:
+//    net_proceeds = current_home_value * (1 - selling_costs_pct) - new_home_cost
+// 2. Add net_proceeds to non-registered account
+// 3. If renting: add monthly_rent to expenses going forward
+// 4. If buying smaller: no change to expenses (assume similar costs)
+// 5. Principal residence = no capital gains tax
+```
+
+#### UI Flow
+1. User clicks "Downsize My Home" button
+2. Modal with inputs:
+   - Current home value
+   - "Buy smaller" or "Rent" toggle
+   - If buying: new home cost
+   - If renting: monthly rent
+   - Age when doing this
+3. User clicks "Run Scenario"
+
+#### Output Display
+- "Downsizing at 70 adds $350K to your portfolio"
+- "This extends your runway by X years"
+- "Trade-off: Monthly expenses increase by $1,500 if renting"
+- Chart showing portfolio boost at downsize age
+
+#### Edge Cases
+- Handle "already renting" users (grey out this option)
+- Handle users who want to model buying MORE expensive (different scenario)
+
+---
+
+### Scenario 4: 💀 "What If I Live to 100?"
+
+**Hook**: *"Your plan works to 90. But what if you're one of the lucky ones?"*
+
+**Appeal**: Broad - universal fear, simple to understand, creates urgency
+
+#### User Input
+- Minimal: Just extends longevity to 100 (one-click)
+- Optional: Custom longevity age (95, 100, 105)
+
+#### Calculation Logic
+```typescript
+interface LongevityVariant {
+  variant_type: 'longevity'
+  new_longevity_age: number    // Default: 100
+}
+
+// Implementation:
+// 1. Simply change longevity_age in basic_inputs
+// 2. Extend all calculations to new age
+// 3. Check if portfolio survives
+// 4. If not: calculate gap years and funding shortfall
+```
+
+#### UI Flow
+1. User clicks "Live to 100" button
+2. Quick confirmation modal (or just run immediately)
+3. Results show comparison
+
+#### Output Display
+- "If you live to 100, you need an extra $X"
+- "Your portfolio depletes at age 87 - that's 13 unfunded years"
+- "Required extra savings: $X per year until retirement"
+- Chart extended to age 100 showing gap
+
+#### Natural Upsell
+> *"What are the actual odds? [Run Longevity Probability Analysis →]"* (future feature)
+
+---
+
+### Scenario 5: 🍁 "What If I Move Provinces?"
+
+**Hook**: *"Moving from Ontario to Alberta could save you $47K in taxes over retirement."*
+
+**Appeal**: Niche but high-impact - uniquely Canadian, surprising results
+
+#### User Input
+- New province: dropdown of all 13 provinces/territories
+- Move timing: At retirement / Immediately / Custom age
+
+#### Calculation Logic
+```typescript
+interface MoveProvincesVariant {
+  variant_type: 'move_provinces'
+  new_province: Province
+  move_at_age: number
+}
+
+// Implementation:
+// 1. Change province in basic_inputs starting at move_at_age
+// 2. Recalculate all provincial taxes from move_at_age onward
+// 3. Compare lifetime taxes: before vs after
+// 4. Note: CPP/OAS amounts don't change (federal)
+// 5. Note: Some provinces have health premiums (BC, ON formerly)
+```
+
+#### Provincial Tax Context
+```
+Highest tax provinces: QC, NS, NB, PE, NL, MB
+Lowest tax provinces: AB, ON, BC, SK
+Territories: Generally lower but remote
+
+Sample impact (on $80K income):
+- Ontario → Alberta: Save ~$3,000/year
+- BC → Nova Scotia: Pay ~$2,500/year MORE
+- Quebec → Ontario: Save ~$4,000/year
+```
+
+#### UI Flow
+1. User clicks "Move Provinces" button
+2. Modal shows:
+   - Current province (from their inputs)
+   - "Move to:" dropdown
+   - "When?" age slider
+3. User clicks "Run Scenario"
+
+#### Output Display
+- "Moving from ON to AB at retirement saves $52K in lifetime taxes"
+- "Your effective tax rate drops from 24% to 19%"
+- "Caveat: Cost of living may differ - we're only showing tax impact"
+- Side-by-side tax comparison table
+
+#### Educational Angle
+- Link to "Provincial Tax Comparison" article
+- Explain this is ONLY tax impact, not cost of living
+
+---
+
+### Scenario 6: 💼 "What If I Work Part-Time?"
+
+**Hook**: *"What if you earned $20K/year for 5 years after 'retiring'? Game changer."*
+
+**Appeal**: Broad - phased retirement is the new normal, empowering message
+
+#### User Input
+- Part-time income: $/year (presets: $10K, $20K, $30K, $40K)
+- Duration: years (presets: 3, 5, 7, 10 years)
+- Start age: defaults to retirement age
+- Tax withheld: Yes/No (for UI simplicity)
+
+#### Calculation Logic
+```typescript
+interface PartTimeWorkVariant {
+  variant_type: 'part_time_work'
+  annual_income: number
+  start_age: number
+  end_age: number
+  tax_withheld: boolean
+}
+
+// Implementation:
+// 1. Add annual_income to employment income from start_age to end_age
+// 2. This income is taxable (T4 income)
+// 3. Recalculate withdrawal needs (less needed from portfolio)
+// 4. Show impact on portfolio longevity
+// 5. Note: May affect OAS clawback if income is high
+```
+
+#### UI Flow
+1. User clicks "Work Part-Time" button
+2. Modal with:
+   - Income amount (slider or preset buttons)
+   - "For how long?" years selector
+   - Start age (defaults to retirement age)
+3. User clicks "Run Scenario"
+
+#### Output Display
+- "Working part-time ($20K/year) for 5 years adds $X to your final portfolio"
+- "This extends your runway by X years"
+- "You'd pay $X in additional taxes but save $X in withdrawals"
+- "Net benefit: $X"
+- Chart overlay showing reduced withdrawal needs during work years
+
+#### Messaging
+- Frame positively: "Stay engaged AND boost your finances"
+- Not about "having to work" but "choosing to stay active"
+
+---
+
+### Implementation Priority Order
+
+| # | Scenario | Complexity | Impact | Priority |
+|---|----------|------------|--------|----------|
+| 1 | Live to 100 | ⭐ Low | High | 🔥 First |
+| 2 | Work Part-Time | ⭐⭐ Medium | High | Second |
+| 3 | Markets Crash | ⭐⭐ Medium | High | Third |
+| 4 | Move Provinces | ⭐⭐ Medium | High | Fourth |
+| 5 | Receive Inheritance | ⭐⭐ Medium | High | Fifth |
+| 6 | Downsize Home | ⭐⭐⭐ Higher | High | Sixth |
+
+**Rationale**:
+- "Live to 100" is trivial (change one number) - quick win
+- "Work Part-Time" reuses existing employment income logic
+- "Markets Crash" needs custom return modeling but is straightforward
+- "Move Provinces" leverages existing provincial tax engine
+- "Inheritance" needs tax treatment logic by source type
+- "Downsize" has most edge cases (rent vs buy, selling costs, timing)
+
+---
+
+### Existing Architecture Analysis
+
+**The structure is already there.** Adding 6 more variants is purely additive — no structural changes needed.
+
+#### What Exists (Pattern Already Established)
+
+| Layer            | File                             | Current State                                    |
+|------------------|----------------------------------|--------------------------------------------------|
+| Type Definition  | variant-metadata.ts:23-29        | Union type: 'front-load' \| 'delay-cpp-oas' \| ... |
+| Variant Creators | scenario-variants.ts             | 6 exported functions, one per variant            |
+| Regeneration     | variant-metadata.ts:114-156      | Switch statement routes to correct creator       |
+| Display Names    | variant-metadata.ts:161-172      | Simple map VariantType → string                  |
+| Variant Details  | variant-metadata.ts:226-526      | Switch for UI display of parameters              |
+| UI Buttons       | WhatIfScenarioButtons.tsx:79-128 | Data-driven array of button configs              |
+| Click Handler    | VoiceFirstContentV2.tsx:847-922  | Switch statement creates variant                 |
+
+#### To Add 6 New Variants, You Just:
+
+1. **Extend types** — add 6 values to VariantType union
+2. **Add creator functions** — 6 new exports in scenario-variants.ts
+3. **Add switch cases** — in regenerateVariant(), getVariantDetails(), handleRunScenario()
+4. **Add button configs** — 6 entries to the variants array
+5. **Add display names** — 6 entries to the name map
+
+#### One UI Consideration
+
+Currently renders a 3×2 grid (6 buttons). With 12 buttons, you'd need:
+- 4×3 grid (might be cramped on mobile), or
+- Two rows of 6 (horizontal scroll on mobile), or
+- Collapsible sections ("Core" vs "Advanced" what-ifs)
+
+But that's a styling tweak, not an architectural change.
+
+#### No Changes Needed To:
+
+- Database schema (metadata is JSONB — flexible by design)
+- Calculation engine (variants just modify scenario inputs)
+- API routes
+- Component structure
+
+---
+
+### Technical Implementation Notes
+
+#### Variant Metadata Extension
+```typescript
+// Extend existing VariantMetadata type
+type VariantTypeKey =
+  // Existing
+  | 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum'
+  // New
+  | 'market_crash' | 'inheritance' | 'downsize' | 'longevity' | 'move_provinces' | 'part_time_work'
+
+interface VariantMetadata {
+  variant_type: VariantTypeKey
+  // ... existing fields
+  // New variant-specific fields
+  crash_magnitude?: number
+  inheritance_amount?: number
+  new_province?: Province
+  part_time_income?: number
+  // etc.
+}
+```
+
+#### Shared Modal Component
+Consider building a reusable `WhatIfModal` component:
+```typescript
+interface WhatIfModalProps {
+  title: string
+  description: string
+  inputs: WhatIfInput[]
+  onRun: (values: Record<string, any>) => void
+}
+
+interface WhatIfInput {
+  type: 'slider' | 'select' | 'number' | 'toggle'
+  name: string
+  label: string
+  options?: { value: any, label: string }[]
+  min?: number
+  max?: number
+  default?: any
+}
+```
+
+---
+
+### Success Metrics
+
+- **Engagement**: % of users who try at least one new what-if
+- **Curiosity**: Which scenarios are clicked most (track analytics)
+- **Conversion**: Do new what-ifs increase upsell to Pro/Monte Carlo?
+- **Retention**: Do users with more what-ifs return more often?
+
+---
+
 ## Phase 3: Advanced Tier ⏳ NOT STARTED
 
 **PRD Target**: 6-8 weeks (Sprints 15-21)
