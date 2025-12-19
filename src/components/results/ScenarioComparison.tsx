@@ -248,6 +248,7 @@ export function ScenarioComparison({
         isCurrentlyShared={shareModalIsShared}
         isDarkMode={isDarkMode}
         onSharingChange={handleSharingChange}
+        isVariant={shareModalIndex >= 0}
       />
     </div>
   )

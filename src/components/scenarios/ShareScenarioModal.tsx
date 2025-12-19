@@ -21,6 +21,7 @@ interface ShareScenarioModalProps {
   isCurrentlyShared?: boolean
   isDarkMode?: boolean
   onSharingChange?: (shareToken: string | null, isShared: boolean) => void
+  isVariant?: boolean // Track whether this is a what-if variant or baseline
 }
 
 export function ShareScenarioModal({
@@ -32,6 +33,7 @@ export function ShareScenarioModal({
   isCurrentlyShared = false,
   isDarkMode = false,
   onSharingChange,
+  isVariant = false,
 }: ShareScenarioModalProps) {
   const [shareToken, setShareToken] = useState<string | null>(existingShareToken || null)
   const [isShared, setIsShared] = useState(isCurrentlyShared)
@@ -95,7 +97,9 @@ export function ShareScenarioModal({
       onSharingChange?.(data.share_token, true)
 
       // PostHog: Track share link created
-      posthog.capture('share_link_created')
+      posthog.capture('share_link_created', {
+        is_variant: isVariant
+      })
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000)
