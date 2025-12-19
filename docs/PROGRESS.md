@@ -91,50 +91,6 @@ This document maps actual development progress against the [Comprehensive PRD](.
 
 ## Phase 1: MVP ✅ COMPLETE
 
-**PRD Target**: 8-10 weeks
-**Actual**: Completed 2025-11-03
-**Status**: ✅ **EXCEEDED EXPECTATIONS**
-
-### What the PRD Asked For
-
-- Voice + text input
-- Basic tier functionality
-- Single scenario
-- Simple charts
-- Tax calculation (one province)
-
-### What We Actually Built
-
-| Feature | PRD Status | Actual Status | Notes |
-|---------|-----------|---------------|-------|
-| Voice + text input | Required | ✅ Built | Form-first with contextual help |
-| Basic tier functionality | Required | ✅ Built | All core features working |
-| Single scenario | Required | ✅ Built | Plus multi-scenario comparison! |
-| Simple charts | Required | ✅ Built | Interactive Recharts visualizations |
-| Tax (1 province) | Required | ✅ **Exceeded** | All 13 provinces/territories |
-| Anonymous auth | Not specified | ✅ Built | Supabase auth |
-| Save/load scenarios | Pro tier | ✅ Built | Supabase persistence |
-| Multi-scenario comparison | Pro tier | ✅ Built | 6 what-if variants |
-| Detailed tax breakdown | Pro tier | ✅ Built | Federal + provincial + OAS clawback |
-| Year-by-year results | Pro tier | ✅ Built | Complete projection table |
-
-### Test Coverage
-
-- ✅ 126 tests passing (100% pass rate)
-- ✅ Calculation engine fully tested
-- ✅ Component tests for critical UI
-- ✅ Integration tests for user flows
-- ✅ AI validation CLI tool (validates AI narratives against actual calculations)
-
-### Deployment
-
-- ✅ Vercel production deployment
-- ✅ Supabase production database
-- ✅ Environment variables configured
-- ✅ Analytics and monitoring active
-
----
-
 ## Phase 2: Pro Tier 🔄 IN PROGRESS (60%)
 
 **PRD Target**: 4-6 weeks (Sprints 9-14)
