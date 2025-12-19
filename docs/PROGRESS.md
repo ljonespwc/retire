@@ -99,8 +99,6 @@ tfsa_limits         - Add 2026 limit
 
 ## Overview
 
-This document maps actual development progress against the [Comprehensive PRD](./Retirement_Calculator_Comprehensive_PRD.md) roadmap.
-
 ### Quick Status
 
 ```
@@ -114,7 +112,7 @@ This document maps actual development progress against the [Comprehensive PRD](.
 
 ## Phase 1: MVP ✅ COMPLETE
 
-## Phase 2: Pro Tier 🔄 IN PROGRESS (60%)
+## Phase 2: Pro Tier 🔄 IN PROGRESS
 
 **PRD Target**: 4-6 weeks (Sprints 9-14)
 **Actual Status**: 8 features built, 4 partial, monetization pending
@@ -275,7 +273,7 @@ ON usage_tracking(user_id, DATE_TRUNC('month', created_at));
 
 ---
 
-### Sprint 2.2: Reports & Export (1 week) - 33% Complete
+### Sprint 2.2: Reports & Export (1 week)
 
 **Objective**: Enable PDF and CSV exports for Pro users.
 **Status**: 1 of 3 tasks complete (Shareable Links ✅)
@@ -338,34 +336,6 @@ ON usage_tracking(user_id, DATE_TRUNC('month', created_at));
 
 ---
 
-#### Task 2.2.3: Shareable Links ✅ COMPLETE
-**Duration**: 1-2 days
-**Status**: ✅ Built
-**Date Completed**: 2025-11-03
-
-**Requirements**:
-- Generate read-only shareable links
-- Public page shows results without editing
-- Link can be revoked/disabled
-
-**Database**:
-- ✅ `share_token` and `is_shared` fields exist in scenarios table
-- ✅ `shared_at` timestamp field exists
-
-**Implementation**: ✅ Complete
-```typescript
-// Database fields already exist
-// UI and public route built
-```
-
-**Acceptance Criteria**:
-- ✅ Users can generate shareable links
-- ✅ Link opens read-only version of scenario
-- ✅ No auth required to view shared scenario
-- ✅ User can disable/revoke sharing
-
----
-
 ### Sprint 2.3: Advanced Inputs (2 weeks)
 
 **Objective**: Enable more sophisticated retirement planning scenarios.
@@ -418,39 +388,6 @@ spouse?: SpouseInputs
 
 ---
 
-#### Task 2.3.2: Variable Expenses & Inflation Adjustments
-**Duration**: 2-3 days
-
-**Requirements**:
-- Multiple expense categories with different inflation rates
-- One-time expenses at specific ages
-- Non-recurring large purchases
-
-**Implementation**:
-```typescript
-interface ExpenseCategory {
-  name: string
-  monthly_amount: number
-  inflation_rate: number // Can differ from general inflation
-  start_age?: number
-  end_age?: number
-}
-
-interface OneTimeExpense {
-  description: string
-  amount: number
-  age: number
-}
-```
-
-**Acceptance Criteria**:
-- ✅ Can add multiple expense categories
-- ✅ Each category has custom inflation rate
-- ✅ One-time expenses modeled correctly
-- ✅ Results show expense breakdown
-
----
-
 #### Task 2.3.3: Additional Income Streams
 **Duration**: 2 days
 
@@ -481,67 +418,6 @@ interface PartTimeWorkInput {
 - ✅ Rental income added to projections
 - ✅ Part-time work income included
 - ✅ Proper tax treatment for each source
-
----
-
-### Sprint 2.4: Polish & Testing (1 week)
-
-**Objective**: Ensure Pro tier is production-ready.
-
-#### Task 2.4.1: Pro Tier Testing
-**Duration**: 3 days
-
-**Requirements**:
-- Test all payment flows
-- Test all Pro features with real data
-- Cross-browser testing
-- Mobile testing
-
-**Test Scenarios**:
-1. Free user hits limit → upgrades → gains access
-2. Pro user cancels → reverts to free tier
-3. Payment fails → handles gracefully
-4. PDF export with complex scenario
-5. Shareable link works for non-users
-6. Spouse planning with income splitting
-
----
-
-#### Task 2.4.2: Documentation & Help
-**Duration**: 2 days
-
-**Requirements**:
-- Help documentation for new features
-- Video tutorials (optional)
-- FAQ updates
-- Support documentation
-
----
-
-#### Task 2.4.3: Launch Preparation
-**Duration**: 2 days
-
-**Requirements**:
-- Pricing page updates
-- Marketing material
-- Launch announcement
-- Monitor first users
-
----
-
-## Sprint 2 Timeline Summary
-
-```
-Week 1-2: Monetization (Stripe, tiers, limits)
-Week 3: Reports & Export (PDF, CSV) - Sharing ✅ done
-Week 4-5: Advanced Inputs (spouse, expenses, income)
-Week 6: Polish & Testing
-```
-
-**Total Estimated Duration**: 6 weeks (potentially 5.5 weeks with sharing complete)
-**Critical Path**: Monetization must come first
-
----
 
 ---
 
@@ -972,81 +848,5 @@ interface WhatIfInput {
 
 ---
 
-### Success Metrics
-
-- **Engagement**: % of users who try at least one new what-if
-- **Curiosity**: Which scenarios are clicked most (track analytics)
-- **Conversion**: Do new what-ifs increase upsell to Pro/Monte Carlo?
-- **Retention**: Do users with more what-ifs return more often?
-
----
-
-## Phase 3: Advanced Tier ⏳ NOT STARTED
-
-**PRD Target**: 6-8 weeks (Sprints 15-21)
-**Status**: Not started (waiting for Phase 2 completion)
-
-### Key Features (Future)
-- Multi-client advisor dashboard
-- White-label branding
-- Monte Carlo simulation
-- Stress testing
-- REST API for partners
-- Compliance reporting
-
----
-
-## Phase 4: Scale & Enhance ⏳ NOT STARTED
-
-**PRD Target**: Ongoing
-**Status**: Future roadmap
-
-### Potential Features
-- Mobile app (React Native)
-- Wealthsimple/Questrade integration
-- AI financial coaching
-- Estate planning integration
-- Budget tracking integration
-
----
-
-## Success Metrics
-
-### Phase 1 Success Criteria ✅
-- ✅ Calculator deployed to production
-- ✅ Accurate tax calculations (all 13 provinces)
-- ✅ User can complete calculation in <5 minutes
-- ✅ Results are accurate (verified against manual calculations)
-- ✅ Works on mobile and desktop
-
-### Phase 2 Success Criteria 🎯 (Target)
-- 🎯 Payment integration live
-- 🎯 First paying customer acquired
-- 🎯 5% free-to-paid conversion rate
-- 🎯 10 paying customers in first month
-- 🎯 $190+ MRR within 30 days of Pro launch
-
----
-
 ## Next Steps
 
-**Immediate Priority (Sprint 2.1 - Weeks 1-2)**:
-1. Set up Stripe account and products
-2. Implement payment integration
-3. Add tier enforcement and upgrade flows
-4. Test payment flows end-to-end
-
-**Secondary Priority (Sprint 2.2 - Week 3)**:
-1. Build PDF report generator
-2. Add CSV export
-3. Implement shareable links
-
-**Tertiary Priority (Sprint 2.3 - Weeks 4-5)**:
-1. Add spouse/joint planning
-2. Enhanced expense modeling
-3. Additional income streams
-
----
-
-**Last Updated**: 2025-11-03
-**Next Review**: After Sprint 2.1 completion
