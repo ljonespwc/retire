@@ -1,6 +1,6 @@
 # Development Progress Tracker
 
-**Last Updated**: 2025-12-19
+**Last Updated**: 2025-12-20
 **Current Phase**: Between Phase 1 (Complete) and Phase 2 (70% Complete)
 
 ---
@@ -444,6 +444,14 @@ interface PartTimeWorkInput {
 4. Retire Earlier
 5. Leave a Legacy
 6. Lump Sum Withdrawal
+7. ✅ **Live to 100** (completed 2025-12-20)
+8. ✅ **Work Part-Time** (completed 2025-12-20)
+9. ✅ **Markets Crash** (completed 2025-12-20)
+
+**Remaining What-Ifs** (to build):
+1. 🍁 Move Provinces
+2. 💝 Receive an Inheritance
+3. 🏠 Downsize My Home
 
 **New What-Ifs** (to build):
 

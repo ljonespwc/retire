@@ -196,6 +196,60 @@ npx tsx src/scripts/validate-ai-insights.ts  # AI validation CLI (4 modes)
 npx tsx src/scripts/test-gross-up.ts         # Validate withdrawal gross-up calculations
 ```
 
+## Scenario Testing & Validation
+
+Use these scripts to test baseline scenarios and their what-if variants.
+
+### Quick Workflow
+
+**Step 1: Generate data report** (see all numbers, AI content, comparisons)
+```bash
+npx tsx src/scripts/generate-what-if-report.ts <baseline-id>
+```
+
+**Step 2: Validate AI outputs** (PASS/FAIL checks)
+```bash
+npx tsx src/scripts/validate-ai-outputs.ts <baseline-id>
+```
+
+**To list available baselines**, run either script without arguments:
+```bash
+npx tsx src/scripts/generate-what-if-report.ts
+```
+
+**To have Claude analyze the results:**
+> "Analyze the report in `<filename>-report.txt` - check if the numbers, comparisons, and AI content all line up logically."
+
+### Output Files
+- `generate-what-if-report.ts` → `<baseline-name>-report.txt` (comprehensive data)
+- `validate-ai-outputs.ts` → `ai-validation-report.txt` (PASS/FAIL results)
+
+### Important Data Structure Notes
+
+These gotchas apply when working with year_by_year calculation results:
+
+1. **RRSP/RRIF Withdrawals**
+   - Field is `withdrawals.rrsp_rrif` (NOT `withdrawals.rrsp`)
+   - This is when withdrawals BEGIN, which differs from RRIF conversion age (71)
+   - The portfolio chart shows conversion at 71, but withdrawals can start earlier
+
+2. **OAS Clawback**
+   - `tax.oas_clawback` field does NOT exist in stored year_by_year data
+   - Clawback IS included in `tax.total` but not broken out separately
+   - To count clawback years, calculate on-the-fly: `oas > 0 && income > 86912`
+   - This matches logic in `src/lib/ai/narrative-generator.ts`
+
+3. **Baseline vs Variant Detection**
+   - Use `inputs.__metadata.created_from_baseline_id` foreign key
+   - Baselines: scenarios WITHOUT `created_from_baseline_id`
+   - Variants: scenarios WITH `created_from_baseline_id`
+   - DO NOT use name matching - it's unreliable!
+
+4. **Income vs Withdrawals**
+   - `income.total` = all taxable income (CPP, OAS, pension, employment, investment)
+   - `withdrawals.total` = money pulled from investment accounts
+   - Investment withdrawals appear as `income.investment`
+
 ## Repository Structure
 
 ```
