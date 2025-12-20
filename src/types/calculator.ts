@@ -204,6 +204,8 @@ export interface Assumptions {
   inflation_rate: number;
   /** Marginal tax rate override (optional, otherwise calculated) */
   marginal_tax_rate?: number;
+  /** Year-specific return overrides for stress testing (key = calendar year, value = return rate) */
+  year_return_overrides?: Record<number, number>;
 }
 
 /**

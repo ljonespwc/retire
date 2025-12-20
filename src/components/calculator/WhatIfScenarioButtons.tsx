@@ -13,7 +13,7 @@ import { Heart } from 'lucide-react'
 import { Scenario } from '@/types/calculator'
 import { type VariantMetadata } from '@/lib/scenarios/variant-metadata'
 
-type VariantTypeKey = 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum'
+type VariantTypeKey = 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash'
 
 interface WhatIfScenarioButtonsProps {
   isDarkMode: boolean
@@ -32,7 +32,10 @@ function isTabOpen(variantScenarios: Scenario[], type: VariantTypeKey): boolean 
     'exhaust': (name) => name.includes('Exhaust'),
     'retire_early': (name) => name.includes('Retire') && name.includes('Earlier'),
     'legacy': (name) => name.includes('Leave') && name.includes('Legacy'),
-    'lump_sum': (name) => name.includes('Lump Sum')
+    'lump_sum': (name) => name.includes('Lump Sum'),
+    'longevity': (name) => name.includes('Live to'),
+    'part_time_work': (name) => name.includes('Part-Time'),
+    'market_crash': (name) => name.includes('Markets Crash') || name.includes('Crash')
   }
   return variantScenarios.some(v => namePatterns[type](v.name))
 }
@@ -124,6 +127,27 @@ export function WhatIfScenarioButtons({
       title: 'Lump Sum Withdrawal',
       description: 'Weddings, renovations, travel, gifts',
       generatingText: 'Generating scenario...'
+    },
+    {
+      type: 'longevity',
+      emoji: '💀',
+      title: 'Live to 100',
+      description: 'Test your plan for a long life',
+      generatingText: 'Extending projections...'
+    },
+    {
+      type: 'part_time_work',
+      emoji: '💼',
+      title: 'Work Part-Time',
+      description: 'Earn income after retiring',
+      generatingText: 'Calculating impact...'
+    },
+    {
+      type: 'market_crash',
+      emoji: '📉',
+      title: 'Markets Crash',
+      description: 'Stress test a major downturn',
+      generatingText: 'Running crash scenario...'
     }
   ]
 

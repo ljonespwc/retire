@@ -466,6 +466,8 @@ export async function calculateRetirementProjection(
 
     // Project account forward with withdrawals and post-retirement returns
     // NO surplus reinvestment - surplus cash is not tracked (spent on lifestyle/gifts/etc)
+    // Check for year-specific return override (used for market crash scenarios)
+    const yearReturn = assumptions.year_return_overrides?.[year] ?? assumptions.post_retirement_return;
     const projection = await projectYearForward(
       client,
       currentBalances,
@@ -475,9 +477,9 @@ export async function calculateRetirementProjection(
       targetWithdrawal,
       {}, // No contributions (surplus not reinvested)
       {
-        rrsp_rrif: assumptions.post_retirement_return,
-        tfsa: assumptions.post_retirement_return,
-        non_registered: assumptions.post_retirement_return,
+        rrsp_rrif: yearReturn,
+        tfsa: yearReturn,
+        non_registered: yearReturn,
       },
       nonRegCostBasis
     );

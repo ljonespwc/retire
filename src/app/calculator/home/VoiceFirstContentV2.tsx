@@ -28,7 +28,7 @@ import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant, createLumpSumWithdrawalVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant, createLumpSumWithdrawalVariant, createLongevityVariant, createPartTimeWorkVariant, createMarketCrashVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
@@ -84,7 +84,7 @@ export function VoiceFirstContentV2() {
 
   // What-if scenario state
   const [showScenarioModal, setShowScenarioModal] = useState(false)
-  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum'>('front_load')
+  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash'>('front_load')
   const [variantScenarios, setVariantScenarios] = useState<Scenario[]>([])
   const [variantResultsArray, setVariantResultsArray] = useState<CalculationResults[]>([])
   const [variantInsights, setVariantInsights] = useState<string[]>([])
@@ -92,7 +92,7 @@ export function VoiceFirstContentV2() {
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | null>(null)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [isSavingVariantNarrative, setIsSavingVariantNarrative] = useState(false)
@@ -850,7 +850,7 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle scenario button click
-  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum') => {
+  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash') => {
     setSelectedScenarioType(scenarioType)
     setShowScenarioModal(true)
   }
@@ -860,7 +860,7 @@ export function VoiceFirstContentV2() {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
-    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum')
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash')
     try {
       const baseScenario = createScenarioFromFormData()
       const supabase = createClient()
@@ -938,6 +938,46 @@ export function VoiceFirstContentV2() {
             amount,
             withdrawalAge,
             sourceAccount
+          }
+          break
+        }
+        case 'longevity': {
+          const newLongevityAge = config?.newLongevityAge || 100
+
+          variant = createLongevityVariant(baseScenario, newLongevityAge)
+
+          // Store config for regeneration
+          variantConfig = {
+            variant_type: 'longevity',
+            newLongevityAge
+          }
+          break
+        }
+        case 'part_time_work': {
+          const incomePercentage = config?.incomePercentage || 0.25
+          const durationYears = config?.durationYears || 5
+
+          variant = createPartTimeWorkVariant(baseScenario, incomePercentage, durationYears)
+
+          // Store config for regeneration
+          variantConfig = {
+            variant_type: 'part-time-work',
+            incomePercentage,
+            durationYears
+          }
+          break
+        }
+        case 'market_crash': {
+          const crashMagnitude = config?.crashMagnitude || -0.40
+          const recoveryYears = config?.recoveryYears || 5
+
+          variant = createMarketCrashVariant(baseScenario, crashMagnitude, recoveryYears)
+
+          // Store config for regeneration
+          variantConfig = {
+            variant_type: 'market-crash',
+            crashMagnitude,
+            recoveryYears
           }
           break
         }
@@ -1530,6 +1570,7 @@ export function VoiceFirstContentV2() {
         nonRegisteredBalance={nonRegistered || 0}
         cppStartAge={cppStartAge || 65}
         oasStartAge={65}
+        employmentIncome={currentIncome || 60000}
         isDarkMode={isDarkMode}
         onRun={handleRunScenario}
       />

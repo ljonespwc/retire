@@ -142,6 +142,9 @@ export function ScenarioComparison({
     if (name.includes('Retire') && (name.includes('Early') || name.includes('Earlier'))) return 'Retire Early'
     if (name.includes('Legacy')) return 'Legacy'
     if (name.includes('Lump Sum')) return 'Lump Sum'
+    if (name.includes('Live to')) return 'Live to 100'
+    if (name.includes('Part-Time')) return 'Part-Time'
+    if (name.includes('Markets Crash') || name.includes('Crash')) return 'Crash'
     // Fallback: truncate long names
     return name.length > 15 ? name.substring(0, 12) + '...' : name
   }

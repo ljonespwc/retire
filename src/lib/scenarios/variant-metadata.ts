@@ -13,7 +13,10 @@ import {
   createRetireEarlyVariant,
   createExhaustPortfolioVariant,
   createLegacyVariant,
-  createLumpSumWithdrawalVariant
+  createLumpSumWithdrawalVariant,
+  createLongevityVariant,
+  createPartTimeWorkVariant,
+  createMarketCrashVariant
 } from '@/lib/calculations/scenario-variants'
 import { calculateCPPAdjustmentFactor, calculateOASAdjustmentFactor } from '@/lib/calculations/government-benefits'
 
@@ -27,6 +30,9 @@ export type VariantType =
   | 'exhaust-portfolio'
   | 'legacy'
   | 'lump-sum'
+  | 'longevity'
+  | 'part-time-work'
+  | 'market-crash'
 
 /**
  * Baseline snapshot stored with variants for standalone comparison context
@@ -148,6 +154,20 @@ export function regenerateVariant(
       const sourceAccount = config?.sourceAccount || 'smart'
       return createLumpSumWithdrawalVariant(baseScenario, amount, withdrawalAge, sourceAccount)
     }
+    case 'longevity': {
+      const newLongevityAge = config?.newLongevityAge || 100
+      return createLongevityVariant(baseScenario, newLongevityAge)
+    }
+    case 'part-time-work': {
+      const incomePercentage = config?.incomePercentage || 0.25
+      const durationYears = config?.durationYears || 5
+      return createPartTimeWorkVariant(baseScenario, incomePercentage, durationYears)
+    }
+    case 'market-crash': {
+      const crashMagnitude = config?.crashMagnitude || -0.40
+      const recoveryYears = config?.recoveryYears || 5
+      return createMarketCrashVariant(baseScenario, crashMagnitude, recoveryYears)
+    }
     default:
       // Unknown variant type - return base scenario unchanged
       console.warn(`Unknown variant type: ${variantType}`)
@@ -165,7 +185,10 @@ export function getVariantDisplayName(variantType: VariantType): string {
     'retire-early': 'Retire Early',
     'exhaust-portfolio': 'Exhaust Your Portfolio',
     'legacy': 'Leave a Legacy',
-    'lump-sum': 'Lump Sum Withdrawal'
+    'lump-sum': 'Lump Sum Withdrawal',
+    'longevity': 'Live to 100',
+    'part-time-work': 'Work Part-Time',
+    'market-crash': 'Markets Crash'
   }
   const baseName = names[variantType] || variantType
   return `What-If Variant: ${baseName}`
@@ -194,6 +217,15 @@ export function detectVariantTypeFromName(name: string): VariantType | null {
   }
   if (lowercaseName.includes('lump sum') || lowercaseName.includes('lump-sum') || lowercaseName.includes('withdrawal')) {
     return 'lump-sum'
+  }
+  if (lowercaseName.includes('live to') || lowercaseName.includes('longevity')) {
+    return 'longevity'
+  }
+  if (lowercaseName.includes('part-time') || lowercaseName.includes('part time')) {
+    return 'part-time-work'
+  }
+  if (lowercaseName.includes('crash') || lowercaseName.includes('market')) {
+    return 'market-crash'
   }
 
   return null
@@ -512,6 +544,99 @@ export function getVariantDetails(
           {
             label: 'Impact',
             value: `Portfolio reduced by withdrawal amount ${comparisonNote}`
+          }
+        ]
+      }
+    }
+
+    case 'longevity': {
+      const newLongevityAge = scenario?.basic_inputs.longevity_age || 100
+      const baselineLongevity = baselineSnapshot ? 95 : (newLongevityAge - 5) // Estimate baseline
+      const extraYears = newLongevityAge - baselineLongevity
+
+      return {
+        title: `Live to ${newLongevityAge}`,
+        items: [
+          {
+            label: 'Extended Longevity',
+            value: `Age ${newLongevityAge}`
+          },
+          {
+            label: 'Additional Years',
+            value: `${extraYears} more years to fund`
+          },
+          {
+            label: 'Impact',
+            value: 'Tests if your portfolio can survive a longer retirement'
+          }
+        ]
+      }
+    }
+
+    case 'part-time-work': {
+      // Find part-time work entry in other_income
+      const partTimeIncome = scenario?.income_sources.other_income?.find(
+        inc => inc.description === 'Part-time work'
+      )
+      const annualIncome = partTimeIncome?.annual_amount || 0
+      const startAge = partTimeIncome?.start_age || scenario?.basic_inputs.retirement_age || 65
+      const endAge = partTimeIncome?.end_age || startAge + 5
+      const durationYears = endAge - startAge
+      const totalIncome = annualIncome * durationYears
+
+      return {
+        title: 'Work Part-Time After Retirement',
+        items: [
+          {
+            label: 'Annual Income',
+            value: `$${annualIncome.toLocaleString()}/year`
+          },
+          {
+            label: 'Duration',
+            value: `${durationYears} years (ages ${startAge}-${endAge})`
+          },
+          {
+            label: 'Total Earnings',
+            value: `$${totalIncome.toLocaleString()}`
+          },
+          {
+            label: 'Impact',
+            value: 'Reduces portfolio withdrawals during working years'
+          }
+        ]
+      }
+    }
+
+    case 'market-crash': {
+      const overrides = scenario?.assumptions.year_return_overrides || {}
+      const years = Object.keys(overrides).map(Number).sort((a, b) => a - b)
+      const crashYear = years[0]
+      const crashMagnitude = overrides[crashYear] || -0.40
+      const recoveryYears = years.length - 1
+
+      // Calculate recovery return
+      const recoveryReturn = recoveryYears > 0
+        ? (overrides[years[1]] || 0)
+        : 0
+
+      return {
+        title: 'Markets Crash Stress Test',
+        items: [
+          {
+            label: 'Crash Severity',
+            value: `${Math.abs(crashMagnitude * 100)}% drop in year 1`
+          },
+          {
+            label: 'Recovery Period',
+            value: `${recoveryYears} years`
+          },
+          {
+            label: 'Recovery Return',
+            value: `${(recoveryReturn * 100).toFixed(1)}%/year to recover`
+          },
+          {
+            label: 'Impact',
+            value: 'Tests portfolio survival after a major market downturn'
           }
         ]
       }

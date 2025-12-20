@@ -12,7 +12,7 @@ import { useState } from 'react'
 interface ScenarioModalProps {
   isOpen: boolean
   onClose: () => void
-  scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum'
+  scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash'
   baselineMonthly: number
   retirementAge: number
   currentAge: number
@@ -23,6 +23,7 @@ interface ScenarioModalProps {
   nonRegisteredBalance?: number // For lump sum source account selection
   cppStartAge?: number // For delay benefits modal to show baseline CPP age
   oasStartAge?: number // For delay benefits modal to show baseline OAS age
+  employmentIncome?: number // For part-time work calculations
   isDarkMode?: boolean
   onRun: (config?: any) => void // Config for parameterized scenarios
 }
@@ -41,6 +42,7 @@ export function ScenarioModal({
   nonRegisteredBalance = 0,
   cppStartAge = 65,
   oasStartAge = 65,
+  employmentIncome = 60000,
   isDarkMode = false,
   onRun
 }: ScenarioModalProps) {
@@ -56,6 +58,17 @@ export function ScenarioModal({
   const [lumpSumAge, setLumpSumAge] = useState(Math.min(retirementAge + 5, longevityAge - 1))
   const [lumpSumSource, setLumpSumSource] = useState<'non_registered' | 'rrsp' | 'tfsa' | 'smart'>('smart')
 
+  // State for longevity variant (default: 100)
+  const [selectedLongevityAge, setSelectedLongevityAge] = useState(100)
+
+  // State for part-time work variant
+  const [partTimePercentage, setPartTimePercentage] = useState(25) // % of current income
+  const [partTimeDuration, setPartTimeDuration] = useState(5) // years
+
+  // State for market crash variant
+  const [crashMagnitude, setCrashMagnitude] = useState(40) // % drop (stored as positive)
+  const [recoveryYears, setRecoveryYears] = useState(5)
+
   // Reset state when modal opens (only on isOpen transition from false to true)
   const [previousIsOpen, setPreviousIsOpen] = useState(isOpen)
 
@@ -67,6 +80,11 @@ export function ScenarioModal({
       setLumpSumAmount(100000)
       setLumpSumAge(Math.min(retirementAge + 5, longevityAge - 1))
       setLumpSumSource('smart')
+      setSelectedLongevityAge(100)
+      setPartTimePercentage(25)
+      setPartTimeDuration(5)
+      setCrashMagnitude(40)
+      setRecoveryYears(5)
     }
   }
 
@@ -74,7 +92,7 @@ export function ScenarioModal({
 
   const scenario = getScenarioConfig(scenarioType, baselineMonthly, retirementAge, totalAssets, selectedRetireAge, selectedLegacyPercentage, cppStartAge, oasStartAge)
 
-  // Handle run with config for retire_early, legacy, and lump_sum
+  // Handle run with config for parameterized scenarios
   const handleRun = () => {
     if (scenarioType === 'retire_early') {
       onRun({ newRetirementAge: selectedRetireAge })
@@ -82,6 +100,12 @@ export function ScenarioModal({
       onRun({ percentage: selectedLegacyPercentage / 100 }) // Convert to decimal
     } else if (scenarioType === 'lump_sum') {
       onRun({ amount: lumpSumAmount, withdrawalAge: lumpSumAge, sourceAccount: lumpSumSource })
+    } else if (scenarioType === 'longevity') {
+      onRun({ newLongevityAge: selectedLongevityAge })
+    } else if (scenarioType === 'part_time_work') {
+      onRun({ incomePercentage: partTimePercentage / 100, durationYears: partTimeDuration })
+    } else if (scenarioType === 'market_crash') {
+      onRun({ crashMagnitude: -crashMagnitude / 100, recoveryYears }) // Convert to negative decimal
     } else {
       onRun()
     }
@@ -369,6 +393,209 @@ export function ScenarioModal({
             </div>
           )}
 
+          {/* Longevity Age Selector */}
+          {scenarioType === 'longevity' && (
+            <div>
+              <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                Plan Until Age:
+              </h3>
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
+                <div className={`text-xs ${textSecondary} mb-2`}>
+                  Current longevity age: <span className={`font-semibold ${textPrimary}`}>Age {longevityAge}</span>
+                </div>
+
+                {/* Age Selection Radio Buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[95, 100, 105].map((age) => (
+                    <button
+                      key={age}
+                      onClick={() => setSelectedLongevityAge(age)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        selectedLongevityAge === age
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Age {age}
+                      <div className={`text-xs mt-0.5 ${selectedLongevityAge === age ? 'text-blue-100' : textSecondary}`}>
+                        {age - longevityAge > 0 ? `+${age - longevityAge} years` : age === longevityAge ? 'Same' : `${age - longevityAge} years`}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quick Impact Preview */}
+                <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className={`text-xs ${textSecondary} space-y-1`}>
+                    <div>• Plan for {selectedLongevityAge - retirementAge} years of retirement</div>
+                    <div>• Tests portfolio durability to age {selectedLongevityAge}</div>
+                    <div>• ~{Math.round((selectedLongevityAge - longevityAge) * 0.03 * 100)}% less annual spending may be needed</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Part-Time Work Selector */}
+          {scenarioType === 'part_time_work' && (
+            <div className="space-y-4">
+              {/* Income Percentage */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Income Level:
+                </h3>
+                <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
+                  <div className={`text-xs ${textSecondary} mb-2`}>
+                    Based on current income: <span className={`font-semibold ${textPrimary}`}>${employmentIncome.toLocaleString()}/year</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {[25, 50, 75].map((pct) => {
+                      const annualAmount = Math.round(employmentIncome * (pct / 100))
+                      return (
+                        <button
+                          key={pct}
+                          onClick={() => setPartTimePercentage(pct)}
+                          className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                            partTimePercentage === pct
+                              ? isDarkMode
+                                ? 'bg-blue-600 text-white border-2 border-blue-500'
+                                : 'bg-blue-600 text-white border-2 border-blue-500'
+                              : isDarkMode
+                              ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                              : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pct}%
+                          <div className={`text-xs mt-0.5 ${partTimePercentage === pct ? 'text-blue-100' : textSecondary}`}>
+                            ${Math.round(annualAmount / 1000)}K/yr
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Duration */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Duration:
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {[3, 5, 7, 10].map((years) => (
+                    <button
+                      key={years}
+                      onClick={() => setPartTimeDuration(years)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        partTimeDuration === years
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {years} years
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Impact Preview */}
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                <div className={`text-xs ${textSecondary} space-y-1`}>
+                  <div className={`font-semibold ${textPrimary} mb-2`}>
+                    Total additional income: ${Math.round((employmentIncome * (partTimePercentage / 100) * partTimeDuration) / 1000)}K
+                  </div>
+                  <div>• Work ages {retirementAge} to {retirementAge + partTimeDuration}</div>
+                  <div>• Earn ${Math.round(employmentIncome * (partTimePercentage / 100) / 1000)}K/year</div>
+                  <div>• Reduces early withdrawal pressure</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Market Crash Selector */}
+          {scenarioType === 'market_crash' && (
+            <div className="space-y-4">
+              {/* Crash Severity */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Crash Severity:
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[30, 40, 50].map((severity) => (
+                    <button
+                      key={severity}
+                      onClick={() => setCrashMagnitude(severity)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        crashMagnitude === severity
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      -{severity}%
+                      <div className={`text-xs mt-0.5 ${crashMagnitude === severity ? 'text-blue-100' : textSecondary}`}>
+                        {severity === 30 ? 'Moderate' : severity === 40 ? 'Severe' : 'Extreme'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recovery Period */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Recovery Period:
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[3, 5, 7].map((years) => (
+                    <button
+                      key={years}
+                      onClick={() => setRecoveryYears(years)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        recoveryYears === years
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {years} years
+                      <div className={`text-xs mt-0.5 ${recoveryYears === years ? 'text-blue-100' : textSecondary}`}>
+                        {years === 3 ? 'Fast' : years === 5 ? 'Normal' : 'Slow'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Impact Preview */}
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                <div className={`text-xs ${textSecondary} space-y-1`}>
+                  <div className={`font-semibold ${textPrimary} mb-2`}>
+                    Crash at age {retirementAge} (first year of retirement)
+                  </div>
+                  <div>• Portfolio drops {crashMagnitude}% in year 1</div>
+                  <div>• Recovery over {recoveryYears} years back to baseline</div>
+                  <div>• Tests "sequence of returns" risk</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Parameters */}
           {scenario.parameters && (
             <div>
@@ -568,6 +795,51 @@ function getScenarioConfig(
         estimates: [
           'Configure withdrawal amount, age, and source account above',
           'Results show tax impact and portfolio longevity'
+        ]
+      }
+
+    case 'longevity':
+      return {
+        icon: '💀',
+        title: 'Live to 100',
+        subtitle: 'Test your plan for a long life',
+        description:
+          'See if your retirement plan can sustain you well beyond average life expectancy. Tests portfolio durability with extra years of spending.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Extends your planning horizon',
+          'Shows if portfolio lasts through longevity'
+        ]
+      }
+
+    case 'part_time_work':
+      return {
+        icon: '💼',
+        title: 'Work Part-Time',
+        subtitle: 'Earn income after retiring',
+        description:
+          'Model the impact of working part-time in early retirement. Even modest income can significantly extend your portfolio and reduce sequence-of-returns risk.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Select income level and duration above',
+          'Shows portfolio and tax impact'
+        ]
+      }
+
+    case 'market_crash':
+      return {
+        icon: '📉',
+        title: 'Markets Crash',
+        subtitle: 'Stress test your plan',
+        description:
+          'Simulate a major market crash in the first year of retirement—the worst possible timing. See if your portfolio recovers and sustains your lifestyle.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Configure crash severity and recovery period above',
+          'Shows long-term portfolio impact'
         ]
       }
 

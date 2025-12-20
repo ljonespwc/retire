@@ -198,3 +198,103 @@ export function createLumpSumWithdrawalVariant(
   }
 }
 
+/**
+ * Create "Live to 100" variant
+ * Extends longevity age to test plan durability
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param newLongevityAge - Target longevity age (default: 100)
+ */
+export function createLongevityVariant(
+  baseScenario: Scenario,
+  newLongevityAge: number = 100
+): Scenario {
+  return {
+    ...baseScenario,
+    name: `Live to ${newLongevityAge}`,
+    basic_inputs: {
+      ...baseScenario.basic_inputs,
+      longevity_age: newLongevityAge
+    }
+  }
+}
+
+/**
+ * Create "Work Part-Time" variant
+ * Adds part-time income for specified years after retirement
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param incomePercentage - Percentage of current income (e.g., 0.25 for 25%)
+ * @param durationYears - Number of years to work part-time
+ */
+export function createPartTimeWorkVariant(
+  baseScenario: Scenario,
+  incomePercentage: number,
+  durationYears: number
+): Scenario {
+  // Calculate annual amount from current employment or use fallback
+  const currentEmployment = baseScenario.income_sources.employment?.annual_amount || 60000
+  const annualIncome = Math.round(currentEmployment * incomePercentage)
+  const startAge = baseScenario.basic_inputs.retirement_age
+  const endAge = startAge + durationYears
+
+  return {
+    ...baseScenario,
+    name: `Part-Time Work (${Math.round(incomePercentage * 100)}% for ${durationYears}yr)`,
+    income_sources: {
+      ...baseScenario.income_sources,
+      other_income: [
+        ...(baseScenario.income_sources.other_income || []),
+        {
+          description: 'Part-time work',
+          annual_amount: annualIncome,
+          start_age: startAge,
+          end_age: endAge,
+          indexed_to_inflation: false
+        }
+      ]
+    }
+  }
+}
+
+/**
+ * Create "Markets Crash" variant
+ * Models a market crash in year 1 of retirement with recovery period
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param crashMagnitude - Crash severity (e.g., -0.40 for 40% drop)
+ * @param recoveryYears - Years to recover to baseline
+ */
+export function createMarketCrashVariant(
+  baseScenario: Scenario,
+  crashMagnitude: number = -0.40,
+  recoveryYears: number = 5
+): Scenario {
+  const retirementAge = baseScenario.basic_inputs.retirement_age
+  const currentYear = new Date().getFullYear()
+  const yearsUntilRetirement = retirementAge - baseScenario.basic_inputs.current_age
+  const crashYear = currentYear + yearsUntilRetirement
+
+  // Calculate recovery return rate needed to get back to baseline
+  // Formula: (1 / (1 + crashMagnitude))^(1/recoveryYears) - 1
+  const recoveryReturn = Math.pow(1 / (1 + crashMagnitude), 1 / recoveryYears) - 1
+
+  // Build year override map
+  const overrides: Record<number, number> = {
+    [crashYear]: crashMagnitude // Crash year
+  }
+  // Recovery years get elevated returns
+  for (let i = 1; i <= recoveryYears; i++) {
+    overrides[crashYear + i] = recoveryReturn
+  }
+
+  return {
+    ...baseScenario,
+    name: `Markets Crash (${Math.abs(crashMagnitude * 100)}% drop)`,
+    assumptions: {
+      ...baseScenario.assumptions,
+      year_return_overrides: overrides
+    }
+  }
+}
+

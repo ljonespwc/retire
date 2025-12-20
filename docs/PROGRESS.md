@@ -7,6 +7,18 @@
 
 ## Recent Updates
 
+### 2025-12-19: Three New What-If Scenarios
+
+Added "Live to 100", "Work Part-Time", and "Markets Crash" scenarios:
+
+- **Live to 100**: Extends longevity age (95/100/105) to test plan durability
+- **Work Part-Time**: Adds post-retirement income (25/50/75% of salary for 3-10 years)
+- **Markets Crash**: Simulates year-1 crash (-30/-40/-50%) with recovery period
+
+Engine change: Added `year_return_overrides` to Assumptions type for year-specific returns (market crash only).
+
+---
+
 ### 2025-12-19: PostHog Analytics Integration
 
 **Why**: Understand user behavior to improve the product. Track the funnel from landing to calculation to save/share.
