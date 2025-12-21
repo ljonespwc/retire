@@ -175,6 +175,22 @@ export interface OneTimeWithdrawal {
 }
 
 /**
+ * One-time income deposit (inheritance, windfall, property sale)
+ */
+export interface OneTimeIncome {
+  /** Age at which income is received */
+  age: number;
+  /** Income amount (gross) */
+  amount: number;
+  /** Destination account for deposit */
+  destination: 'non_registered' | 'tfsa';
+  /** Source type determines tax treatment */
+  source_type: 'cash' | 'rrsp_inherited' | 'investments' | 'property';
+  /** Optional description */
+  description?: string;
+}
+
+/**
  * Annual expenses and spending
  */
 export interface Expenses {
@@ -190,6 +206,8 @@ export interface Expenses {
   legacy_preservation_percentage?: number;
   /** One-time withdrawals (weddings, renovations, etc.) */
   one_time_withdrawals?: OneTimeWithdrawal[];
+  /** One-time income deposits (inheritances, property sales, etc.) */
+  one_time_incomes?: OneTimeIncome[];
 }
 
 /**
@@ -206,6 +224,8 @@ export interface Assumptions {
   marginal_tax_rate?: number;
   /** Year-specific return overrides for stress testing (key = calendar year, value = return rate) */
   year_return_overrides?: Record<number, number>;
+  /** Year-specific province overrides for relocation scenarios (key = calendar year, value = province) */
+  year_province_overrides?: Record<number, Province>;
 }
 
 /**

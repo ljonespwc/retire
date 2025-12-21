@@ -9,10 +9,12 @@ import { useState } from 'react'
  * shows quick estimates, and triggers scenario calculations.
  */
 
+import { Province } from '@/types/constants'
+
 interface ScenarioModalProps {
   isOpen: boolean
   onClose: () => void
-  scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash'
+  scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home'
   baselineMonthly: number
   retirementAge: number
   currentAge: number
@@ -24,6 +26,7 @@ interface ScenarioModalProps {
   cppStartAge?: number // For delay benefits modal to show baseline CPP age
   oasStartAge?: number // For delay benefits modal to show baseline OAS age
   employmentIncome?: number // For part-time work calculations
+  currentProvince?: Province // For move provinces variant
   isDarkMode?: boolean
   onRun: (config?: any) => void // Config for parameterized scenarios
 }
@@ -43,6 +46,7 @@ export function ScenarioModal({
   cppStartAge = 65,
   oasStartAge = 65,
   employmentIncome = 60000,
+  currentProvince = 'ON' as Province,
   isDarkMode = false,
   onRun
 }: ScenarioModalProps) {
@@ -69,6 +73,22 @@ export function ScenarioModal({
   const [crashMagnitude, setCrashMagnitude] = useState(40) // % drop (stored as positive)
   const [recoveryYears, setRecoveryYears] = useState(5)
 
+  // State for move provinces variant
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null)
+  const [moveAge, setMoveAge] = useState(retirementAge)
+
+  // State for receive inheritance variant
+  const [inheritanceAmount, setInheritanceAmount] = useState(200000)
+  const [inheritanceAge, setInheritanceAge] = useState(Math.min(retirementAge + 5, longevityAge - 1))
+  const [inheritanceSource, setInheritanceSource] = useState<'cash' | 'rrsp_inherited' | 'investments' | 'property'>('cash')
+
+  // State for downsize home variant
+  const [homeValue, setHomeValue] = useState(800000)
+  const [downsizeAge, setDownsizeAge] = useState(Math.min(retirementAge + 5, longevityAge - 1))
+  const [buyOrRent, setBuyOrRent] = useState<'buy' | 'rent'>('buy')
+  const [newHomeCost, setNewHomeCost] = useState(400000)
+  const [monthlyRent, setMonthlyRent] = useState(2500)
+
   // Reset state when modal opens (only on isOpen transition from false to true)
   const [previousIsOpen, setPreviousIsOpen] = useState(isOpen)
 
@@ -85,6 +105,16 @@ export function ScenarioModal({
       setPartTimeDuration(5)
       setCrashMagnitude(40)
       setRecoveryYears(5)
+      setSelectedProvince(null)
+      setMoveAge(retirementAge)
+      setInheritanceAmount(200000)
+      setInheritanceAge(Math.min(retirementAge + 5, longevityAge - 1))
+      setInheritanceSource('cash')
+      setHomeValue(800000)
+      setDownsizeAge(Math.min(retirementAge + 5, longevityAge - 1))
+      setBuyOrRent('buy')
+      setNewHomeCost(400000)
+      setMonthlyRent(2500)
     }
   }
 
@@ -106,6 +136,19 @@ export function ScenarioModal({
       onRun({ incomePercentage: partTimePercentage / 100, durationYears: partTimeDuration })
     } else if (scenarioType === 'market_crash') {
       onRun({ crashMagnitude: -crashMagnitude / 100, recoveryYears }) // Convert to negative decimal
+    } else if (scenarioType === 'move_provinces') {
+      if (!selectedProvince) return // Safety check - button should be disabled
+      onRun({ newProvince: selectedProvince, moveAge })
+    } else if (scenarioType === 'receive_inheritance') {
+      onRun({ amount: inheritanceAmount, receiveAge: inheritanceAge, sourceType: inheritanceSource })
+    } else if (scenarioType === 'downsize_home') {
+      onRun({
+        currentHomeValue: homeValue,
+        downsizeAge,
+        buyOrRent,
+        newCostOrRent: buyOrRent === 'buy' ? newHomeCost : monthlyRent,
+        sellingCostsPct: 0.05
+      })
     } else {
       onRun()
     }
@@ -596,6 +639,389 @@ export function ScenarioModal({
             </div>
           )}
 
+          {/* Move Provinces Selector */}
+          {scenarioType === 'move_provinces' && (
+            <div className="space-y-4">
+              {/* Province Selection */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Move To:
+                </h3>
+                <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
+                  <div className={`text-xs ${textSecondary} mb-2`}>
+                    Current province: <span className={`font-semibold ${textPrimary}`}>{currentProvince}</span>
+                  </div>
+
+                  {/* Popular Provinces */}
+                  <div className={`text-xs ${textSecondary} mb-2`}>Popular destinations:</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['BC', 'AB', 'ON'] as Province[]).map((prov) => (
+                      <button
+                        key={prov}
+                        onClick={() => setSelectedProvince(prov)}
+                        disabled={prov === currentProvince}
+                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                          selectedProvince === prov
+                            ? isDarkMode
+                              ? 'bg-blue-600 text-white border-2 border-blue-500'
+                              : 'bg-blue-600 text-white border-2 border-blue-500'
+                            : prov === currentProvince
+                            ? isDarkMode
+                              ? 'bg-gray-700 text-gray-500 border-2 border-gray-600 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed'
+                            : isDarkMode
+                            ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                            : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {prov}
+                        <div className={`text-xs mt-0.5 ${selectedProvince === prov ? 'text-blue-100' : textSecondary}`}>
+                          {prov === 'BC' ? 'Mild climate' : prov === 'AB' ? 'No PST' : 'Major cities'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* All Other Provinces */}
+                  <div className={`text-xs ${textSecondary} mt-3 mb-2`}>Other provinces:</div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {(['SK', 'MB', 'QC', 'NB', 'NS', 'PE', 'NL', 'NT', 'NU', 'YT'] as Province[])
+                      .filter(prov => prov !== currentProvince)
+                      .map((prov) => (
+                      <button
+                        key={prov}
+                        onClick={() => setSelectedProvince(prov)}
+                        className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                          selectedProvince === prov
+                            ? isDarkMode
+                              ? 'bg-blue-600 text-white border-2 border-blue-500'
+                              : 'bg-blue-600 text-white border-2 border-blue-500'
+                            : isDarkMode
+                            ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                            : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {prov}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Move Age */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Move at Age:
+                </h3>
+                <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                  <input
+                    type="number"
+                    min={currentAge}
+                    max={longevityAge - 1}
+                    value={moveAge}
+                    onChange={(e) => setMoveAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
+                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
+                      isDarkMode
+                        ? 'bg-gray-600 text-white border-2 border-gray-500'
+                        : 'bg-white text-gray-900 border-2 border-gray-300'
+                    }`}
+                  />
+                  <div className={`text-xs ${textSecondary} mt-2`}>
+                    Default: retirement age ({retirementAge})
+                  </div>
+                </div>
+              </div>
+
+              {/* Impact Preview */}
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                <div className={`text-xs ${textSecondary} space-y-1`}>
+                  {selectedProvince ? (
+                    <>
+                      <div className={`font-semibold ${textPrimary} mb-2`}>
+                        Moving from {currentProvince} to {selectedProvince} at age {moveAge}
+                      </div>
+                      <div>• Tax rates change based on new province</div>
+                      <div>• Impact varies by your income level</div>
+                      <div>• Full comparison shown after calculation</div>
+                    </>
+                  ) : (
+                    <div className={`${textPrimary}`}>
+                      👆 Select a destination province above
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Receive Inheritance Selector */}
+          {scenarioType === 'receive_inheritance' && (
+            <div className="space-y-4">
+              {/* Inheritance Amount */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Inheritance Amount:
+                </h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {[50000, 100000, 200000, 300000, 500000, 750000, 1000000, 2000000].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => setInheritanceAmount(amount)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        inheritanceAmount === amount
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      ${amount >= 1000000 ? `${(amount / 1000000).toFixed(1)}M` : `${amount / 1000}K`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Receive Age */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Receive at Age:
+                </h3>
+                <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                  <input
+                    type="number"
+                    min={currentAge}
+                    max={longevityAge - 1}
+                    value={inheritanceAge}
+                    onChange={(e) => setInheritanceAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
+                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
+                      isDarkMode
+                        ? 'bg-gray-600 text-white border-2 border-gray-500'
+                        : 'bg-white text-gray-900 border-2 border-gray-300'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Source Type */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Inheritance Type:
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { value: 'cash' as const, label: 'Cash / Life Insurance', tax: 'No tax (estate paid)', recommended: true },
+                    { value: 'investments' as const, label: 'Investments (non-reg)', tax: 'No tax (cost basis stepped up)', recommended: false },
+                    { value: 'property' as const, label: 'Real Estate', tax: 'No tax (principal residence)', recommended: false },
+                    { value: 'rrsp_inherited' as const, label: 'RRSP/RRIF (non-spouse)', tax: 'Fully taxable as income', recommended: false }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setInheritanceSource(option.value)}
+                      className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all ${
+                        inheritanceSource === option.value
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">{option.label}</span>
+                          {option.recommended && (
+                            <span className={`ml-2 text-xs ${inheritanceSource === option.value ? 'text-blue-200' : isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                              (Most common)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`text-xs mt-1 ${inheritanceSource === option.value ? 'text-blue-100' : textSecondary}`}>
+                        {option.tax}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Impact Preview */}
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                <div className={`text-xs ${textSecondary} space-y-1`}>
+                  <div className={`font-semibold ${textPrimary} mb-2`}>
+                    Receiving ${inheritanceAmount >= 1000000 ? `${(inheritanceAmount / 1000000).toFixed(1)}M` : `${inheritanceAmount / 1000}K`} at age {inheritanceAge}
+                  </div>
+                  <div>• Added to non-registered account</div>
+                  {inheritanceSource === 'rrsp_inherited' && (
+                    <div className="text-orange-500">⚠️ Will cause significant tax in receive year</div>
+                  )}
+                  <div>• See impact in portfolio chart</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Downsize Home Selector */}
+          {scenarioType === 'downsize_home' && (
+            <div className="space-y-4">
+              {/* Current Home Value */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Current Home Value:
+                </h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {[400000, 600000, 800000, 1000000, 1200000, 1500000, 2000000, 3000000].map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => setHomeValue(value)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        homeValue === value
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      ${value >= 1000000 ? `${(value / 1000000).toFixed(1)}M` : `${value / 1000}K`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Downsize Age */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  Downsize at Age:
+                </h3>
+                <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                  <input
+                    type="number"
+                    min={currentAge}
+                    max={longevityAge - 1}
+                    value={downsizeAge}
+                    onChange={(e) => setDownsizeAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
+                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
+                      isDarkMode
+                        ? 'bg-gray-600 text-white border-2 border-gray-500'
+                        : 'bg-white text-gray-900 border-2 border-gray-300'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Buy vs Rent Toggle */}
+              <div>
+                <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                  After Selling:
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['buy', 'rent'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setBuyOrRent(option)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        buyOrRent === option
+                          ? isDarkMode
+                            ? 'bg-blue-600 text-white border-2 border-blue-500'
+                            : 'bg-blue-600 text-white border-2 border-blue-500'
+                          : isDarkMode
+                          ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                          : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {option === 'buy' ? '🏠 Buy Smaller Home' : '🏢 Rent'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* New Home Cost (if buying) */}
+              {buyOrRent === 'buy' && (
+                <div>
+                  <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                    New Home Cost:
+                  </h3>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {[200000, 300000, 400000, 500000, 600000, 800000, 1000000, 1500000].map((cost) => (
+                      <button
+                        key={cost}
+                        onClick={() => setNewHomeCost(cost)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          newHomeCost === cost
+                            ? isDarkMode
+                              ? 'bg-blue-600 text-white border-2 border-blue-500'
+                              : 'bg-blue-600 text-white border-2 border-blue-500'
+                            : isDarkMode
+                            ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                            : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        ${cost >= 1000000 ? `${(cost / 1000000).toFixed(1)}M` : `${cost / 1000}K`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Monthly Rent (if renting) */}
+              {buyOrRent === 'rent' && (
+                <div>
+                  <h3 className={`text-sm font-semibold ${textPrimary} mb-3`}>
+                    Monthly Rent:
+                  </h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1500, 2000, 2500, 3000, 3500, 4000, 5000, 6000].map((rent) => (
+                      <button
+                        key={rent}
+                        onClick={() => setMonthlyRent(rent)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          monthlyRent === rent
+                            ? isDarkMode
+                              ? 'bg-blue-600 text-white border-2 border-blue-500'
+                              : 'bg-blue-600 text-white border-2 border-blue-500'
+                            : isDarkMode
+                            ? 'bg-gray-600 text-gray-200 border-2 border-gray-500 hover:bg-gray-500'
+                            : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        ${rent.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Impact Preview */}
+              <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
+                <div className={`text-xs ${textSecondary} space-y-1`}>
+                  {(() => {
+                    const netProceeds = homeValue * 0.95 // 5% selling costs
+                    const equityUnlocked = buyOrRent === 'buy' ? netProceeds - newHomeCost : netProceeds
+                    const equityFormatted = equityUnlocked >= 1000000
+                      ? `$${(equityUnlocked / 1000000).toFixed(1)}M`
+                      : `$${Math.round(equityUnlocked / 1000)}K`
+                    return (
+                      <>
+                        <div className={`font-semibold ${textPrimary} mb-2`}>
+                          {buyOrRent === 'buy' ? 'Downsizing' : 'Selling & renting'} at age {downsizeAge}
+                        </div>
+                        <div>• Net proceeds after 5% costs: ${(netProceeds / 1000).toFixed(0)}K</div>
+                        {buyOrRent === 'buy' && <div>• New home cost: ${(newHomeCost / 1000).toFixed(0)}K</div>}
+                        <div className={`font-semibold ${textPrimary}`}>• Equity unlocked: {equityFormatted}</div>
+                        {buyOrRent === 'rent' && <div>• Monthly rent added to expenses: ${monthlyRent.toLocaleString()}</div>}
+                        <div>• No tax (principal residence exemption)</div>
+                      </>
+                    )
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Parameters */}
           {scenario.parameters && (
             <div>
@@ -633,7 +1059,12 @@ export function ScenarioModal({
           </button>
           <button
             onClick={handleRun}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+            disabled={scenarioType === 'move_provinces' && !selectedProvince}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+              scenarioType === 'move_provinces' && !selectedProvince
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
             Run Scenario
           </button>
@@ -840,6 +1271,51 @@ function getScenarioConfig(
         estimates: [
           'Configure crash severity and recovery period above',
           'Shows long-term portfolio impact'
+        ]
+      }
+
+    case 'move_provinces':
+      return {
+        icon: '🍁',
+        title: 'Move Provinces',
+        subtitle: 'Compare tax impact of relocating',
+        description:
+          'Compare the tax impact of moving to a different province. Provincial tax rates vary by income level—the best province depends on your specific situation.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Select destination province and move age above',
+          'Shows tax impact in comparison view'
+        ]
+      }
+
+    case 'receive_inheritance':
+      return {
+        icon: '💝',
+        title: 'Receive Inheritance',
+        subtitle: 'Model a windfall or bequest',
+        description:
+          'See how receiving an inheritance impacts your retirement. Tax treatment depends on the source—most inheritances (cash, investments, property) are tax-free to you.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Select amount, age, and source type above',
+          'Shows portfolio and tax impact'
+        ]
+      }
+
+    case 'downsize_home':
+      return {
+        icon: '🏠',
+        title: 'Downsize Home',
+        subtitle: 'Unlock home equity for retirement',
+        description:
+          'Model selling your home and either buying smaller or renting. Principal residence gains are tax-free. 5% selling costs are automatically included.',
+        parametersTitle: null,
+        parameters: null,
+        estimates: [
+          'Configure home value and strategy above',
+          'Shows equity unlocked and portfolio impact'
         ]
       }
 

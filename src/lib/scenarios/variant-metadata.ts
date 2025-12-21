@@ -16,8 +16,12 @@ import {
   createLumpSumWithdrawalVariant,
   createLongevityVariant,
   createPartTimeWorkVariant,
-  createMarketCrashVariant
+  createMarketCrashVariant,
+  createMoveProvincesVariant,
+  createReceiveInheritanceVariant,
+  createDownsizeHomeVariant
 } from '@/lib/calculations/scenario-variants'
+import { Province } from '@/types/constants'
 import { calculateCPPAdjustmentFactor, calculateOASAdjustmentFactor } from '@/lib/calculations/government-benefits'
 
 /**
@@ -33,6 +37,9 @@ export type VariantType =
   | 'longevity'
   | 'part-time-work'
   | 'market-crash'
+  | 'move-provinces'
+  | 'receive-inheritance'
+  | 'downsize-home'
 
 /**
  * Baseline snapshot stored with variants for standalone comparison context
@@ -168,6 +175,25 @@ export function regenerateVariant(
       const recoveryYears = config?.recoveryYears || 5
       return createMarketCrashVariant(baseScenario, crashMagnitude, recoveryYears)
     }
+    case 'move-provinces': {
+      const newProvince = (config?.newProvince || 'AB') as Province
+      const moveAge = config?.moveAge || baseScenario.basic_inputs.retirement_age
+      return createMoveProvincesVariant(baseScenario, newProvince, moveAge)
+    }
+    case 'receive-inheritance': {
+      const amount = config?.amount || 100000
+      const receiveAge = config?.receiveAge || baseScenario.basic_inputs.retirement_age + 5
+      const sourceType = config?.sourceType || 'cash'
+      return createReceiveInheritanceVariant(baseScenario, amount, receiveAge, sourceType)
+    }
+    case 'downsize-home': {
+      const currentHomeValue = config?.currentHomeValue || 600000
+      const downsizeAge = config?.downsizeAge || baseScenario.basic_inputs.retirement_age + 5
+      const buyOrRent = config?.buyOrRent || 'buy'
+      const newCostOrRent = config?.newCostOrRent || 400000
+      const sellingCostsPct = config?.sellingCostsPct || 0.05
+      return createDownsizeHomeVariant(baseScenario, currentHomeValue, downsizeAge, buyOrRent, newCostOrRent, sellingCostsPct)
+    }
     default:
       // Unknown variant type - return base scenario unchanged
       console.warn(`Unknown variant type: ${variantType}`)
@@ -188,7 +214,10 @@ export function getVariantDisplayName(variantType: VariantType): string {
     'lump-sum': 'Lump Sum Withdrawal',
     'longevity': 'Live to 100',
     'part-time-work': 'Work Part-Time',
-    'market-crash': 'Markets Crash'
+    'market-crash': 'Markets Crash',
+    'move-provinces': 'Move Provinces',
+    'receive-inheritance': 'Receive Inheritance',
+    'downsize-home': 'Downsize Home'
   }
   const baseName = names[variantType] || variantType
   return `What-If Variant: ${baseName}`
@@ -226,6 +255,15 @@ export function detectVariantTypeFromName(name: string): VariantType | null {
   }
   if (lowercaseName.includes('crash') || lowercaseName.includes('market')) {
     return 'market-crash'
+  }
+  if (lowercaseName.includes('move to') || lowercaseName.includes('move-provinces')) {
+    return 'move-provinces'
+  }
+  if (lowercaseName.includes('inherit') || lowercaseName.includes('inheritance')) {
+    return 'receive-inheritance'
+  }
+  if (lowercaseName.includes('downsize') || lowercaseName.includes('sell & rent')) {
+    return 'downsize-home'
   }
 
   return null
@@ -637,6 +675,137 @@ export function getVariantDetails(
           {
             label: 'Impact',
             value: 'Tests portfolio survival after a major market downturn'
+          }
+        ]
+      }
+    }
+
+    case 'move-provinces': {
+      // Get province overrides from scenario
+      const overrides = scenario?.assumptions.year_province_overrides || {}
+      const years = Object.keys(overrides).map(Number).sort((a, b) => a - b)
+      const moveYear = years[0] || new Date().getFullYear()
+      const newProvince = overrides[moveYear] || 'AB'
+      const currentProvince = scenario?.basic_inputs.province || 'ON'
+
+      // Calculate move age from year
+      const currentYear = new Date().getFullYear()
+      const currentAge = scenario?.basic_inputs.current_age || 55
+      const moveAge = currentAge + (moveYear - currentYear)
+
+      return {
+        title: 'Move Provinces',
+        items: [
+          {
+            label: 'Move From',
+            value: currentProvince
+          },
+          {
+            label: 'Move To',
+            value: newProvince as string
+          },
+          {
+            label: 'Move Age',
+            value: `Age ${moveAge}`
+          },
+          {
+            label: 'Impact',
+            value: 'Tax rates change based on new province of residence'
+          }
+        ]
+      }
+    }
+
+    case 'receive-inheritance': {
+      // Get inheritance details from one_time_incomes
+      const inheritance = scenario?.expenses.one_time_incomes?.find(
+        inc => inc.description === 'Inheritance'
+      )
+      const amount = inheritance?.amount || 0
+      const receiveAge = inheritance?.age || 70
+      const sourceType = inheritance?.source_type || 'cash'
+
+      // Format amount
+      const amountFormatted = amount >= 1_000_000
+        ? `$${(amount / 1_000_000).toFixed(1)}M`
+        : `$${Math.round(amount).toLocaleString()}`
+
+      // Tax treatment labels
+      const taxTreatment: Record<string, string> = {
+        'cash': 'No tax (estate paid)',
+        'rrsp_inherited': 'Fully taxable as income',
+        'investments': 'No tax (stepped-up cost basis)',
+        'property': 'No tax (principal residence exemption)'
+      }
+
+      return {
+        title: 'Receive Inheritance',
+        items: [
+          {
+            label: 'Inheritance Amount',
+            value: amountFormatted
+          },
+          {
+            label: 'Receive Age',
+            value: `Age ${receiveAge}`
+          },
+          {
+            label: 'Source Type',
+            value: sourceType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+          },
+          {
+            label: 'Tax Treatment',
+            value: taxTreatment[sourceType] || 'Varies'
+          },
+          {
+            label: 'Destination',
+            value: 'Non-registered account'
+          }
+        ]
+      }
+    }
+
+    case 'downsize-home': {
+      // Get downsize details from one_time_incomes
+      const homeProceeds = scenario?.expenses.one_time_incomes?.find(
+        inc => inc.description?.includes('Home') || inc.description?.includes('downsize')
+      )
+      const amount = homeProceeds?.amount || 0
+      const downsizeAge = homeProceeds?.age || 70
+
+      // Check if switching to rent (look for age_based_changes at same age)
+      const rentChange = scenario?.expenses.age_based_changes?.find(
+        change => change.age === downsizeAge
+      )
+      const isRenting = homeProceeds?.description === 'Home sale proceeds'
+
+      // Format amount
+      const amountFormatted = amount >= 1_000_000
+        ? `$${(amount / 1_000_000).toFixed(1)}M`
+        : `$${Math.round(amount).toLocaleString()}`
+
+      return {
+        title: isRenting ? 'Sell Home & Rent' : 'Downsize Home',
+        items: [
+          {
+            label: isRenting ? 'Sale Proceeds' : 'Net Equity Unlocked',
+            value: amountFormatted
+          },
+          {
+            label: 'Downsize Age',
+            value: `Age ${downsizeAge}`
+          },
+          {
+            label: 'Strategy',
+            value: isRenting ? 'Sell home and switch to renting' : 'Buy smaller home'
+          },
+          ...(isRenting && rentChange ? [{
+            label: 'New Monthly Expenses',
+            value: `$${Math.round(rentChange.monthly_amount).toLocaleString()}/month (includes rent)`
+          }] : []),
+          {
+            label: 'Tax Treatment',
+            value: 'No tax (principal residence exemption)'
           }
         ]
       }

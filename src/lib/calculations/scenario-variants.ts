@@ -6,6 +6,7 @@
  */
 
 import { Scenario } from '@/types/calculator'
+import { Province } from '@/types/constants'
 
 /**
  * Create "Front-Load the Fun" variant
@@ -294,6 +295,167 @@ export function createMarketCrashVariant(
     assumptions: {
       ...baseScenario.assumptions,
       year_return_overrides: overrides
+    }
+  }
+}
+
+/**
+ * Create "Move Provinces" variant
+ * Models tax impact of relocating to a different province
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param newProvince - Province to move to
+ * @param moveAge - Age at which to move
+ */
+export function createMoveProvincesVariant(
+  baseScenario: Scenario,
+  newProvince: Province,
+  moveAge: number
+): Scenario {
+  const currentYear = new Date().getFullYear()
+  const yearsUntilMove = moveAge - baseScenario.basic_inputs.current_age
+  const moveYear = currentYear + yearsUntilMove
+  const yearsUntilLongevity = baseScenario.basic_inputs.longevity_age - baseScenario.basic_inputs.current_age
+  const endYear = currentYear + yearsUntilLongevity
+
+  // Build year override map from move year to end of plan
+  const overrides: Record<number, Province> = {}
+  for (let year = moveYear; year <= endYear; year++) {
+    overrides[year] = newProvince
+  }
+
+  return {
+    ...baseScenario,
+    name: `Move to ${newProvince} at ${moveAge}`,
+    assumptions: {
+      ...baseScenario.assumptions,
+      year_province_overrides: overrides
+    }
+  }
+}
+
+/**
+ * Create "Receive Inheritance" variant
+ * Models impact of receiving an inheritance at a specific age
+ *
+ * Tax treatment by source type:
+ * - cash: No tax (estate paid it)
+ * - rrsp_inherited: Fully taxable as income that year
+ * - investments: No tax (stepped-up cost basis)
+ * - property: No tax (principal residence exemption)
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param amount - Inheritance amount
+ * @param receiveAge - Age when inheritance is received
+ * @param sourceType - Source type determining tax treatment
+ */
+export function createReceiveInheritanceVariant(
+  baseScenario: Scenario,
+  amount: number,
+  receiveAge: number,
+  sourceType: 'cash' | 'rrsp_inherited' | 'investments' | 'property'
+): Scenario {
+  const amountFormatted = amount >= 1_000_000
+    ? `$${(amount / 1_000_000).toFixed(1)}M`
+    : `$${Math.round(amount / 1000)}K`
+
+  return {
+    ...baseScenario,
+    name: `Inherit ${amountFormatted} at ${receiveAge}`,
+    expenses: {
+      ...baseScenario.expenses,
+      one_time_incomes: [
+        ...(baseScenario.expenses.one_time_incomes || []),
+        {
+          age: receiveAge,
+          amount,
+          source_type: sourceType,
+          destination: 'non_registered' as const,
+          description: 'Inheritance'
+        }
+      ]
+    }
+  }
+}
+
+/**
+ * Create "Downsize Home" variant
+ * Models unlocking home equity by downsizing or switching to rent
+ *
+ * @param baseScenario - Base retirement scenario
+ * @param currentHomeValue - Current home value
+ * @param downsizeAge - Age at which to downsize
+ * @param buyOrRent - Whether to buy a smaller home or rent
+ * @param newCostOrRent - Cost of new home (if buying) or monthly rent (if renting)
+ * @param sellingCostsPct - Selling costs as percentage (default 5%)
+ */
+export function createDownsizeHomeVariant(
+  baseScenario: Scenario,
+  currentHomeValue: number,
+  downsizeAge: number,
+  buyOrRent: 'buy' | 'rent',
+  newCostOrRent: number,
+  sellingCostsPct: number = 0.05
+): Scenario {
+  const netProceeds = currentHomeValue * (1 - sellingCostsPct)
+
+  if (buyOrRent === 'buy') {
+    // Buying smaller home: net equity = proceeds - new home cost
+    const netEquityUnlocked = netProceeds - newCostOrRent
+    const amountFormatted = netEquityUnlocked >= 1_000_000
+      ? `$${(netEquityUnlocked / 1_000_000).toFixed(1)}M`
+      : `$${Math.round(netEquityUnlocked / 1000)}K`
+
+    return {
+      ...baseScenario,
+      name: `Downsize at ${downsizeAge} (${amountFormatted})`,
+      expenses: {
+        ...baseScenario.expenses,
+        one_time_incomes: [
+          ...(baseScenario.expenses.one_time_incomes || []),
+          {
+            age: downsizeAge,
+            amount: netEquityUnlocked,
+            source_type: 'property' as const,
+            destination: 'non_registered' as const,
+            description: 'Home equity (downsize)'
+          }
+        ]
+      }
+    }
+  } else {
+    // Renting: full proceeds added, plus add rent to monthly expenses
+    const inflationRate = baseScenario.assumptions.inflation_rate
+    const yearsFromRetirement = downsizeAge - baseScenario.basic_inputs.retirement_age
+
+    // Pre-deflate rent so it inflates to target value by downsize age
+    const rentBase = yearsFromRetirement > 0
+      ? newCostOrRent / Math.pow(1 + inflationRate, yearsFromRetirement)
+      : newCostOrRent
+
+    return {
+      ...baseScenario,
+      name: `Sell & Rent at ${downsizeAge}`,
+      expenses: {
+        ...baseScenario.expenses,
+        one_time_incomes: [
+          ...(baseScenario.expenses.one_time_incomes || []),
+          {
+            age: downsizeAge,
+            amount: netProceeds,
+            source_type: 'property' as const,
+            destination: 'non_registered' as const,
+            description: 'Home sale proceeds'
+          }
+        ],
+        age_based_changes: [
+          ...(baseScenario.expenses.age_based_changes || []),
+          {
+            age: downsizeAge,
+            monthly_amount: baseScenario.expenses.fixed_monthly + rentBase
+          }
+        ]
+      }
     }
   }
 }

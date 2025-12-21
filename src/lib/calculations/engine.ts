@@ -17,6 +17,7 @@ import type {
   YearByYearResult,
   CalculationResults,
 } from '@/types/calculator';
+import { Province } from '@/types/constants';
 import { calculateTotalTax, type IncomeSources } from './tax-calculator';
 import { calculateCPP, calculateOAS } from './government-benefits';
 import { projectYearForward, type AccountBalances } from './accounts';
@@ -59,6 +60,12 @@ export async function calculateRetirementProjection(
     longevity_age,
     province,
   } = basic_inputs;
+
+  // Helper function to get effective province for a given year
+  // Supports mid-scenario province changes for "Move Provinces" what-if variant
+  const getEffectiveProvince = (year: number): Province => {
+    return assumptions.year_province_overrides?.[year] ?? province;
+  };
 
   // Initialize year-by-year results
   const yearByYear: YearByYearResult[] = [];
@@ -357,12 +364,31 @@ export async function calculateRetirementProjection(
         pension: pensionIncome,
         other: otherIncome,
       },
-      province,
+      getEffectiveProvince(year),
       age
     );
 
     // After-tax income from external sources (pension/CPP/OAS/other)
     const afterTaxExternalIncome = governmentBenefits - preliminaryTaxCalc.total_tax;
+
+    // Check for one-time income deposits at this age (inheritance, home sale, etc.)
+    const oneTimeIncome = expenses.one_time_incomes?.find(inc => inc.age === age);
+    if (oneTimeIncome) {
+      // Deposit to appropriate account
+      if (oneTimeIncome.destination === 'tfsa') {
+        currentBalances.tfsa += oneTimeIncome.amount;
+      } else {
+        // Default to non-registered
+        currentBalances.non_registered += oneTimeIncome.amount;
+        nonRegCostBasis += oneTimeIncome.amount; // FMV becomes cost basis for inherited assets
+      }
+      currentBalances.total = currentBalances.rrsp_rrif + currentBalances.tfsa + currentBalances.non_registered;
+
+      // If RRSP inherited, add to taxable income (will be included in later tax calculations)
+      if (oneTimeIncome.source_type === 'rrsp_inherited') {
+        otherIncome += oneTimeIncome.amount;
+      }
+    }
 
     // Check for one-time withdrawals at this age
     let oneTimeWithdrawalAmount = 0;
@@ -425,7 +451,7 @@ export async function calculateRetirementProjection(
           pension: pensionIncome,
           other: otherIncome,
         },
-        province,
+        getEffectiveProvince(year),
         age
       );
 
@@ -499,7 +525,7 @@ export async function calculateRetirementProjection(
     const taxCalc = await calculateTotalTax(
       client,
       incomeSources,
-      province,
+      getEffectiveProvince(year),
       age
     );
 

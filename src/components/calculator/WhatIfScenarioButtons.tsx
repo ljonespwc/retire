@@ -13,7 +13,7 @@ import { Heart } from 'lucide-react'
 import { Scenario } from '@/types/calculator'
 import { type VariantMetadata } from '@/lib/scenarios/variant-metadata'
 
-type VariantTypeKey = 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash'
+type VariantTypeKey = 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home'
 
 interface WhatIfScenarioButtonsProps {
   isDarkMode: boolean
@@ -35,7 +35,10 @@ function isTabOpen(variantScenarios: Scenario[], type: VariantTypeKey): boolean 
     'lump_sum': (name) => name.includes('Lump Sum'),
     'longevity': (name) => name.includes('Live to'),
     'part_time_work': (name) => name.includes('Part-Time'),
-    'market_crash': (name) => name.includes('Markets Crash') || name.includes('Crash')
+    'market_crash': (name) => name.includes('Markets Crash') || name.includes('Crash'),
+    'move_provinces': (name) => name.includes('Move to'),
+    'receive_inheritance': (name) => name.includes('Inherit'),
+    'downsize_home': (name) => name.includes('Downsize') || name.includes('Sell & Rent')
   }
   return variantScenarios.some(v => namePatterns[type](v.name))
 }
@@ -148,6 +151,27 @@ export function WhatIfScenarioButtons({
       title: 'Markets Crash',
       description: 'Stress test a major downturn',
       generatingText: 'Running crash scenario...'
+    },
+    {
+      type: 'move_provinces',
+      emoji: '🍁',
+      title: 'Move Provinces',
+      description: 'See tax savings from relocating',
+      generatingText: 'Calculating tax impact...'
+    },
+    {
+      type: 'receive_inheritance',
+      emoji: '💝',
+      title: 'Receive Inheritance',
+      description: 'Model a windfall or bequest',
+      generatingText: 'Adding inheritance...'
+    },
+    {
+      type: 'downsize_home',
+      emoji: '🏠',
+      title: 'Downsize Home',
+      description: 'Unlock home equity for retirement',
+      generatingText: 'Calculating equity...'
     }
   ]
 
@@ -156,7 +180,7 @@ export function WhatIfScenarioButtons({
       <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4 text-center`}>
         Try What-If Scenarios
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {variants.map((variant) => {
           const state = getButtonState(variant.type)
 

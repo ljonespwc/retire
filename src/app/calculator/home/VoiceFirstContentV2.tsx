@@ -28,7 +28,7 @@ import { ShareScenarioModal } from '@/components/scenarios/ShareScenarioModal'
 import { ScenarioModal } from '@/components/results/ScenarioModal'
 import { ScenarioComparison } from '@/components/results/ScenarioComparison'
 import { RecalculateConfirmModal } from '@/components/calculator/RecalculateConfirmModal'
-import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant, createLumpSumWithdrawalVariant, createLongevityVariant, createPartTimeWorkVariant, createMarketCrashVariant } from '@/lib/calculations/scenario-variants'
+import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfolioVariant, createRetireEarlyVariant, createLegacyVariant, createLumpSumWithdrawalVariant, createLongevityVariant, createPartTimeWorkVariant, createMarketCrashVariant, createMoveProvincesVariant, createReceiveInheritanceVariant, createDownsizeHomeVariant } from '@/lib/calculations/scenario-variants'
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
@@ -84,7 +84,7 @@ export function VoiceFirstContentV2() {
 
   // What-if scenario state
   const [showScenarioModal, setShowScenarioModal] = useState(false)
-  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash'>('front_load')
+  const [selectedScenarioType, setSelectedScenarioType] = useState<'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home'>('front_load')
   const [variantScenarios, setVariantScenarios] = useState<Scenario[]>([])
   const [variantResultsArray, setVariantResultsArray] = useState<CalculationResults[]>([])
   const [variantInsights, setVariantInsights] = useState<string[]>([])
@@ -92,7 +92,7 @@ export function VoiceFirstContentV2() {
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
-  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | null>(null)
+  const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
   const [savingVariantIndex, setSavingVariantIndex] = useState<number | null>(null)
   const [isSavingVariantNarrative, setIsSavingVariantNarrative] = useState(false)
@@ -850,7 +850,7 @@ export function VoiceFirstContentV2() {
   }
 
   // Handle scenario button click
-  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash') => {
+  const handleScenarioClick = (scenarioType: 'front_load' | 'exhaust' | 'legacy' | 'delay_benefits' | 'retire_early' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home') => {
     setSelectedScenarioType(scenarioType)
     setShowScenarioModal(true)
   }
@@ -860,7 +860,7 @@ export function VoiceFirstContentV2() {
     if (!monthlySpending || !retirementAge) return
 
     setIsCalculatingVariant(true)
-    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash')
+    setGeneratingVariantType(selectedScenarioType as 'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home')
     try {
       const baseScenario = createScenarioFromFormData()
       const supabase = createClient()
@@ -978,6 +978,56 @@ export function VoiceFirstContentV2() {
             variant_type: 'market-crash',
             crashMagnitude,
             recoveryYears
+          }
+          break
+        }
+        case 'move_provinces': {
+          const newProvince = (config?.newProvince || 'AB') as Province
+          const moveAge = config?.moveAge || baseScenario.basic_inputs.retirement_age
+
+          variant = createMoveProvincesVariant(baseScenario, newProvince, moveAge)
+
+          // Store config for regeneration
+          variantConfig = {
+            variant_type: 'move-provinces',
+            newProvince,
+            moveAge
+          }
+          break
+        }
+        case 'receive_inheritance': {
+          const amount = config?.amount || 200000
+          const receiveAge = config?.receiveAge || baseScenario.basic_inputs.retirement_age + 5
+          const sourceType = config?.sourceType || 'cash'
+
+          variant = createReceiveInheritanceVariant(baseScenario, amount, receiveAge, sourceType)
+
+          // Store config for regeneration
+          variantConfig = {
+            variant_type: 'receive-inheritance',
+            amount,
+            receiveAge,
+            sourceType
+          }
+          break
+        }
+        case 'downsize_home': {
+          const currentHomeValue = config?.currentHomeValue || 800000
+          const downsizeAge = config?.downsizeAge || baseScenario.basic_inputs.retirement_age + 5
+          const buyOrRent = config?.buyOrRent || 'buy'
+          const newCostOrRent = config?.newCostOrRent || 400000
+          const sellingCostsPct = config?.sellingCostsPct || 0.05
+
+          variant = createDownsizeHomeVariant(baseScenario, currentHomeValue, downsizeAge, buyOrRent, newCostOrRent, sellingCostsPct)
+
+          // Store config for regeneration
+          variantConfig = {
+            variant_type: 'downsize-home',
+            currentHomeValue,
+            downsizeAge,
+            buyOrRent,
+            newCostOrRent,
+            sellingCostsPct
           }
           break
         }
@@ -1572,6 +1622,7 @@ export function VoiceFirstContentV2() {
         oasStartAge={65}
         employmentIncome={currentIncome || 60000}
         isDarkMode={isDarkMode}
+        currentProvince={province as Province || undefined}
         onRun={handleRunScenario}
       />
 
