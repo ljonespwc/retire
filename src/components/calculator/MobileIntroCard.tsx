@@ -59,7 +59,7 @@ export function MobileIntroCard({
               <div className={`flex-1 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
             </div>
 
-            {/* Create New Plan Button */}
+            {/* Start Fresh Button */}
             <div className="text-center">
               <Button
                 onClick={onStartPlanning}
@@ -67,7 +67,7 @@ export function MobileIntroCard({
                 className={`${theme.button.secondary} text-white px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-2xl shadow-xl w-full sm:w-auto`}
               >
                 <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
-                Create New Plan
+                Start Fresh
               </Button>
             </div>
           </div>

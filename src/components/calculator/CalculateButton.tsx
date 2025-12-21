@@ -66,7 +66,7 @@ export function CalculateButton({
       {/* Helper text when variant is loaded */}
       {isVariantLoaded && (
         <p className={`text-xs text-center ${theme.text.muted}`}>
-          What-if scenarios cannot be recalculated. Click "Create New Plan" to create a new scenario.
+          What-if scenarios cannot be recalculated. Click "Start Fresh" to create a new scenario.
         </p>
       )}
     </div>

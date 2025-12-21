@@ -202,7 +202,7 @@ export function VoiceFirstContentV2() {
   // Confetti celebration effect
   const { startConfetti, stopConfetti } = useConfetti()
 
-  // Handle Create New Plan button
+  // Handle Start Fresh button
   // Check if mandatory fields are complete and valid
   const isMandatoryFieldsComplete = () => {
     // Check if required fields exist
