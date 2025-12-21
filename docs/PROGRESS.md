@@ -7,15 +7,28 @@
 
 ## Recent Updates
 
-### 2025-12-19: Three New What-If Scenarios
+### 2025-12-20: All 6 New What-If Scenarios Complete ✅
 
-Added "Live to 100", "Work Part-Time", and "Markets Crash" scenarios:
+Built and tested all 6 new what-if scenarios, bringing the total to **12 what-if variants**:
 
+**Batch 1 (completed 2025-12-19):**
 - **Live to 100**: Extends longevity age (95/100/105) to test plan durability
 - **Work Part-Time**: Adds post-retirement income (25/50/75% of salary for 3-10 years)
 - **Markets Crash**: Simulates year-1 crash (-30/-40/-50%) with recovery period
 
-Engine change: Added `year_return_overrides` to Assumptions type for year-specific returns (market crash only).
+**Batch 2 (completed 2025-12-20):**
+- **Move Provinces**: Model tax impact of relocating (all 13 provinces supported)
+- **Receive Inheritance**: Add windfall income with tax treatment by source type (cash, RRSP, investments, property)
+- **Downsize Home**: Unlock home equity via downsizing or sell-and-rent strategy
+
+**Engine changes:**
+- Added `year_return_overrides` to Assumptions type for year-specific returns (market crash)
+- Added `year_province_overrides` to Assumptions type for mid-scenario province changes
+- Added `one_time_incomes` to Expenses type for inheritance/downsizing proceeds
+
+**Bug fix:** Constrained age inputs for `receive_inheritance` and `downsize_home` to `min={retirementAge}` to ensure one-time incomes are processed by the retirement-phase calculation engine.
+
+**AI insight enhancement:** Added scenario-specific context (province details, inheritance amount/source, downsize proceeds) to LLM prompts for richer variant insights.
 
 ---
 
@@ -433,27 +446,25 @@ interface PartTimeWorkInput {
 
 ---
 
-## 🎯 NEXT PRIORITY: 6 New What-If Scenarios
+## ✅ COMPLETED: 12 What-If Scenarios
 
-**Objective**: Expand the what-if scenario library with high-curiosity variants that drive engagement and create upsell opportunities.
+**All 12 what-if scenarios are now built and tested.**
 
-**Current What-Ifs** (already built):
-1. Front-Load the Fun
-2. Delay CPP/OAS to 70
-3. Exhaust Your Portfolio
-4. Retire Earlier
-5. Leave a Legacy
-6. Lump Sum Withdrawal
-7. ✅ **Live to 100** (completed 2025-12-20)
-8. ✅ **Work Part-Time** (completed 2025-12-20)
-9. ✅ **Markets Crash** (completed 2025-12-20)
+**Complete What-If Library:**
+1. ✅ Front-Load the Fun
+2. ✅ Delay CPP/OAS to 70
+3. ✅ Exhaust Your Portfolio
+4. ✅ Retire Earlier
+5. ✅ Leave a Legacy
+6. ✅ Lump Sum Withdrawal
+7. ✅ Live to 100 (completed 2025-12-19)
+8. ✅ Work Part-Time (completed 2025-12-19)
+9. ✅ Markets Crash (completed 2025-12-19)
+10. ✅ Move Provinces (completed 2025-12-20)
+11. ✅ Receive Inheritance (completed 2025-12-20)
+12. ✅ Downsize Home (completed 2025-12-20)
 
-**Remaining What-Ifs** (to build):
-1. 🍁 Move Provinces
-2. 💝 Receive an Inheritance
-3. 🏠 Downsize My Home
-
-**New What-Ifs** (to build):
+**Implementation Details** (for reference):
 
 ---
 
@@ -759,24 +770,21 @@ interface PartTimeWorkVariant {
 
 ---
 
-### Implementation Priority Order
+### Implementation Summary (All Complete ✅)
 
-| # | Scenario | Complexity | Impact | Priority |
-|---|----------|------------|--------|----------|
-| 1 | Live to 100 | ⭐ Low | High | 🔥 First |
-| 2 | Work Part-Time | ⭐⭐ Medium | High | Second |
-| 3 | Markets Crash | ⭐⭐ Medium | High | Third |
-| 4 | Move Provinces | ⭐⭐ Medium | High | Fourth |
-| 5 | Receive Inheritance | ⭐⭐ Medium | High | Fifth |
-| 6 | Downsize Home | ⭐⭐⭐ Higher | High | Sixth |
+| # | Scenario | Complexity | Status |
+|---|----------|------------|--------|
+| 1 | Live to 100 | ⭐ Low | ✅ Complete |
+| 2 | Work Part-Time | ⭐⭐ Medium | ✅ Complete |
+| 3 | Markets Crash | ⭐⭐ Medium | ✅ Complete |
+| 4 | Move Provinces | ⭐⭐ Medium | ✅ Complete |
+| 5 | Receive Inheritance | ⭐⭐ Medium | ✅ Complete |
+| 6 | Downsize Home | ⭐⭐⭐ Higher | ✅ Complete |
 
-**Rationale**:
-- "Live to 100" is trivial (change one number) - quick win
-- "Work Part-Time" reuses existing employment income logic
-- "Markets Crash" needs custom return modeling but is straightforward
-- "Move Provinces" leverages existing provincial tax engine
-- "Inheritance" needs tax treatment logic by source type
-- "Downsize" has most edge cases (rent vs buy, selling costs, timing)
+**Key Implementation Notes**:
+- All scenarios validated with `npx tsx src/scripts/validate-ai-outputs.ts`
+- Age constraints fixed for inheritance/downsize (must be ≥ retirement age)
+- AI insights enhanced with scenario-specific context for all 12 variants
 
 ---
 
