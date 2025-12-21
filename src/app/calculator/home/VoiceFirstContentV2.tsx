@@ -43,6 +43,7 @@ import { WhatIfScenarioButtons } from '@/components/calculator/WhatIfScenarioBut
 import { CalculateButton } from '@/components/calculator/CalculateButton'
 import { BaselineResults } from '@/components/results/BaselineResults'
 import { FormSections } from '@/components/calculator/FormSections'
+import { StaleResultsBanner } from '@/components/calculator/StaleResultsBanner'
 import posthog from 'posthog-js'
 
 export function VoiceFirstContentV2() {
@@ -70,9 +71,11 @@ export function VoiceFirstContentV2() {
   const [postRetirementReturn, setPostRetirementReturn] = useState<number | null>(null)
   const [inflationRate, setInflationRate] = useState<number | null>(null)
 
+  // Stale results tracking - detect when form values differ from last calculation
+  const [resultsAreStale, setResultsAreStale] = useState(false)
+  const [lastCalculatedFormValues, setLastCalculatedFormValues] = useState<Record<string, any> | null>(null)
+
   // UI state
-  const [editMode, setEditMode] = useState(false)
-  const [justCalculated, setJustCalculated] = useState(false)
   const [planningStarted, setPlanningStarted] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [showSaveWithAccountModal, setShowSaveWithAccountModal] = useState(false)
@@ -139,6 +142,40 @@ export function VoiceFirstContentV2() {
     posthog.capture('calculator_page_viewed')
   }, [])
 
+  // Detect when form values change after calculation (stale results)
+  useEffect(() => {
+    if (!lastCalculatedFormValues || !calculationResults) {
+      setResultsAreStale(false)
+      return
+    }
+
+    const current = {
+      currentAge, retirementAge, longevityAge, province,
+      rrsp, tfsa, nonRegistered, monthlySpending,
+      pensionIncome, pensionIndexed, pensionHasBridge,
+      otherIncome, cppStartAge, investmentReturn,
+      postRetirementReturn, inflationRate,
+      rrspContribution, tfsaContribution, nonRegisteredContribution,
+      currentIncome
+    }
+
+    const isStale = Object.keys(current).some(key => {
+      const currentVal = current[key as keyof typeof current]
+      const lastVal = lastCalculatedFormValues[key]
+      return currentVal !== lastVal
+    })
+
+    setResultsAreStale(isStale)
+  }, [
+    currentAge, retirementAge, longevityAge, province,
+    rrsp, tfsa, nonRegistered, monthlySpending,
+    pensionIncome, pensionIndexed, pensionHasBridge,
+    otherIncome, cppStartAge, investmentReturn,
+    postRetirementReturn, inflationRate,
+    rrspContribution, tfsaContribution, nonRegisteredContribution,
+    currentIncome, lastCalculatedFormValues, calculationResults
+  ])
+
   // Theme configuration
   const theme = {
     background: isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800' : 'bg-gradient-to-br from-orange-50 via-rose-50 to-teal-50',
@@ -197,7 +234,6 @@ export function VoiceFirstContentV2() {
 
   const handleStartPlanning = () => {
     setPlanningStarted(true)
-    setEditMode(true)
 
     // PostHog: Track when user starts/restarts planning from calculator
     posthog.capture('planning_started', {
@@ -236,11 +272,12 @@ export function VoiceFirstContentV2() {
     setShareToken(null)
     setIsScenarioShared(false)
 
-    // Clear calculation results
-    setJustCalculated(false)
+    // Clear calculation results and stale tracking
     setShowResults(false)
     setCalculationResults(null)
     setBaselineNarrative(null)
+    setLastCalculatedFormValues(null)
+    setResultsAreStale(false)
 
     // Clear any variant scenarios
     setVariantScenarios([])
@@ -407,10 +444,20 @@ export function VoiceFirstContentV2() {
           setLoadedScenarioName(null)
         }
 
+        // Capture form snapshot for stale detection
+        setLastCalculatedFormValues({
+          currentAge, retirementAge, longevityAge, province,
+          rrsp, tfsa, nonRegistered, monthlySpending,
+          pensionIncome, pensionIndexed, pensionHasBridge,
+          otherIncome, cppStartAge, investmentReturn,
+          postRetirementReturn, inflationRate,
+          rrspContribution, tfsaContribution, nonRegisteredContribution,
+          currentIncome
+        })
+        setResultsAreStale(false)
+
         setShowResults(true)
         stopConfetti() // Stop fireworks when results render
-        setEditMode(false)
-        setJustCalculated(true)
         setFocusedField(null) // Reset sidebar to original state
       } else {
         console.error('❌ Calculation failed:', data.error)
@@ -488,7 +535,31 @@ export function VoiceFirstContentV2() {
 
     setLoadedScenarioName(scenarioName)
     setPlanningStarted(true)
-    setEditMode(false)
+
+    // Set form snapshot for loaded scenario (so changes after load are detected as stale)
+    setLastCalculatedFormValues({
+      currentAge: formData.currentAge,
+      retirementAge: formData.retirementAge,
+      longevityAge: formData.longevityAge,
+      province: formData.province,
+      rrsp: formData.rrspAmount,
+      tfsa: formData.tfsaAmount,
+      nonRegistered: formData.nonRegisteredAmount,
+      monthlySpending: formData.monthlySpending,
+      pensionIncome: formData.pensionIncome,
+      pensionIndexed: formData.pensionIndexed,
+      pensionHasBridge: formData.pensionHasBridge,
+      otherIncome: formData.otherIncome,
+      cppStartAge: formData.cppStartAge,
+      investmentReturn: formData.investmentReturn,
+      postRetirementReturn: formData.postRetirementReturn,
+      inflationRate: formData.inflationRate,
+      rrspContribution: formData.rrspContribution,
+      tfsaContribution: formData.tfsaContribution,
+      nonRegisteredContribution: formData.nonRegisteredContribution,
+      currentIncome: formData.currentIncome
+    })
+    setResultsAreStale(false)
 
     // Reset Compare Mode state initially
     setIsCompareMode(false)
@@ -558,11 +629,9 @@ export function VoiceFirstContentV2() {
     if (results) {
       setCalculationResults(results)
       setShowResults(true)
-      setJustCalculated(true)
     } else {
       setCalculationResults(null)
       setShowResults(false)
-      setJustCalculated(false)
     }
 
     if (narrative) {
@@ -746,10 +815,8 @@ export function VoiceFirstContentV2() {
     // Close modal
     setShowEditWarningModal(false)
 
-    // Enter edit mode (variants will be cleared when user recalculates)
+    // Hide results (variants will be cleared when user recalculates)
     setShowResults(false)
-    setEditMode(true)
-    setJustCalculated(false)
   }
 
   // Create scenario from current form data
@@ -1035,8 +1102,23 @@ export function VoiceFirstContentV2() {
           return
       }
 
-      // Check if this variant already exists (by name)
-      const existingIndex = variantScenarios.findIndex(v => v.name === variant.name)
+      // Check if a variant of this type already exists (by pattern matching, same as WhatIfScenarioButtons)
+      const namePatterns: Record<string, (name: string) => boolean> = {
+        'front_load': (name) => name.includes('Front-Load'),
+        'delay_benefits': (name) => name.includes('Delay CPP/OAS'),
+        'exhaust': (name) => name.includes('Exhaust'),
+        'retire_early': (name) => name.includes('Retire') && name.includes('Earlier'),
+        'legacy': (name) => name.includes('Leave') && name.includes('Legacy'),
+        'lump_sum': (name) => name.includes('Lump Sum'),
+        'longevity': (name) => name.includes('Live to'),
+        'part_time_work': (name) => name.includes('Part-Time'),
+        'market_crash': (name) => name.includes('Markets Crash') || name.includes('Crash'),
+        'move_provinces': (name) => name.includes('Move to'),
+        'receive_inheritance': (name) => name.includes('Inherit'),
+        'downsize_home': (name) => name.includes('Downsize') || name.includes('Sell & Rent')
+      }
+      const pattern = namePatterns[selectedScenarioType]
+      const existingIndex = pattern ? variantScenarios.findIndex(v => pattern(v.name)) : -1
 
       // Clear loaded variant metadata (user is creating a NEW variant via what-if button)
       setLoadedVariantMetadata(null)
@@ -1312,6 +1394,27 @@ export function VoiceFirstContentV2() {
     }
   }
 
+  // Remove a variant tab
+  const handleRemoveVariant = (index: number) => {
+    // Remove from all variant arrays
+    setVariantScenarios(prev => prev.filter((_, i) => i !== index))
+    setVariantResultsArray(prev => prev.filter((_, i) => i !== index))
+    setVariantInsights(prev => prev.filter((_, i) => i !== index))
+    setVariantNarratives(prev => prev.filter((_, i) => i !== index))
+    setVariantScenarioIds(prev => prev.filter((_, i) => i !== index))
+    setVariantConfigs(prev => prev.filter((_, i) => i !== index))
+    setVariantShareTokens(prev => prev.filter((_, i) => i !== index))
+    setVariantIsShared(prev => prev.filter((_, i) => i !== index))
+
+    // Adjust active tab if needed
+    if (activeVariantTab >= index && activeVariantTab > 0) {
+      setActiveVariantTab(activeVariantTab - 1)
+    } else if (variantScenarios.length === 1) {
+      // If removing the last variant, switch to baseline
+      setActiveVariantTab(-1)
+    }
+  }
+
   return (
     <div className={`min-h-screen ${theme.background}`}>
       {/* Header */}
@@ -1361,37 +1464,10 @@ export function VoiceFirstContentV2() {
           <div className="lg:col-span-7">
             <Card className={`border-0 shadow-xl rounded-3xl ${theme.card}`}>
               <CardHeader className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} pb-4 sm:pb-6 px-4 sm:px-6`}>
-                <div className="flex items-start sm:items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className={`text-2xl sm:text-3xl font-bold ${theme.text.primary}`}>
-                      Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
-                    </CardTitle>
-                  </div>
-                  {calculationResults && !loadedVariantMetadata && (
-                    <Button
-                      onClick={() => {
-                        if (!editMode) {
-                          // Entering edit mode
-                          // If variants exist, show warning modal first
-                          if (variantScenarios.length > 0) {
-                            setShowEditWarningModal(true)
-                            return
-                          }
-                          // No variants - proceed normally
-                          setShowResults(false)
-                        } else {
-                          // Exiting edit mode - clear focused field to show contextual help
-                          setFocusedField(null)
-                        }
-                        setEditMode(!editMode)
-                        setJustCalculated(false)
-                      }}
-                      variant="outline"
-                      className={isDarkMode ? "border-blue-700 text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 rounded-xl text-sm sm:text-base flex-shrink-0" : "border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-800 rounded-xl text-sm sm:text-base flex-shrink-0"}
-                    >
-                      {editMode ? 'Done Editing' : '✏️ Edit'}
-                    </Button>
-                  )}
+                <div className="min-w-0">
+                  <CardTitle className={`text-2xl sm:text-3xl font-bold ${theme.text.primary}`}>
+                    Your Details{loadedScenarioName && <span className={`ml-2 text-lg ${theme.text.secondary}`}>- {loadedScenarioName}</span>}
+                  </CardTitle>
                 </div>
               </CardHeader>
 
@@ -1417,10 +1493,9 @@ export function VoiceFirstContentV2() {
                   investmentReturn={investmentReturn}
                   postRetirementReturn={postRetirementReturn}
                   inflationRate={inflationRate}
-                  editMode={editMode}
+                  editMode={true}
                   isDarkMode={isDarkMode}
                   theme={theme}
-                  calculationResults={calculationResults}
                   setCurrentAge={setCurrentAge}
                   setRetirementAge={setRetirementAge}
                   setLongevityAge={setLongevityAge}
@@ -1441,7 +1516,6 @@ export function VoiceFirstContentV2() {
                   setInvestmentReturn={setInvestmentReturn}
                   setPostRetirementReturn={setPostRetirementReturn}
                   setInflationRate={setInflationRate}
-                  setEditMode={setEditMode}
                   onFieldFocus={setFocusedField}
                 />
 
@@ -1450,9 +1524,7 @@ export function VoiceFirstContentV2() {
                   <CalculateButton
                     isCalculating={isCalculating}
                     isMandatoryFieldsComplete={isMandatoryFieldsComplete()}
-                    editMode={editMode}
                     calculationResults={calculationResults}
-                    justCalculated={justCalculated}
                     theme={theme}
                     onClick={handleCalculate}
                     loadedVariantMetadata={loadedVariantMetadata}
@@ -1558,6 +1630,7 @@ export function VoiceFirstContentV2() {
                 onTabChange={setActiveVariantTab}
                 onSave={handleSaveVariant}
                 onShareChange={handleShareChange}
+                onRemoveVariant={handleRemoveVariant}
                 isSavingNarrative={isSavingVariantNarrative}
               />
             )})()}
@@ -1677,6 +1750,14 @@ export function VoiceFirstContentV2() {
         isDarkMode={isDarkMode}
         theme={theme}
         planningStarted={planningStarted}
+      />
+
+      {/* Stale Results Banner - shown when form values change after calculation */}
+      <StaleResultsBanner
+        isVisible={resultsAreStale && calculationResults !== null && !loadedVariantMetadata}
+        onRecalculate={handleCalculate}
+        isCalculating={isCalculating}
+        isDarkMode={isDarkMode}
       />
     </div>
   )

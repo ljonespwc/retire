@@ -13,9 +13,7 @@ import { VariantMetadata } from '@/lib/scenarios/variant-metadata'
 interface CalculateButtonProps {
   isCalculating: boolean
   isMandatoryFieldsComplete: boolean
-  editMode: boolean
   calculationResults: CalculationResults | null
-  justCalculated: boolean
   theme: any
   onClick: () => void
   loadedVariantMetadata?: VariantMetadata | null
@@ -24,16 +22,14 @@ interface CalculateButtonProps {
 export function CalculateButton({
   isCalculating,
   isMandatoryFieldsComplete,
-  editMode,
   calculationResults,
-  justCalculated,
   theme,
   onClick,
   loadedVariantMetadata
 }: CalculateButtonProps) {
   // Disable button when a variant scenario is loaded
   const isVariantLoaded = !!loadedVariantMetadata
-  const isDisabled = isCalculating || !isMandatoryFieldsComplete || (editMode && !!calculationResults) || justCalculated || isVariantLoaded
+  const isDisabled = isCalculating || !isMandatoryFieldsComplete || isVariantLoaded
 
   return (
     <div className="space-y-2">

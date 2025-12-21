@@ -55,8 +55,8 @@ export function WhatIfScenarioButtons({
   // Helper to get button state for a variant type
   const getButtonState = (type: VariantTypeKey) => {
     const isActive = isTabOpen(variantScenarios, type)
-    // Disabled if: variant metadata loaded OR variant already generated
-    const isDisabled = !!loadedVariantMetadata || isActive
+    // Only disable if viewing a loaded/saved variant scenario
+    const isDisabled = !!loadedVariantMetadata
     const isGenerating = generatingVariantType === type
 
     return { isActive, isDisabled, isGenerating }
@@ -208,8 +208,8 @@ export function WhatIfScenarioButtons({
                   </p>
                 </div>
                 {state.isActive && !state.isGenerating && (
-                  <span className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-orange-600'} font-medium`}>
-                    Active
+                  <span className={`text-xs ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`}>
+                    ↻ Replace
                   </span>
                 )}
               </div>

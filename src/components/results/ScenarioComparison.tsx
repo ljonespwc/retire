@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Share2, Loader2 } from 'lucide-react'
+import { Share2, Loader2, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -43,6 +43,7 @@ interface ScenarioComparisonProps {
   onSave?: (index: number) => void
   onShareChange?: (index: number, shareToken: string | null, isShared: boolean) => void // Notify parent of share changes
   onTryAnother?: () => void
+  onRemoveVariant?: (index: number) => void // Remove a variant tab
   isSavingNarrative?: boolean // Loading state while generating AI narrative for save
 }
 
@@ -68,9 +69,11 @@ export function ScenarioComparison({
   onSave,
   onShareChange,
   onTryAnother,
+  onRemoveVariant,
   isSavingNarrative = false
 }: ScenarioComparisonProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
+  const [removeConfirmIndex, setRemoveConfirmIndex] = useState<number | null>(null)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareModalScenarioId, setShareModalScenarioId] = useState<string>('')
   const [shareModalScenarioName, setShareModalScenarioName] = useState<string>('')
@@ -171,18 +174,41 @@ export function ScenarioComparison({
 
           {/* Variant Tabs */}
           {variantScenarios.map((variant, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveTab(index)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
-                activeTab === index ? tabActive : tabInactive
-              }`}
-            >
-              {getShortTabLabel(variant.name)}
-              {!variantScenarioIds[index] && (
-                <span className="ml-1.5 text-xs opacity-60">*</span>
+            <div key={index} className="relative flex-shrink-0 group">
+              <button
+                onClick={() => setActiveTab(index)}
+                className={`px-4 py-2 pr-8 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                  activeTab === index ? tabActive : tabInactive
+                }`}
+              >
+                {getShortTabLabel(variant.name)}
+                {!variantScenarioIds[index] && (
+                  <span className="ml-1.5 text-xs opacity-60">*</span>
+                )}
+              </button>
+              {/* Close button */}
+              {onRemoveVariant && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const hasUnsavedChanges = !variantScenarioIds[index]
+                    if (hasUnsavedChanges) {
+                      setRemoveConfirmIndex(index)
+                    } else {
+                      onRemoveVariant(index)
+                    }
+                  }}
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full transition-opacity ${
+                    isDarkMode
+                      ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
+                      : 'hover:bg-gray-300 text-gray-500 hover:text-gray-700'
+                  } opacity-0 group-hover:opacity-100`}
+                  title="Close tab"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               )}
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -253,6 +279,45 @@ export function ScenarioComparison({
         onSharingChange={handleSharingChange}
         isVariant={shareModalIndex >= 0}
       />
+
+      {/* Remove Confirmation Modal */}
+      {removeConfirmIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border shadow-xl p-6 max-w-md mx-4`}>
+            <h3 className={`text-lg font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Close unsaved scenario?
+            </h3>
+            <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              "{variantScenarios[removeConfirmIndex]?.name}" hasn't been saved. Are you sure you want to close it?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setRemoveConfirmIndex(null)}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onRemoveVariant?.(removeConfirmIndex)
+                  setRemoveConfirmIndex(null)
+                }}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  isDarkMode
+                    ? 'bg-red-600 hover:bg-red-500 text-white'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
+              >
+                Close without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

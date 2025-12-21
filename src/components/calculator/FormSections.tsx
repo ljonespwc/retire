@@ -8,12 +8,10 @@
  * - Rate Assumptions (investment returns, inflation)
  */
 
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { WarmDataField } from '@/components/calculator/WarmDataField'
 import { Province } from '@/types/constants'
 import { PROVINCE_NAMES, PROVINCE_OPTIONS } from '@/lib/calculator/province-data'
-import { CalculationResults } from '@/types/calculator'
 
 interface FormSectionsProps {
   // Basic Info
@@ -48,7 +46,6 @@ interface FormSectionsProps {
   editMode: boolean
   isDarkMode: boolean
   theme: any
-  calculationResults: CalculationResults | null
 
   // Setters
   setCurrentAge: (v: number | null) => void
@@ -71,7 +68,6 @@ interface FormSectionsProps {
   setInvestmentReturn: (v: number | null) => void
   setPostRetirementReturn: (v: number | null) => void
   setInflationRate: (v: number | null) => void
-  setEditMode: (v: boolean) => void
 
   // Focus handler
   onFieldFocus: (field: string) => void
@@ -110,7 +106,6 @@ export function FormSections({
   editMode,
   isDarkMode,
   theme,
-  calculationResults,
 
   // Setters
   setCurrentAge,
@@ -133,7 +128,6 @@ export function FormSections({
   setInvestmentReturn,
   setPostRetirementReturn,
   setInflationRate,
-  setEditMode,
 
   // Focus handler
   onFieldFocus
@@ -290,22 +284,6 @@ export function FormSections({
         </div>
       </div>
 
-      {/* Done Editing Button (Bottom) - Mobile convenience */}
-      {editMode && calculationResults && (
-        <div className={`pt-4 border-t-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <Button
-            size="lg"
-            onClick={() => setEditMode(false)}
-            className={`w-full ${
-              isDarkMode
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 hover:text-blue-300'
-                : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600 hover:text-rose-800'
-            } text-white shadow-2xl py-5 sm:py-6 lg:py-7 text-base sm:text-lg font-bold rounded-2xl transition-all`}
-          >
-            ✓ Done Editing
-          </Button>
-        </div>
-      )}
-    </div>
+          </div>
   )
 }
