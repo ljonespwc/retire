@@ -203,6 +203,27 @@ interface BenefitStartAgeComparison {
   variantOASStartAge: number;
 }
 
+interface MoveProvincesContext {
+  fromProvince: string;
+  toProvince: string;
+  moveAge: number;
+}
+
+interface ReceiveInheritanceContext {
+  amount: number;
+  receiveAge: number;
+  sourceType: 'cash' | 'rrsp_inherited' | 'investments' | 'property';
+  isTaxable: boolean;
+}
+
+interface DownsizeHomeContext {
+  currentHomeValue: number;
+  netProceeds: number;
+  downsizeAge: number;
+  strategy: 'buy' | 'rent';
+  newCostOrRent?: number;
+}
+
 /**
  * Generate variant insight using LLM
  */
@@ -219,7 +240,10 @@ export async function generateVariantInsight(
   baselinePensionContext?: PensionContext,
   variantPensionContext?: PensionContext,
   retirementAgeComparison?: RetirementAgeComparison,
-  benefitStartAgeComparison?: BenefitStartAgeComparison
+  benefitStartAgeComparison?: BenefitStartAgeComparison,
+  moveProvincesContext?: MoveProvincesContext,
+  receiveInheritanceContext?: ReceiveInheritanceContext,
+  downsizeHomeContext?: DownsizeHomeContext
 ): Promise<string> {
   try {
     const metrics = extractComparison(baselineResults, variantResults);
@@ -323,6 +347,40 @@ export async function generateVariantInsight(
       }
     }
 
+    // Build move provinces context
+    let moveProvincesCtx = '';
+    if (moveProvincesContext) {
+      moveProvincesCtx = `
+  Province Change: Moving from ${moveProvincesContext.fromProvince} to ${moveProvincesContext.toProvince} at age ${moveProvincesContext.moveAge}
+  Impact: Provincial tax rates will change after the move`;
+    }
+
+    // Build receive inheritance context
+    let inheritanceCtx = '';
+    if (receiveInheritanceContext) {
+      const taxNote = receiveInheritanceContext.isTaxable
+        ? 'Taxable as income'
+        : 'Tax-free (estate already paid taxes)';
+      inheritanceCtx = `
+  Inheritance: ${formatCurrencyAbs(receiveInheritanceContext.amount)} received at age ${receiveInheritanceContext.receiveAge}
+  Source: ${receiveInheritanceContext.sourceType.replace('_', ' ')}
+  Tax Treatment: ${taxNote}`;
+    }
+
+    // Build downsize home context
+    let downsizeCtx = '';
+    if (downsizeHomeContext) {
+      const strategyNote = downsizeHomeContext.strategy === 'rent'
+        ? `Sell home and rent (${formatCurrencyAbs(downsizeHomeContext.newCostOrRent || 0)}/month)`
+        : `Buy smaller home (${formatCurrencyAbs(downsizeHomeContext.newCostOrRent || 0)})`;
+      downsizeCtx = `
+  Home Downsizing: At age ${downsizeHomeContext.downsizeAge}
+  Current Home Value: ${formatCurrencyAbs(downsizeHomeContext.currentHomeValue)}
+  Net Proceeds Unlocked: ${formatCurrencyAbs(downsizeHomeContext.netProceeds)}
+  Strategy: ${strategyNote}
+  Tax Treatment: Tax-free (principal residence exemption)`;
+    }
+
     // Build the required facts block with explicit direction indicators
     const requiredFacts = buildRequiredFacts(metrics, baselineResults, variantResults, baselineScenarioName);
 
@@ -337,7 +395,7 @@ Baseline: ${baselineScenarioName || 'Your baseline plan'}
   - Total Pension: ${formatCurrencyAbs(baselineResults.total_pension_received)}
   - Total CPP: ${formatCurrencyAbs(baselineResults.total_cpp_received)}
   - Total OAS: ${formatCurrencyAbs(baselineResults.total_oas_received)}
-  - Total Other Income: ${formatCurrencyAbs(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}${ageBasedContext}${retirementAgeContext}${benefitContext}${pensionContext}
+  - Total Other Income: ${formatCurrencyAbs(baselineResults.total_other_income_received)}${spendingContext}${withdrawalsContext}${ageBasedContext}${retirementAgeContext}${benefitContext}${pensionContext}${moveProvincesCtx}${inheritanceCtx}${downsizeCtx}
 
 What-If Scenario: ${variantName}
   - Ending balance: ${formatCurrencyAbs(variantResults.final_portfolio_value)}

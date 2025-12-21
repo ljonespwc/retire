@@ -1101,6 +1101,30 @@ export function VoiceFirstContentV2() {
             variantOASStartAge: variant.income_sources.oas?.start_age || 65,
           } : undefined
 
+          // Build move provinces context (for Move Provinces variant)
+          const moveProvincesContext = selectedScenarioType === 'move_provinces' && variantConfig ? {
+            fromProvince: baseScenario.basic_inputs.province,
+            toProvince: variantConfig.newProvince as string,
+            moveAge: variantConfig.moveAge as number,
+          } : undefined
+
+          // Build receive inheritance context (for Receive Inheritance variant)
+          const receiveInheritanceContext = selectedScenarioType === 'receive_inheritance' && variantConfig ? {
+            amount: variantConfig.amount as number,
+            receiveAge: variantConfig.receiveAge as number,
+            sourceType: (variantConfig.sourceType || 'cash') as 'cash' | 'rrsp_inherited' | 'investments' | 'property',
+            isTaxable: variantConfig.sourceType === 'rrsp_inherited',
+          } : undefined
+
+          // Build downsize home context (for Downsize Home variant)
+          const downsizeHomeContext = selectedScenarioType === 'downsize_home' && variantConfig ? {
+            currentHomeValue: variantConfig.currentHomeValue as number,
+            netProceeds: variantConfig.netProceeds as number,
+            downsizeAge: variantConfig.downsizeAge as number,
+            strategy: (variantConfig.buyOrRent || 'buy') as 'buy' | 'rent',
+            newCostOrRent: variantConfig.newCostOrRent as number,
+          } : undefined
+
           const insightResult = await fetch('/api/generate-insight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1118,6 +1142,9 @@ export function VoiceFirstContentV2() {
               variantPensionContext: undefined, // Pension doesn't change in variants
               retirementAgeComparison,
               benefitStartAgeComparison,
+              moveProvincesContext,
+              receiveInheritanceContext,
+              downsizeHomeContext,
             })
           })
             .then(res => res.json())

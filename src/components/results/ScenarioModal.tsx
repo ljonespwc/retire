@@ -791,16 +791,19 @@ export function ScenarioModal({
                 <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
                   <input
                     type="number"
-                    min={currentAge}
+                    min={retirementAge}
                     max={longevityAge - 1}
                     value={inheritanceAge}
-                    onChange={(e) => setInheritanceAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
+                    onChange={(e) => setInheritanceAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
                     className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
                       isDarkMode
                         ? 'bg-gray-600 text-white border-2 border-gray-500'
                         : 'bg-white text-gray-900 border-2 border-gray-300'
                     }`}
                   />
+                  <div className={`text-xs ${textSecondary} mt-2`}>
+                    Age must be between {retirementAge} (retirement) and {longevityAge - 1}
+                  </div>
                 </div>
               </div>
 
@@ -900,16 +903,19 @@ export function ScenarioModal({
                 <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
                   <input
                     type="number"
-                    min={currentAge}
+                    min={retirementAge}
                     max={longevityAge - 1}
                     value={downsizeAge}
-                    onChange={(e) => setDownsizeAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
+                    onChange={(e) => setDownsizeAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
                     className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
                       isDarkMode
                         ? 'bg-gray-600 text-white border-2 border-gray-500'
                         : 'bg-white text-gray-900 border-2 border-gray-300'
                     }`}
                   />
+                  <div className={`text-xs ${textSecondary} mt-2`}>
+                    Age must be between {retirementAge} (retirement) and {longevityAge - 1}
+                  </div>
                 </div>
               </div>
 

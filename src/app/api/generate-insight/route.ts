@@ -48,6 +48,27 @@ interface BenefitStartAgeComparison {
   variantOASStartAge: number;
 }
 
+interface MoveProvincesContext {
+  fromProvince: string;
+  toProvince: string;
+  moveAge: number;
+}
+
+interface ReceiveInheritanceContext {
+  amount: number;
+  receiveAge: number;
+  sourceType: 'cash' | 'rrsp_inherited' | 'investments' | 'property';
+  isTaxable: boolean;
+}
+
+interface DownsizeHomeContext {
+  currentHomeValue: number;
+  netProceeds: number;
+  downsizeAge: number;
+  strategy: 'buy' | 'rent';
+  newCostOrRent?: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -64,6 +85,9 @@ export async function POST(request: NextRequest) {
     const variantPensionContext: PensionContext | undefined = body.variantPensionContext;
     const retirementAgeComparison: RetirementAgeComparison | undefined = body.retirementAgeComparison;
     const benefitStartAgeComparison: BenefitStartAgeComparison | undefined = body.benefitStartAgeComparison;
+    const moveProvincesContext: MoveProvincesContext | undefined = body.moveProvincesContext;
+    const receiveInheritanceContext: ReceiveInheritanceContext | undefined = body.receiveInheritanceContext;
+    const downsizeHomeContext: DownsizeHomeContext | undefined = body.downsizeHomeContext;
 
     if (!baselineResults || !variantResults || !variantName) {
       return NextResponse.json(
@@ -92,7 +116,10 @@ export async function POST(request: NextRequest) {
       baselinePensionContext,
       variantPensionContext,
       retirementAgeComparison,
-      benefitStartAgeComparison
+      benefitStartAgeComparison,
+      moveProvincesContext,
+      receiveInheritanceContext,
+      downsizeHomeContext
     );
 
     return NextResponse.json({ insight });
