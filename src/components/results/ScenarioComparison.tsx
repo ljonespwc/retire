@@ -37,6 +37,7 @@ interface ScenarioComparisonProps {
   variantShareTokens?: (string | null)[]
   variantIsShared?: boolean[]
   variantConfigs?: Array<Record<string, any> | undefined> // Variant configs with variant_type
+  variantNeedsSave?: boolean[] // Track which variants need saving (created/modified this session)
   isDarkMode?: boolean
   activeTab?: number // Control active tab from parent
   onTabChange?: (index: number) => void // Notify parent of tab changes
@@ -63,6 +64,7 @@ export function ScenarioComparison({
   variantShareTokens = [],
   variantIsShared = [],
   variantConfigs = [],
+  variantNeedsSave = [],
   isDarkMode = false,
   activeTab: controlledActiveTab,
   onTabChange,
@@ -263,6 +265,7 @@ export function ScenarioComparison({
             scenarioName={variantScenarios[activeTab].name}
             baselineScenarioName={baselineScenarioName}
             variantConfig={variantConfigs[activeTab]}
+            needsSave={variantNeedsSave[activeTab]}
           />
         )}
       </div>
@@ -439,7 +442,8 @@ function VariantTab({
   scenarioId,
   scenarioName,
   baselineScenarioName,
-  variantConfig
+  variantConfig,
+  needsSave
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -469,6 +473,7 @@ function VariantTab({
   variantInsight?: string
   variantNarrative?: string
   variantConfig?: Record<string, any>
+  needsSave?: boolean
 }) {
   // Theme colors for share button
   const buttonSecondary = isDarkMode
@@ -637,8 +642,8 @@ function VariantTab({
         isDarkMode={isDarkMode}
         actionButtons={
           <div className="flex items-center gap-3">
-            {/* Save/Update Button */}
-            {onSave && (
+            {/* Save/Update Button - Only shown if variant was created/modified this session */}
+            {onSave && needsSave && (
               <button
                 onClick={onSave}
                 disabled={isSavingNarrative}

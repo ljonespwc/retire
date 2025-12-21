@@ -94,6 +94,7 @@ export function VoiceFirstContentV2() {
   const [variantNarratives, setVariantNarratives] = useState<string[]>([])
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
+  const [variantNeedsSave, setVariantNeedsSave] = useState<boolean[]>([]) // Track which variants need saving (created/modified this session)
   const [closedVariantIds, setClosedVariantIds] = useState<Record<string, string>>({}) // Maps variant_type -> scenarioId for closed saved variants
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
   const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home' | null>(null)
@@ -287,6 +288,7 @@ export function VoiceFirstContentV2() {
     setVariantConfigs([])
     setVariantInsights([])
     setVariantNarratives([])
+    setVariantNeedsSave([])
     setClosedVariantIds({})
 
     // Exit Compare Mode
@@ -577,6 +579,7 @@ export function VoiceFirstContentV2() {
     setVariantNarratives([])
     setVariantShareTokens([])
     setVariantIsShared([])
+    setVariantNeedsSave([])
 
     // Store scenario ID if present
     if (scenarioId) {
@@ -715,6 +718,7 @@ export function VoiceFirstContentV2() {
         setVariantNarratives(loadedNarratives)
         setVariantShareTokens(loadedShareTokens)
         setVariantIsShared(loadedIsShared)
+        setVariantNeedsSave(loadedScenarios.map(() => false))  // Loaded variants don't need saving
         setLoadedVariantIds(loadedIds)
 
         // Enter Compare Mode
@@ -763,6 +767,13 @@ export function VoiceFirstContentV2() {
       return updated
     })
 
+    // Mark as no longer needing save (just saved)
+    setVariantNeedsSave(prev => {
+      const updated = [...prev]
+      updated[savingVariantIndex] = false
+      return updated
+    })
+
     // Trigger dropdown refresh so new variant appears in list
     setDropdownRefreshKey(prev => prev + 1)
   }
@@ -803,6 +814,7 @@ export function VoiceFirstContentV2() {
     setVariantScenarios([])
     setVariantResultsArray([])
     setVariantConfigs([])
+    setVariantNeedsSave([])
     setLoadedVariantMetadata(null)
 
     // Proceed with calculation (handleCalculate will be called again without variants active)
@@ -1273,6 +1285,11 @@ export function VoiceFirstContentV2() {
         newConfigs[existingIndex] = variantConfig
         setVariantConfigs(newConfigs)
 
+        // Mark as needing save (re-run with different config)
+        const newNeedsSave = [...variantNeedsSave]
+        newNeedsSave[existingIndex] = true
+        setVariantNeedsSave(newNeedsSave)
+
         // Focus on the replaced variant tab
         setActiveVariantTab(existingIndex)
       } else {
@@ -1287,6 +1304,9 @@ export function VoiceFirstContentV2() {
         // Check if we have a saved ID for this variant type (from a previously closed tab)
         const closedId = variantConfig?.variant_type ? closedVariantIds[variantConfig.variant_type] : undefined
         setVariantScenarioIds([...variantScenarioIds, closedId])
+
+        // Mark as needing save (new variant created this session)
+        setVariantNeedsSave([...variantNeedsSave, true])
 
         // Focus on the newly created variant tab
         setActiveVariantTab(newIndex)
@@ -1418,6 +1438,7 @@ export function VoiceFirstContentV2() {
     setVariantConfigs(prev => prev.filter((_, i) => i !== index))
     setVariantShareTokens(prev => prev.filter((_, i) => i !== index))
     setVariantIsShared(prev => prev.filter((_, i) => i !== index))
+    setVariantNeedsSave(prev => prev.filter((_, i) => i !== index))
 
     // Adjust active tab if needed
     if (activeVariantTab >= index && activeVariantTab > 0) {
@@ -1638,6 +1659,7 @@ export function VoiceFirstContentV2() {
                 variantShareTokens={variantShareTokens}
                 variantIsShared={variantIsShared}
                 variantConfigs={variantConfigs}
+                variantNeedsSave={variantNeedsSave}
                 isDarkMode={isDarkMode}
                 activeTab={activeVariantTab}
                 onTabChange={setActiveVariantTab}

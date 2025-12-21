@@ -162,9 +162,13 @@ export function SaveScenarioModal({
         throw saveError
       }
 
-      // Notify parent of successful save (only for new scenarios - updates keep same ID)
-      if (onSaveSuccess && data?.id && !scenarioId) {
-        onSaveSuccess(data.id, scenarioData.name)
+      // Notify parent of successful save (for both new and updated scenarios)
+      if (onSaveSuccess) {
+        // For updates, use existing scenarioId; for new, use returned data.id
+        const savedId = scenarioId || data?.id
+        if (savedId) {
+          onSaveSuccess(savedId, scenarioData.name)
+        }
       }
 
       // PostHog: Track scenario saved
