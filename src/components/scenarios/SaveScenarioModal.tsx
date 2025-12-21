@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import posthog from 'posthog-js'
-import { saveScenario } from '@/lib/supabase/queries'
+import { saveScenario, updateScenario } from '@/lib/supabase/queries'
 import { formDataToScenario, getDefaultScenarioName, type FormData } from '@/lib/scenarios/scenario-mapper'
 import { addVariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { CalculationResults } from '@/types/calculator'
@@ -132,22 +132,38 @@ export function SaveScenarioModal({
         inputs.__baseline_narrative = aiNarrative
       }
 
-      // Always CREATE new scenario (no update path - simpler mental model)
-      const { data, error: saveError } = await saveScenario(client, {
-        name: scenarioData.name,
-        inputs,
-        results: calculationResults as any,
-        source: 'manual',  // Manually saved by user
-        // Link to parent baseline if this is a what-if scenario
-        baseline_id: variantType && baselineId ? baselineId : undefined,
-      })
+      let data: any
+      let saveError: Error | null = null
+
+      if (scenarioId) {
+        // UPDATE existing scenario
+        const result = await updateScenario(client, scenarioId, {
+          name: scenarioData.name,
+          inputs,
+          results: calculationResults as any,
+        })
+        data = result.data
+        saveError = result.error
+      } else {
+        // CREATE new scenario
+        const result = await saveScenario(client, {
+          name: scenarioData.name,
+          inputs,
+          results: calculationResults as any,
+          source: 'manual',  // Manually saved by user
+          // Link to parent baseline if this is a what-if scenario
+          baseline_id: variantType && baselineId ? baselineId : undefined,
+        })
+        data = result.data
+        saveError = result.error
+      }
 
       if (saveError) {
         throw saveError
       }
 
-      // Notify parent of successful save
-      if (onSaveSuccess && data?.id) {
+      // Notify parent of successful save (only for new scenarios - updates keep same ID)
+      if (onSaveSuccess && data?.id && !scenarioId) {
         onSaveSuccess(data.id, scenarioData.name)
       }
 

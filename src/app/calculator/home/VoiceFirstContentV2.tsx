@@ -94,6 +94,7 @@ export function VoiceFirstContentV2() {
   const [variantNarratives, setVariantNarratives] = useState<string[]>([])
   const [variantScenarioIds, setVariantScenarioIds] = useState<(string | undefined)[]>([])
   const [variantConfigs, setVariantConfigs] = useState<Array<Record<string, any> | undefined>>([])
+  const [closedVariantIds, setClosedVariantIds] = useState<Record<string, string>>({}) // Maps variant_type -> scenarioId for closed saved variants
   const [isCalculatingVariant, setIsCalculatingVariant] = useState(false)
   const [generatingVariantType, setGeneratingVariantType] = useState<'front_load' | 'delay_benefits' | 'exhaust' | 'retire_early' | 'legacy' | 'lump_sum' | 'longevity' | 'part_time_work' | 'market_crash' | 'move_provinces' | 'receive_inheritance' | 'downsize_home' | null>(null)
   const [activeVariantTab, setActiveVariantTab] = useState<number>(0)
@@ -286,6 +287,7 @@ export function VoiceFirstContentV2() {
     setVariantConfigs([])
     setVariantInsights([])
     setVariantNarratives([])
+    setClosedVariantIds({})
 
     // Exit Compare Mode
     setIsCompareMode(false)
@@ -1282,6 +1284,10 @@ export function VoiceFirstContentV2() {
         setVariantNarratives([...variantNarratives, narrative || ''])
         setVariantConfigs([...variantConfigs, variantConfig])
 
+        // Check if we have a saved ID for this variant type (from a previously closed tab)
+        const closedId = variantConfig?.variant_type ? closedVariantIds[variantConfig.variant_type] : undefined
+        setVariantScenarioIds([...variantScenarioIds, closedId])
+
         // Focus on the newly created variant tab
         setActiveVariantTab(newIndex)
       }
@@ -1396,6 +1402,13 @@ export function VoiceFirstContentV2() {
 
   // Remove a variant tab
   const handleRemoveVariant = (index: number) => {
+    // If this variant was saved, preserve its ID so we can UPDATE (not create duplicate) if re-run
+    const savedId = variantScenarioIds[index]
+    const variantType = variantConfigs[index]?.variant_type as string | undefined
+    if (savedId && variantType) {
+      setClosedVariantIds(prev => ({ ...prev, [variantType]: savedId }))
+    }
+
     // Remove from all variant arrays
     setVariantScenarios(prev => prev.filter((_, i) => i !== index))
     setVariantResultsArray(prev => prev.filter((_, i) => i !== index))

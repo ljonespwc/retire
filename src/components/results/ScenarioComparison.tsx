@@ -637,8 +637,8 @@ function VariantTab({
         isDarkMode={isDarkMode}
         actionButtons={
           <div className="flex items-center gap-3">
-            {/* Save Button - only shown for unsaved variants */}
-            {onSave && !scenarioId && (
+            {/* Save/Update Button */}
+            {onSave && (
               <button
                 onClick={onSave}
                 disabled={isSavingNarrative}
@@ -655,6 +655,8 @@ function VariantTab({
                     <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
                     Generating AI Analysis...
                   </>
+                ) : scenarioId ? (
+                  '↻ UPDATE THIS WHAT-IF'
                 ) : (
                   '* SAVE THIS WHAT-IF'
                 )}
