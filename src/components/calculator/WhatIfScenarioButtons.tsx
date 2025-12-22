@@ -178,7 +178,7 @@ export function WhatIfScenarioButtons({
   return (
     <div className={`${theme.card} rounded-lg border-2 ${isDarkMode ? 'border-blue-500/30 shadow-xl shadow-blue-500/10' : 'border-orange-300 shadow-xl shadow-orange-500/10'} p-6 max-w-7xl mx-auto`}>
       <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4 text-center`}>
-        Try What-If Scenarios
+        Generate What-If Scenarios
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {variants.map((variant) => {

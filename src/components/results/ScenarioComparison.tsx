@@ -131,13 +131,44 @@ export function ScenarioComparison({
   const highlightGreen = isDarkMode ? 'text-green-400' : 'text-green-600'
   const highlightYellow = isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
 
-  // Tab styling - compact pills
-  const tabInactive = isDarkMode
-    ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
-    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-  const tabActive = isDarkMode
-    ? 'text-white bg-blue-600'
-    : 'text-white bg-orange-500'
+  // Emoji mapping for variant types
+  const variantEmojis: Record<string, string> = {
+    'baseline': '📊',
+    'front-load': '🎉',
+    'delay-cpp-oas': '⏰',
+    'exhaust-portfolio': '💰',
+    'retire-early': '🏃',
+    'legacy': '🏛️',
+    'lump-sum': '💵',
+    'longevity': '🎂',
+    'part-time-work': '💼',
+    'market-crash': '📉',
+    'move-provinces': '🍁',
+    'receive-inheritance': '🎁',
+    'downsize-home': '🏠',
+  }
+
+  // Get emoji from variant type or detect from name
+  const getTabEmoji = (variantType?: string, scenarioName?: string): string => {
+    if (variantType && variantEmojis[variantType]) return variantEmojis[variantType]
+    // Fallback: detect from name
+    if (scenarioName) {
+      const name = scenarioName.toLowerCase()
+      if (name.includes('front-load') || name.includes('front load')) return '🎉'
+      if (name.includes('delay cpp') || name.includes('delay benefits') || name.includes('delay-cpp')) return '⏰'
+      if (name.includes('exhaust')) return '💰'
+      if (name.includes('retire') && (name.includes('early') || name.includes('earlier'))) return '🏃'
+      if (name.includes('legacy')) return '🏛️'
+      if (name.includes('lump sum') || name.includes('lump-sum')) return '💵'
+      if (name.includes('live to') || name.includes('longevity')) return '🎂'
+      if (name.includes('part-time') || name.includes('part time')) return '💼'
+      if (name.includes('crash') || name.includes('market')) return '📉'
+      if (name.includes('move') && name.includes('province')) return '🍁'
+      if (name.includes('inherit')) return '🎁'
+      if (name.includes('downsize') || name.includes('home')) return '🏠'
+    }
+    return '📋' // default
+  }
 
   // Helper to shorten variant names for compact tabs
   const getShortTabLabel = (name: string): string => {
@@ -150,9 +181,44 @@ export function ScenarioComparison({
     if (name.includes('Live to')) return 'Live to 100'
     if (name.includes('Part-Time')) return 'Part-Time'
     if (name.includes('Markets Crash') || name.includes('Crash')) return 'Crash'
+    if (name.includes('Move') && name.includes('Province')) return 'Move Prov'
+    if (name.includes('Inherit')) return 'Inheritance'
+    if (name.includes('Downsize')) return 'Downsize'
     // Fallback: truncate long names
     return name.length > 15 ? name.substring(0, 12) + '...' : name
   }
+
+  // Get full label for mobile dropdown (more space available)
+  const getFullTabLabel = (name: string): string => {
+    if (name.includes('Front-Load')) return 'Front-Load the Fun'
+    if (name.includes('Delay CPP') || name.includes('Delay Benefits')) return 'Delay CPP/OAS'
+    if (name.includes('Exhaust')) return 'Exhaust Portfolio'
+    if (name.includes('Retire') && (name.includes('Early') || name.includes('Earlier'))) return 'Retire Early'
+    if (name.includes('Legacy')) return 'Leave a Legacy'
+    if (name.includes('Lump Sum')) return 'Lump Sum'
+    if (name.includes('Live to')) return 'Live to 100'
+    if (name.includes('Part-Time')) return 'Work Part-Time'
+    if (name.includes('Markets Crash') || name.includes('Crash')) return 'Markets Crash'
+    if (name.includes('Move') && name.includes('Province')) return 'Move Provinces'
+    if (name.includes('Inherit')) return 'Inheritance'
+    if (name.includes('Downsize')) return 'Downsize Home'
+    return name
+  }
+
+  // Tab styling - pill chips
+  const pillBase = 'px-3 py-1.5 rounded-full border text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer'
+
+  // Baseline tab (green - always distinct)
+  const baselineActive = 'bg-emerald-500 text-white border-emerald-500'
+  const baselineInactive = isDarkMode
+    ? 'bg-emerald-900/30 text-emerald-300 border-emerald-700 hover:bg-emerald-900/50 hover:border-emerald-600'
+    : 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400'
+
+  // Variant tabs (blue active, gray inactive)
+  const variantActive = 'bg-blue-500 text-white border-blue-500'
+  const variantInactive = isDarkMode
+    ? 'bg-gray-800 text-gray-300 border-gray-600 hover:border-blue-400 hover:bg-gray-700'
+    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
 
   // Extract baseline metrics
   const baselineMonthly = baselineScenario.expenses.fixed_monthly
@@ -161,57 +227,93 @@ export function ScenarioComparison({
 
   return (
     <div className={`${cardBg} rounded-lg border ${cardBorder} mt-8 mb-8`}>
-      {/* Tab Navigation - Compact single row with horizontal scroll */}
-      <div className={`border-b ${cardBorder} ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-100'} px-2 py-2`}>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {/* Baseline Tab */}
+      {/* Tab Navigation - Responsive: Desktop wrap pills, Mobile dropdown */}
+      <div className={`border-b ${cardBorder} ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-100'}`}>
+
+        {/* Desktop: Wrap-style pill tabs */}
+        <div className="hidden md:flex flex-wrap gap-2 p-3">
+          {/* Baseline Tab - Green, no close button */}
           <button
             onClick={() => setActiveTab(-1)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
-              activeTab === -1 ? tabActive : tabInactive
-            }`}
+            className={`${pillBase} ${activeTab === -1 ? baselineActive : baselineInactive}`}
           >
-            Baseline
+            <span>📊</span>
+            <span>Baseline</span>
           </button>
 
           {/* Variant Tabs */}
-          {variantScenarios.map((variant, index) => (
-            <div key={index} className="relative flex-shrink-0 group">
-              <button
-                onClick={() => setActiveTab(index)}
-                className={`px-4 py-2 pr-8 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                  activeTab === index ? tabActive : tabInactive
-                }`}
-              >
-                {getShortTabLabel(variant.name)}
-                {!variantScenarioIds[index] && (
-                  <span className="ml-1.5 text-xs opacity-60">*</span>
-                )}
-              </button>
-              {/* Close button */}
-              {onRemoveVariant && (
+          {variantScenarios.map((variant, index) => {
+            const isActive = activeTab === index
+            const variantType = variantConfigs[index]?.variant_type
+            const emoji = getTabEmoji(variantType, variant.name)
+            const label = getShortTabLabel(variant.name)
+
+            return (
+              <div key={index} className="relative flex items-center">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const hasUnsavedChanges = !variantScenarioIds[index]
-                    if (hasUnsavedChanges) {
-                      setRemoveConfirmIndex(index)
-                    } else {
-                      onRemoveVariant(index)
-                    }
-                  }}
-                  className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full transition-opacity ${
-                    isDarkMode
-                      ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
-                      : 'hover:bg-gray-300 text-gray-500 hover:text-gray-700'
-                  } opacity-0 group-hover:opacity-100`}
-                  title="Close tab"
+                  onClick={() => setActiveTab(index)}
+                  className={`${pillBase} pr-7 ${isActive ? variantActive : variantInactive}`}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <span>{emoji}</span>
+                  <span>{label}</span>
+                  {!variantScenarioIds[index] && (
+                    <span className="text-xs opacity-60">*</span>
+                  )}
                 </button>
-              )}
-            </div>
-          ))}
+                {/* Close button - always visible on desktop */}
+                {onRemoveVariant && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const hasUnsavedChanges = !variantScenarioIds[index]
+                      if (hasUnsavedChanges) {
+                        setRemoveConfirmIndex(index)
+                      } else {
+                        onRemoveVariant(index)
+                      }
+                    }}
+                    className={`absolute right-1.5 p-0.5 rounded-full transition-colors ${
+                      isDarkMode
+                        ? 'hover:bg-white/20 text-current'
+                        : 'hover:bg-black/10 text-current'
+                    }`}
+                    title="Close tab"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Mobile: Native select dropdown */}
+        <div className="md:hidden p-3">
+          <label className={`block text-xs font-medium mb-1.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Viewing Scenario
+          </label>
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(Number(e.target.value))}
+            className={`w-full p-3 rounded-lg border text-base font-medium ${
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          >
+            <option value={-1}>📊 Baseline</option>
+            {variantScenarios.map((variant, index) => {
+              const variantType = variantConfigs[index]?.variant_type
+              const emoji = getTabEmoji(variantType, variant.name)
+              const label = getFullTabLabel(variant.name)
+              const unsavedMarker = !variantScenarioIds[index] ? ' *' : ''
+              return (
+                <option key={index} value={index}>
+                  {emoji} {label}{unsavedMarker}
+                </option>
+              )
+            })}
+          </select>
         </div>
       </div>
 
