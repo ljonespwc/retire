@@ -209,7 +209,7 @@ export function WhatIfScenarioButtons({
                 </div>
                 {state.isActive && !state.isGenerating && (
                   <span className={`text-xs ${isDarkMode ? 'text-blue-400' : 'text-orange-500'}`}>
-                    ↻ Replace
+                    ✎ Modify
                   </span>
                 )}
               </div>
