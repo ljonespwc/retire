@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { ChevronDown, ChevronUp, Info, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { VariantMetadata, getVariantDetails } from '@/lib/scenarios/variant-metadata'
 import { Scenario } from '@/types/calculator'
@@ -19,13 +19,22 @@ interface VariantDetailsBannerProps {
   scenario?: Scenario
   isDarkMode?: boolean
   isCollapsible?: boolean
+  // Save button props
+  onSave?: () => void
+  scenarioId?: string
+  needsSave?: boolean
+  isSavingNarrative?: boolean
 }
 
 export function VariantDetailsBanner({
   variantMetadata,
   scenario,
   isDarkMode = false,
-  isCollapsible = true
+  isCollapsible = true,
+  onSave,
+  scenarioId,
+  needsSave,
+  isSavingNarrative
 }: VariantDetailsBannerProps) {
   const [isExpanded, setIsExpanded] = useState(true)
 
@@ -52,11 +61,11 @@ export function VariantDetailsBanner({
   return (
     <div className={`${bannerBg} border-2 ${bannerBorder} rounded-2xl shadow-xl overflow-hidden`}>
       {/* Header */}
-      <div
-        className={`px-6 py-4 flex items-center justify-between ${isCollapsible ? 'cursor-pointer' : ''}`}
-        onClick={() => isCollapsible && setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-3">
+      <div className="px-6 py-4 flex items-center justify-between">
+        <div
+          className={`flex items-center gap-3 flex-1 ${isCollapsible ? 'cursor-pointer' : ''}`}
+          onClick={() => isCollapsible && setIsExpanded(!isExpanded)}
+        >
           <Info className={`w-6 h-6 ${labelText}`} />
           <div>
             <h3 className={`text-lg font-bold ${textPrimary}`}>
@@ -68,14 +77,47 @@ export function VariantDetailsBanner({
           </div>
         </div>
 
-        {isCollapsible && (
-          <button
-            className={`p-2 rounded-lg hover:bg-white/10 transition-colors ${textSecondary}`}
-            aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
-          >
-            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Save Button */}
+          {onSave && needsSave && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onSave()
+              }}
+              disabled={isSavingNarrative}
+              className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-md transition-all ${
+                isSavingNarrative
+                  ? 'opacity-50 cursor-not-allowed bg-gray-500'
+                  : isDarkMode
+                  ? 'bg-blue-600 hover:bg-blue-500'
+                  : 'bg-orange-500 hover:bg-orange-600'
+              }`}
+            >
+              {isSavingNarrative ? (
+                <>
+                  <Loader2 className="w-4 h-4 inline mr-1.5 animate-spin" />
+                  Saving...
+                </>
+              ) : scenarioId ? (
+                'Save Changes'
+              ) : (
+                'Save This What-If'
+              )}
+            </button>
+          )}
+
+          {/* Collapse Button */}
+          {isCollapsible && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={`p-2 rounded-lg hover:bg-white/10 transition-colors ${textSecondary}`}
+              aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
+            >
+              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Collapsible Content */}

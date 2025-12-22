@@ -605,13 +605,17 @@ function VariantTab({
 
   return (
     <div className="space-y-6">
-      {/* Variant Details Banner - What's Different */}
+      {/* Variant Details Banner - What's Different (with Save button) */}
       {variantMetadata && (
         <VariantDetailsBanner
           variantMetadata={variantMetadata}
           scenario={variantScenario}
           isDarkMode={isDarkMode}
           isCollapsible={false}
+          onSave={onSave}
+          scenarioId={scenarioId}
+          needsSave={needsSave}
+          isSavingNarrative={isSavingNarrative}
         />
       )}
 
@@ -743,44 +747,15 @@ function VariantTab({
         expenses={variantScenario.expenses}
         isDarkMode={isDarkMode}
         actionButtons={
-          <div className="flex items-center gap-3">
-            {/* Save/Update Button - Only shown if variant was created/modified this session */}
-            {onSave && needsSave && (
-              <button
-                onClick={onSave}
-                disabled={isSavingNarrative}
-                className={`px-6 py-3 text-sm font-medium text-white rounded-xl shadow-lg transition-all ${
-                  isSavingNarrative
-                    ? 'opacity-50 cursor-not-allowed bg-gradient-to-r from-gray-500 to-gray-600'
-                    : isDarkMode
-                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700'
-                    : 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:via-orange-600 hover:to-amber-600'
-                }`}
-              >
-                {isSavingNarrative ? (
-                  <>
-                    <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
-                    Generating AI Analysis...
-                  </>
-                ) : scenarioId ? (
-                  '↻ UPDATE THIS WHAT-IF'
-                ) : (
-                  '* SAVE THIS WHAT-IF'
-                )}
-              </button>
-            )}
-
-            {/* Share Button - only shown for saved variants */}
-            {scenarioId && onShare && (
-              <button
-                onClick={onShare}
-                className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
-              >
-                <Share2 className="w-4 h-4 inline mr-2" />
-                SHARE
-              </button>
-            )}
-          </div>
+          scenarioId && onShare ? (
+            <button
+              onClick={onShare}
+              className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+            >
+              <Share2 className="w-4 h-4 inline mr-2" />
+              SHARE
+            </button>
+          ) : undefined
         }
       />
 
