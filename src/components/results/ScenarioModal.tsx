@@ -366,20 +366,46 @@ export function ScenarioModal({
                   Withdrawal Age:
                 </h3>
                 <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
-                  <input
-                    type="number"
-                    min={retirementAge}
-                    max={longevityAge - 1}
-                    value={lumpSumAge}
-                    onChange={(e) => setLumpSumAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
-                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
-                      isDarkMode
-                        ? 'bg-gray-600 text-white border-2 border-gray-500'
-                        : 'bg-white text-gray-900 border-2 border-gray-300'
-                    }`}
-                  />
-                  <div className={`text-xs ${textSecondary} mt-2`}>
-                    Age must be between {retirementAge} (retirement) and {longevityAge - 1}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLumpSumAge(Math.max(lumpSumAge - 1, retirementAge))}
+                      disabled={lumpSumAge <= retirementAge}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        lumpSumAge <= retirementAge
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={retirementAge}
+                      max={longevityAge - 1}
+                      value={lumpSumAge}
+                      onChange={(e) => setLumpSumAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-center ${
+                        isDarkMode
+                          ? 'bg-gray-600 text-white border-2 border-gray-500'
+                          : 'bg-white text-gray-900 border-2 border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLumpSumAge(Math.min(lumpSumAge + 1, longevityAge - 1))}
+                      disabled={lumpSumAge >= longevityAge - 1}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        lumpSumAge >= longevityAge - 1
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className={`text-xs ${textSecondary} mt-2 text-center`}>
+                    Age {retirementAge} (retirement) to {longevityAge - 1}
                   </div>
                 </div>
               </div>
@@ -714,19 +740,45 @@ export function ScenarioModal({
                   Move at Age:
                 </h3>
                 <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
-                  <input
-                    type="number"
-                    min={currentAge}
-                    max={longevityAge - 1}
-                    value={moveAge}
-                    onChange={(e) => setMoveAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
-                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
-                      isDarkMode
-                        ? 'bg-gray-600 text-white border-2 border-gray-500'
-                        : 'bg-white text-gray-900 border-2 border-gray-300'
-                    }`}
-                  />
-                  <div className={`text-xs ${textSecondary} mt-2`}>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMoveAge(Math.max(moveAge - 1, currentAge))}
+                      disabled={moveAge <= currentAge}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        moveAge <= currentAge
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={currentAge}
+                      max={longevityAge - 1}
+                      value={moveAge}
+                      onChange={(e) => setMoveAge(Math.min(Math.max(parseInt(e.target.value) || currentAge, currentAge), longevityAge - 1))}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-center ${
+                        isDarkMode
+                          ? 'bg-gray-600 text-white border-2 border-gray-500'
+                          : 'bg-white text-gray-900 border-2 border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMoveAge(Math.min(moveAge + 1, longevityAge - 1))}
+                      disabled={moveAge >= longevityAge - 1}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        moveAge >= longevityAge - 1
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className={`text-xs ${textSecondary} mt-2 text-center`}>
                     Default: retirement age ({retirementAge})
                   </div>
                 </div>
@@ -789,20 +841,46 @@ export function ScenarioModal({
                   Receive at Age:
                 </h3>
                 <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
-                  <input
-                    type="number"
-                    min={retirementAge}
-                    max={longevityAge - 1}
-                    value={inheritanceAge}
-                    onChange={(e) => setInheritanceAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
-                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
-                      isDarkMode
-                        ? 'bg-gray-600 text-white border-2 border-gray-500'
-                        : 'bg-white text-gray-900 border-2 border-gray-300'
-                    }`}
-                  />
-                  <div className={`text-xs ${textSecondary} mt-2`}>
-                    Age must be between {retirementAge} (retirement) and {longevityAge - 1}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInheritanceAge(Math.max(inheritanceAge - 1, retirementAge))}
+                      disabled={inheritanceAge <= retirementAge}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        inheritanceAge <= retirementAge
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={retirementAge}
+                      max={longevityAge - 1}
+                      value={inheritanceAge}
+                      onChange={(e) => setInheritanceAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-center ${
+                        isDarkMode
+                          ? 'bg-gray-600 text-white border-2 border-gray-500'
+                          : 'bg-white text-gray-900 border-2 border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setInheritanceAge(Math.min(inheritanceAge + 1, longevityAge - 1))}
+                      disabled={inheritanceAge >= longevityAge - 1}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        inheritanceAge >= longevityAge - 1
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className={`text-xs ${textSecondary} mt-2 text-center`}>
+                    Age {retirementAge} (retirement) to {longevityAge - 1}
                   </div>
                 </div>
               </div>
@@ -901,20 +979,46 @@ export function ScenarioModal({
                   Downsize at Age:
                 </h3>
                 <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4`}>
-                  <input
-                    type="number"
-                    min={retirementAge}
-                    max={longevityAge - 1}
-                    value={downsizeAge}
-                    onChange={(e) => setDownsizeAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
-                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium ${
-                      isDarkMode
-                        ? 'bg-gray-600 text-white border-2 border-gray-500'
-                        : 'bg-white text-gray-900 border-2 border-gray-300'
-                    }`}
-                  />
-                  <div className={`text-xs ${textSecondary} mt-2`}>
-                    Age must be between {retirementAge} (retirement) and {longevityAge - 1}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDownsizeAge(Math.max(downsizeAge - 1, retirementAge))}
+                      disabled={downsizeAge <= retirementAge}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        downsizeAge <= retirementAge
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={retirementAge}
+                      max={longevityAge - 1}
+                      value={downsizeAge}
+                      onChange={(e) => setDownsizeAge(Math.min(Math.max(parseInt(e.target.value) || retirementAge, retirementAge), longevityAge - 1))}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-center ${
+                        isDarkMode
+                          ? 'bg-gray-600 text-white border-2 border-gray-500'
+                          : 'bg-white text-gray-900 border-2 border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setDownsizeAge(Math.min(downsizeAge + 1, longevityAge - 1))}
+                      disabled={downsizeAge >= longevityAge - 1}
+                      className={`w-12 h-12 flex items-center justify-center rounded-lg text-xl font-bold transition-colors ${
+                        downsizeAge >= longevityAge - 1
+                          ? isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                          : isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-white text-gray-900 border-2 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className={`text-xs ${textSecondary} mt-2 text-center`}>
+                    Age {retirementAge} (retirement) to {longevityAge - 1}
                   </div>
                 </div>
               </div>
