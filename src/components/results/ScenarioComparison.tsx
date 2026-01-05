@@ -9,7 +9,6 @@
 
 import { useState } from 'react'
 import { Share2, Loader2, X, MessageSquare } from 'lucide-react'
-import '@/app/content.css'
 import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'

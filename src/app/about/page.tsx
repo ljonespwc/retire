@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Send, CheckCircle, AlertCircle, BarChart3, ShieldCheck, Calculator, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import '@/app/content.css'
 
 export default function ContactPage() {
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
@@ -62,6 +61,16 @@ export default function ContactPage() {
       text: effectiveDarkMode ? 'text-gray-100' : 'text-gray-900',
       placeholder: effectiveDarkMode ? 'placeholder-gray-400' : 'placeholder-gray-500',
     },
+
+    callout: effectiveDarkMode
+      ? 'bg-violet-900/20 border-l-4 border-violet-500'
+      : 'bg-violet-50 border-l-4 border-violet-400',
+
+    quote: effectiveDarkMode
+      ? 'bg-gradient-to-br from-indigo-900/20 to-violet-900/20 border border-indigo-700/30'
+      : 'bg-gradient-to-br from-orange-50 to-rose-50 border border-orange-100',
+
+    iconColor: effectiveDarkMode ? 'text-indigo-400' : 'text-orange-500',
   }
 
   const handleToggleDarkMode = () => {
@@ -129,7 +138,7 @@ export default function ContactPage() {
         </section>
 
         {/* Story Section */}
-        <section className={`${theme.card} content-card rounded-2xl p-6 sm:p-8 mb-8 border`}>
+        <section className={`${theme.card} rounded-2xl p-6 sm:p-8 mb-8 border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}>
           <div className={`prose prose-lg max-w-none ${effectiveDarkMode ? 'prose-invert' : ''}`}>
             <p className={`${theme.text.secondary} text-lg leading-relaxed mb-4`}>
               I like building things that solve real problems. Recently, I started
@@ -143,7 +152,7 @@ export default function ContactPage() {
             </p>
 
             {/* Purple Callout */}
-            <div className="purple-callout mb-6">
+            <div className={`${theme.callout} rounded-xl p-6 mb-6`}>
               <p className={`${theme.text.primary} text-lg leading-relaxed font-medium`}>
                 What if I retire at 60 instead of 65?<br />
                 What if I take CPP early?<br />
@@ -159,25 +168,25 @@ export default function ContactPage() {
         </section>
 
         {/* Differentiator Section */}
-        <section className={`${theme.card} content-card rounded-2xl p-6 sm:p-8 mb-8 border`}>
+        <section className={`${theme.card} rounded-2xl p-6 sm:p-8 mb-8 border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}>
           <h2 className={`text-2xl sm:text-3xl font-bold ${theme.text.primary} mb-6`}>
             What's different about this calculator
           </h2>
-          <div className="icon-list">
-            <div className="icon-list-item">
-              <BarChart3 className="icon" />
+          <div className="flex flex-col gap-5">
+            <div className="flex gap-4 items-start">
+              <BarChart3 className={`w-6 h-6 flex-shrink-0 ${theme.iconColor}`} />
               <p className={`${theme.text.secondary} text-lg leading-relaxed`}>
                 <strong>Side-by-side scenarios.</strong> Most calculators give you one number and call it a day. This one lets you run up to 12 scenarios—so you can actually see what happens when you change the variables.
               </p>
             </div>
-            <div className="icon-list-item">
-              <ShieldCheck className="icon" />
+            <div className="flex gap-4 items-start">
+              <ShieldCheck className={`w-6 h-6 flex-shrink-0 ${theme.iconColor}`} />
               <p className={`${theme.text.secondary} text-lg leading-relaxed`}>
                 <strong>No product pitches.</strong> No mutual funds. No annuity upsells. No "talk to an advisor" prompts. Just math, visualized, so you can make your own informed decisions.
               </p>
             </div>
-            <div className="icon-list-item">
-              <Calculator className="icon" />
+            <div className="flex gap-4 items-start">
+              <Calculator className={`w-6 h-6 flex-shrink-0 ${theme.iconColor}`} />
               <p className={`${theme.text.secondary} text-lg leading-relaxed`}>
                 <strong>Real Canadian tax math.</strong> Federal and provincial brackets for all 13 provinces and territories. CPP/OAS rules. RRSP/RRIF/TFSA—all built in and kept up to date.
               </p>
@@ -186,14 +195,14 @@ export default function ContactPage() {
         </section>
 
         {/* Philosophy Quote */}
-        <section className="signature-quote mb-8">
-          <p>
+        <section className={`${theme.quote} rounded-2xl p-8 mb-8`}>
+          <p className={`text-xl italic leading-relaxed ${theme.text.secondary}`}>
             The banks want to sell you mutual funds. The insurance companies want to sell you annuities. I just want to help you see your numbers clearly.
           </p>
         </section>
 
         {/* Contact Form Section */}
-        <section className={`${theme.card} content-card rounded-2xl p-6 sm:p-8 border`}>
+        <section className={`${theme.card} rounded-2xl p-6 sm:p-8 border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}>
           <h2 className={`text-2xl sm:text-3xl font-bold ${theme.text.primary} mb-2`}>
             Get in touch
           </h2>
@@ -288,7 +297,10 @@ export default function ContactPage() {
           <p className={`${theme.text.secondary} mb-4`}>
             Ready to see your numbers?
           </p>
-          <Link href="/calculator/home" className="cta-button">
+          <Link
+            href="/calculator/home"
+            className={`inline-flex items-center gap-2 px-7 py-3.5 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button.primary}`}
+          >
             Try the Calculator
             <ArrowRight className="w-5 h-5" />
           </Link>

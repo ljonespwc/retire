@@ -76,3 +76,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Feedback Button Pulse Glow Animation */
+@keyframes feedback-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(249, 115, 22, 0.4),
+      0 0 24px rgba(249, 115, 22, 0.25);
+  }
+}
+
+@keyframes feedback-pulse-glow-dark {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(129, 140, 248, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(129, 140, 248, 0.4),
+      0 0 24px rgba(129, 140, 248, 0.25);
+  }
+}
+
+.feedback-button-glow {
+  animation: feedback-pulse-glow 2.5s ease-in-out infinite;
+}
+
+.dark .feedback-button-glow {
+  animation: feedback-pulse-glow-dark 2.5s ease-in-out infinite;
+}
+
+.feedback-button-glow:hover {
+  animation: none;
+}
