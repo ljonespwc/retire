@@ -1,0 +1,159 @@
+/**
+ * Shared Design System for Content Pages
+ * Used by: /about, /articles, /articles/[slug], /
+ * Not used by: /calculator/* (has own styles)
+ */
+
+/* Purple Callout */
+.purple-callout {
+  background: rgba(139, 92, 246, 0.08);
+  border-left: 4px solid rgba(139, 92, 246, 0.6);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.dark .purple-callout {
+  background: rgba(139, 92, 246, 0.15);
+  border-left-color: rgba(139, 92, 246, 0.8);
+}
+
+/* Icon List */
+.icon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.icon-list-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.icon-list-item .icon {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #f97316; /* orange-500 */
+}
+
+.dark .icon-list-item .icon {
+  color: #818cf8; /* indigo-400 */
+}
+
+.icon-list-item strong {
+  color: #1f2937; /* gray-800 */
+}
+
+.dark .icon-list-item strong {
+  color: #f3f4f6; /* gray-100 */
+}
+
+/* Signature Quote */
+.signature-quote {
+  font-size: 1.25rem;
+  font-style: italic;
+  line-height: 1.75;
+  color: #374151; /* gray-700 */
+  padding: 2rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.05), rgba(236, 72, 153, 0.05));
+  border: 1px solid rgba(251, 146, 60, 0.1);
+}
+
+.dark .signature-quote {
+  color: #d1d5db; /* gray-300 */
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.signature-quote .attribution {
+  margin-top: 1rem;
+  font-style: normal;
+  font-weight: 600;
+  color: #6b7280; /* gray-500 */
+}
+
+.dark .signature-quote .attribution {
+  color: #9ca3af; /* gray-400 */
+}
+
+/* Content Card */
+.content-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.content-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.dark .content-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* CTA Button - Light mode (warm gradient) */
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(to right, #f43f5e, #f97316, #f59e0b);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+  transition: all 0.2s ease;
+}
+
+.cta-button:hover {
+  background: linear-gradient(to right, #e11d48, #ea580c, #d97706);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+  transform: translateY(-1px);
+}
+
+/* CTA Button - Dark mode (cool gradient) */
+.dark .cta-button {
+  background: linear-gradient(to right, #2563eb, #4f46e5, #7c3aed);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.dark .cta-button:hover {
+  background: linear-gradient(to right, #1d4ed8, #4338ca, #6d28d9);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+}
+
+/* Feedback Button with Pulse Glow */
+@keyframes feedback-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(249, 115, 22, 0.4),
+      0 0 24px rgba(249, 115, 22, 0.25);
+  }
+}
+
+@keyframes feedback-pulse-glow-dark {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(129, 140, 248, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(129, 140, 248, 0.4),
+      0 0 24px rgba(129, 140, 248, 0.25);
+  }
+}
+
+.feedback-button-glow {
+  animation: feedback-pulse-glow 2.5s ease-in-out infinite;
+}
+
+.dark .feedback-button-glow {
+  animation: feedback-pulse-glow-dark 2.5s ease-in-out infinite;
+}
+
+.feedback-button-glow:hover {
+  animation: none;
+}

@@ -34,25 +34,26 @@ export function CalculatorHeader({
     <div className={theme.headerBg}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+          <Link href="/calculator/home" className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 hover:opacity-90 transition-opacity">
             <Image
               src="/logo.png"
               alt="Retire logo"
               width={56}
               height={56}
-              className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0"
+              className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex-shrink-0"
             />
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                The Ultimate Canadian Retirement Calculator
+              <h1 className="font-bold text-white tracking-tight leading-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                <span className="hidden sm:inline text-xl md:text-2xl lg:text-3xl">The Ultimate Canadian Retirement Calculator</span>
+                <span className="sm:hidden text-base">Canadian Retirement Calculator</span>
               </h1>
-              <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1">100% Canadian. Tax-accurate. Future Teller.</p>
+              <p className="text-white/90 text-xs sm:text-sm md:text-base mt-0.5 sm:mt-1">100% Canadian. Tax-accurate. Future Teller.</p>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation & Auth Controls */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {/* Articles Link */}
+            {/* Articles Link - Hidden until content is ready
             <Link
               href="/articles"
               className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
@@ -60,6 +61,16 @@ export function CalculatorHeader({
             >
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Articles</span>
+            </Link>
+            */}
+            {/* About Link */}
+            <Link
+              href="/about"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur transition-all duration-200 text-white text-sm sm:text-base font-medium"
+              aria-label="About"
+            >
+              <User className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">About</span>
             </Link>
             {!authLoading && (
               <>

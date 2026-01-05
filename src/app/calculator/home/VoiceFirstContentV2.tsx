@@ -44,6 +44,7 @@ import { CalculateButton } from '@/components/calculator/CalculateButton'
 import { BaselineResults } from '@/components/results/BaselineResults'
 import { FormSections } from '@/components/calculator/FormSections'
 import { StaleResultsBanner } from '@/components/calculator/StaleResultsBanner'
+import { FeedbackModal } from '@/components/feedback/FeedbackModal'
 import posthog from 'posthog-js'
 
 export function VoiceFirstContentV2() {
@@ -118,6 +119,9 @@ export function VoiceFirstContentV2() {
   const [showEditWarningModal, setShowEditWarningModal] = useState(false)
   const [anonymousUserIdBeforeLogin, setAnonymousUserIdBeforeLogin] = useState<string | null>(null)
   const [anonymousScenarioCountBeforeLogin, setAnonymousScenarioCountBeforeLogin] = useState(0)
+
+  // Feedback modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
 
   // Compare Mode state - when baseline + variants are loaded together
   const [isCompareMode, setIsCompareMode] = useState(false)
@@ -1667,6 +1671,7 @@ export function VoiceFirstContentV2() {
                 onShareChange={handleShareChange}
                 onRemoveVariant={handleRemoveVariant}
                 isSavingNarrative={isSavingVariantNarrative}
+                onFeedbackClick={() => setShowFeedbackModal(true)}
               />
             )})()}
 
@@ -1792,6 +1797,12 @@ export function VoiceFirstContentV2() {
         isVisible={resultsAreStale && calculationResults !== null && !loadedVariantMetadata}
         onRecalculate={handleCalculate}
         isCalculating={isCalculating}
+        isDarkMode={isDarkMode}
+      />
+
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
         isDarkMode={isDarkMode}
       />
     </div>

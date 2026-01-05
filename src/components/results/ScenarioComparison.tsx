@@ -8,7 +8,8 @@
  */
 
 import { useState } from 'react'
-import { Share2, Loader2, X } from 'lucide-react'
+import { Share2, Loader2, X, MessageSquare } from 'lucide-react'
+import '@/app/content.css'
 import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -46,6 +47,7 @@ interface ScenarioComparisonProps {
   onTryAnother?: () => void
   onRemoveVariant?: (index: number) => void // Remove a variant tab
   isSavingNarrative?: boolean // Loading state while generating AI narrative for save
+  onFeedbackClick?: () => void // Open feedback modal
 }
 
 export function ScenarioComparison({
@@ -72,7 +74,8 @@ export function ScenarioComparison({
   onShareChange,
   onTryAnother,
   onRemoveVariant,
-  isSavingNarrative = false
+  isSavingNarrative = false,
+  onFeedbackClick
 }: ScenarioComparisonProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
   const [removeConfirmIndex, setRemoveConfirmIndex] = useState<number | null>(null)
@@ -330,6 +333,7 @@ export function ScenarioComparison({
             onTryAnother={onTryAnother}
             scenarioId={baselineScenarioId}
             scenarioName={baselineScenarioName}
+            onFeedbackClick={onFeedbackClick}
           />
         ) : (
           <VariantTab
@@ -368,6 +372,7 @@ export function ScenarioComparison({
             baselineScenarioName={baselineScenarioName}
             variantConfig={variantConfigs[activeTab]}
             needsSave={variantNeedsSave[activeTab]}
+            onFeedbackClick={onFeedbackClick}
           />
         )}
       </div>
@@ -439,7 +444,8 @@ function BaselineTab({
   onShare,
   onTryAnother,
   scenarioId,
-  scenarioName
+  scenarioName,
+  onFeedbackClick
 }: {
   scenario: Scenario
   results: CalculationResults
@@ -450,6 +456,7 @@ function BaselineTab({
   onTryAnother?: () => void
   scenarioId?: string
   scenarioName?: string
+  onFeedbackClick?: () => void
 }) {
   // Theme colors for share button
   const buttonSecondary = isDarkMode
@@ -488,6 +495,17 @@ function BaselineTab({
               >
                 <Share2 className="w-4 h-4 inline mr-2" />
                 SHARE
+              </button>
+            )}
+
+            {/* Feedback Button */}
+            {onFeedbackClick && (
+              <button
+                onClick={onFeedbackClick}
+                className={`feedback-button-glow px-6 py-3 text-sm font-medium rounded-xl transition-all ${buttonSecondary}`}
+              >
+                <MessageSquare className="w-4 h-4 inline mr-2" />
+                GIVE FEEDBACK
               </button>
             )}
           </div>
@@ -545,7 +563,8 @@ function VariantTab({
   scenarioName,
   baselineScenarioName,
   variantConfig,
-  needsSave
+  needsSave,
+  onFeedbackClick
 }: {
   baselineScenario: Scenario
   baselineResults: CalculationResults
@@ -558,6 +577,7 @@ function VariantTab({
   scenarioId?: string
   scenarioName?: string
   baselineScenarioName?: string
+  onFeedbackClick?: () => void
   baselineMonthly: number
   baselineDepletion: number | undefined
   baselineEndBalance: number
@@ -747,15 +767,26 @@ function VariantTab({
         expenses={variantScenario.expenses}
         isDarkMode={isDarkMode}
         actionButtons={
-          scenarioId && onShare ? (
-            <button
-              onClick={onShare}
-              className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
-            >
-              <Share2 className="w-4 h-4 inline mr-2" />
-              SHARE
-            </button>
-          ) : undefined
+          <div className="flex gap-3">
+            {scenarioId && onShare && (
+              <button
+                onClick={onShare}
+                className={`px-6 py-3 text-sm font-medium rounded-xl shadow-lg transition-all ${buttonSecondary}`}
+              >
+                <Share2 className="w-4 h-4 inline mr-2" />
+                SHARE
+              </button>
+            )}
+            {onFeedbackClick && (
+              <button
+                onClick={onFeedbackClick}
+                className={`feedback-button-glow px-6 py-3 text-sm font-medium rounded-xl transition-all ${buttonSecondary}`}
+              >
+                <MessageSquare className="w-4 h-4 inline mr-2" />
+                GIVE FEEDBACK
+              </button>
+            )}
+          </div>
         }
       />
 

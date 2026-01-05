@@ -460,6 +460,60 @@ export interface Database {
           }
         ];
       };
+      contact_submissions: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email: string;
+          message: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string;
+          message?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      calculator_feedback: {
+        Row: {
+          id: string;
+          rating: number;
+          got_answers: boolean;
+          what_didnt_work: string | null;
+          feature_requests: string | null;
+          email: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rating: number;
+          got_answers: boolean;
+          what_didnt_work?: string | null;
+          feature_requests?: string | null;
+          email?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          rating?: number;
+          got_answers?: boolean;
+          what_didnt_work?: string | null;
+          feature_requests?: string | null;
+          email?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
