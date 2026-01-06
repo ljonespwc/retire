@@ -202,11 +202,11 @@ export default function Home() {
       {/* ===== SECTION 2: SOUND FAMILIAR? ===== */}
       <section className={`py-16 sm:py-24 ${effectiveDarkMode ? 'bg-gray-900/30' : 'bg-white/50'}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-[2fr_3fr] gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-[1fr_2fr] gap-10 lg:gap-14 items-center">
             {/* Left side: Image */}
             <div className="order-2 lg:order-1">
               <div className={`
-                relative aspect-[2/3] rounded-2xl overflow-hidden max-w-md mx-auto lg:max-w-none
+                relative aspect-[2/3] rounded-2xl overflow-hidden max-w-xs mx-auto lg:max-w-sm
                 ${effectiveDarkMode
                   ? 'bg-gradient-to-br from-indigo-900/50 via-purple-900/50 to-blue-900/50 ring-1 ring-white/10'
                   : 'bg-gradient-to-br from-orange-100 via-rose-100 to-amber-100 ring-1 ring-orange-200/50'}
