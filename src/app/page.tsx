@@ -37,7 +37,7 @@ const SCREENSHOTS = [
     width: 1146,
     height: 500,
     shortCaption: 'Tax Breakdown',
-    description: 'Federal + provincial tax for all 13 provinces. OAS clawback calculated. RRIF minimums enforced. Different treatment for each income source.',
+    description: 'Full breakdown: federal, provincial, clawbacks, and RRIF minimums. Every income source treated correctly.',
     bullets: ['2025 tax brackets updated annually', 'OAS clawback threshold: $86,912', 'Capital gains inclusion rate applied correctly'],
   },
   {
@@ -45,7 +45,7 @@ const SCREENSHOTS = [
     width: 1155,
     height: 443,
     shortCaption: 'Portfolio Timeline',
-    description: 'No black box. See exactly what happens each year—income, taxes, withdrawals, and balances. Verify every number and understand your trajectory.',
+    description: 'Your portfolio\'s full arc—growth, peak, and draw-down. See exactly when your money runs out, or if it doesn\'t.',
     bullets: ['Portfolio balance projection to age 95+', 'RRIF conversion marked at age 71', 'Depletion age calculated automatically'],
   },
   {
