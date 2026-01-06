@@ -153,26 +153,50 @@ export default function Home() {
       />
 
       {/* ===== SECTION 1: HERO ===== */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 text-center">
-        <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold ${theme.text.primary} mb-6 leading-tight`}>
-          Stop guessing if you'll have enough.
-        </h1>
-        <p className={`text-lg sm:text-xl ${theme.text.secondary} mb-8 leading-relaxed max-w-2xl mx-auto`}>
-          See your after-tax income, year by year. Canadian taxes, CPP/OAS timing, and what-if scenarios to test your plan.
-        </p>
-        <div className="flex justify-center">
-          <Link
-            href="/calculator/home"
-            onClick={handleStartPlanning}
-            className={`inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl ${theme.button.primary} text-white text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 animate-pulse-subtle`}
-          >
-            Start Planning Free
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left side: Copy and CTA */}
+          <div className="text-center lg:text-left">
+            <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold ${theme.text.primary} mb-6 leading-tight`}>
+              Stop guessing if you'll have enough.
+            </h1>
+            <p className={`text-lg sm:text-xl ${theme.text.secondary} mb-8 leading-relaxed`}>
+              See your after-tax income, year by year. Canadian taxes, CPP/OAS timing, and what-if scenarios to test your plan.
+            </p>
+            <div className="flex justify-center lg:justify-start">
+              <Link
+                href="/calculator/home"
+                onClick={handleStartPlanning}
+                className={`inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl ${theme.button.primary} text-white text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 animate-pulse-subtle`}
+              >
+                Start Planning Free
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+            <p className={`${theme.text.muted} text-sm mt-4`}>
+              Free to use. Anonymous. Accurate.
+            </p>
+          </div>
+
+          {/* Right side: Hero Image */}
+          <div className="order-first lg:order-last">
+            <div className={`
+              relative aspect-[4/3] rounded-2xl overflow-hidden
+              ${effectiveDarkMode
+                ? 'bg-gradient-to-br from-indigo-900/50 via-purple-900/50 to-blue-900/50 ring-1 ring-white/10'
+                : 'bg-gradient-to-br from-orange-100 via-rose-100 to-amber-100 ring-1 ring-orange-200/50'}
+              shadow-2xl
+            `}>
+              <Image
+                src="/images/hero-image.png"
+                alt="Retirement planning visualization"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          </div>
         </div>
-        <p className={`${theme.text.muted} text-sm mt-4`}>
-          Free to use. Anonymous. Accurate.
-        </p>
       </section>
 
       {/* ===== SECTION 2: SOUND FAMILIAR? ===== */}
