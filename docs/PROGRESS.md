@@ -1,11 +1,33 @@
 # Development Progress Tracker
 
-**Last Updated**: 2025-12-20
+**Last Updated**: 2026-01-05
 **Current Phase**: Between Phase 1 (Complete) and Phase 2 (70% Complete)
 
 ---
 
 ## Recent Updates
+
+### 2026-01-05: Home Page Redesign
+
+- Replaced feature grid with cleaner layout and rotating hero text animation ("Works" → "Delivers" → "Matters")
+- Added feature screenshots with expandable lightbox modals
+- Streamlined value propositions with new icons (Brain, Layers, MapPin, TrendingUp)
+- Improved dark mode styling throughout
+
+### 2026-01-05: About Page
+
+- Created `/about` page with personal introduction and project backstory
+- Theme-aware styling using inline Tailwind (violet/indigo dark, orange/rose light)
+- Added profile photo and signature quote with gradient text
+
+### 2026-01-05: Feedback Widget
+
+- Added `FeedbackModal` component with "Give Feedback" button in calculator action bars
+- Button uses `feedback-button-glow` CSS animation for visual emphasis
+- Made `CalculatorHeader` logo clickable (links to `/calculator/home`)
+- Responsive header title (shorter text on mobile)
+
+---
 
 ### 2025-12-20: All 6 New What-If Scenarios Complete ✅
 
