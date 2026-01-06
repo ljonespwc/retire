@@ -175,10 +175,81 @@ export default function Home() {
         </p>
       </section>
 
-      {/* ===== SECTION 2: SCREENSHOT GALLERY ===== */}
+      {/* ===== SECTION 2: SOUND FAMILIAR? ===== */}
+      <section className={`py-16 sm:py-24 ${effectiveDarkMode ? 'bg-gray-900/30' : 'bg-white/50'}`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-[2fr_3fr] gap-12 lg:gap-16 items-center">
+            {/* Left side: Image */}
+            <div className="order-2 lg:order-1">
+              <div className={`
+                relative aspect-[2/3] rounded-2xl overflow-hidden max-w-md mx-auto lg:max-w-none
+                ${effectiveDarkMode
+                  ? 'bg-gradient-to-br from-indigo-900/50 via-purple-900/50 to-blue-900/50 ring-1 ring-white/10'
+                  : 'bg-gradient-to-br from-orange-100 via-rose-100 to-amber-100 ring-1 ring-orange-200/50'}
+                shadow-2xl
+              `}>
+                <Image
+                  src="/images/sound-familiar-hero.png"
+                  alt="Person contemplating retirement finances"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            </div>
+
+            {/* Right side: Content */}
+            <div className="order-1 lg:order-2">
+              <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${theme.text.primary} mb-8 leading-tight`}>
+                Sound familiar?
+              </h2>
+
+              <div className="space-y-5">
+                {[
+                  "You've saved for decades but have no idea if it's enough",
+                  "You've Googled \"when should I take CPP\" more than once",
+                  "You don't know if you should draw from your RRSP or TFSA first",
+                  "You've tried other calculators and left more confused than when you started",
+                  "You're not sure how much taxes will eat into your retirement income",
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className={`
+                      flex items-start gap-4 p-4 rounded-xl transition-all duration-200
+                      ${effectiveDarkMode
+                        ? 'bg-gray-800/50 hover:bg-gray-800/80 border border-gray-700/50'
+                        : 'bg-white hover:bg-orange-50/80 border border-gray-200/80 shadow-sm hover:shadow-md'}
+                    `}
+                  >
+                    <div className={`
+                      flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5
+                      ${effectiveDarkMode
+                        ? 'bg-indigo-500/20 text-indigo-400'
+                        : 'bg-orange-500/10 text-orange-600'}
+                    `}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p className={`${theme.text.secondary} text-base sm:text-lg leading-relaxed`}>
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <p className={`mt-8 text-lg sm:text-xl ${effectiveDarkMode ? 'text-indigo-400' : 'text-orange-600'} font-medium`}>
+                If you nodded at any of these, keep scrolling.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 3: SCREENSHOT GALLERY ===== */}
       <section className="py-16 sm:py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-          <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} text-center mb-4`}>
+          <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${theme.text.primary} text-center mb-4`}>
             This is what clarity looks like.
           </h2>
           <p className={`text-sm ${theme.text.secondary} text-center`}>
@@ -232,10 +303,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 3: COMPARISON TABLE ===== */}
+      {/* ===== SECTION 4: COMPARISON TABLE ===== */}
       <section className={`${effectiveDarkMode ? 'bg-gray-900/50' : 'bg-gray-100/50'} py-16 sm:py-20`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} text-center mb-12 max-w-4xl mx-auto`}>
+          <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${theme.text.primary} text-center mb-12 max-w-4xl mx-auto`}>
             A single number won't prepare you for retirement. Real math will.
           </h2>
 
@@ -297,10 +368,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 4: COMPREHENSIVE PLANNING FEATURES ===== */}
+      {/* ===== SECTION 5: COMPREHENSIVE PLANNING FEATURES ===== */}
       <section className={`${effectiveDarkMode ? 'bg-gray-900/50' : 'bg-gray-100/50'} py-16 sm:py-20`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className={`text-3xl sm:text-4xl font-bold ${theme.text.primary} text-center mb-12`}>
+          <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${theme.text.primary} text-center mb-12`}>
             The details matter. That's why we included all of them.
           </h2>
 
@@ -392,7 +463,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 5: FINAL CTA ===== */}
+      {/* ===== SECTION 6: FINAL CTA ===== */}
       <section className={`py-12 sm:py-16 ${effectiveDarkMode ? 'bg-gray-900/50' : 'bg-gray-100/50'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Link
