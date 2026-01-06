@@ -11,9 +11,6 @@ import {
 import posthog from 'posthog-js'
 import { useAuth } from '@/contexts/AuthContext'
 
-// Rotating words for hero animation
-const ROTATING_WORDS = ['Works', 'Delivers', 'Matters']
-
 // Screenshot gallery data
 const SCREENSHOTS = [
   {
@@ -77,20 +74,11 @@ const SCREENSHOTS = [
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false)
   const [mounted, setMounted] = useState(false)
-  const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const { user, isAnonymous } = useAuth()
 
   useEffect(() => {
     setMounted(true)
-  }, [])
-
-  // Rotating word animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length)
-    }, 2500)
-    return () => clearInterval(interval)
   }, [])
 
   // Lightbox keyboard navigation
@@ -167,23 +155,10 @@ export default function Home() {
       {/* ===== SECTION 1: HERO ===== */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 text-center">
         <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold ${theme.text.primary} mb-6 leading-tight`}>
-          Finally, a Canadian Retirement Calculator That Actually{' '}
-          <span className={`${theme.accent} inline-block min-w-[180px]`}>
-            {mounted ? (
-              <span
-                key={currentWordIndex}
-                className="inline-block animate-fade-in"
-              >
-                {ROTATING_WORDS[currentWordIndex]}
-              </span>
-            ) : (
-              'Works'
-            )}
-          </span>
+          Stop guessing if you'll have enough.
         </h1>
         <p className={`text-lg sm:text-xl ${theme.text.secondary} mb-8 leading-relaxed max-w-2xl mx-auto`}>
-          Other calculators guess. Ours calculates—with real Canadian tax rules,
-          CPP/OAS timing, and year-by-year precision.
+          See your after-tax income, year by year. Canadian taxes, CPP/OAS timing, and what-if scenarios to test your plan.
         </p>
         <div className="flex justify-center">
           <Link
