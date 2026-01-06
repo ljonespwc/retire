@@ -196,7 +196,7 @@ export default function Home() {
           </Link>
         </div>
         <p className={`${theme.text.muted} text-sm mt-4`}>
-          No signup required. No credit card. Just answers.
+          Free to use. Anonymous. Accurate.
         </p>
       </section>
 
@@ -428,6 +428,9 @@ export default function Home() {
             Start Planning Free
             <ArrowRight className="w-5 h-5" />
           </Link>
+          <p className={`${theme.text.muted} text-sm mt-4`}>
+            Free to use. Anonymous. Accurate.
+          </p>
         </div>
       </section>
 
@@ -436,7 +439,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <p className={`${theme.text.secondary} text-sm`}>
-              © 2025 The Ultimate Canadian Retirement Calculator.
+              © 2025 The Ultimate Canadian Retirement Calculator
             </p>
             <p className={`${theme.text.muted} text-xs mt-2`}>
               Tax calculations based on 2025 federal and provincial tax rules. Results are estimates for planning purposes only.
