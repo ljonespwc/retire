@@ -278,7 +278,7 @@ export default function Home() {
                   <tr>
                     <td className={`px-4 py-4 ${theme.text.primary}`}>Tax accuracy</td>
                     <td className={`px-4 py-4 ${theme.text.muted}`}>Generic estimates</td>
-                    <td className={`px-4 py-4 ${theme.text.primary}`}>Federal + provincial, all provinces and territories</td>
+                    <td className={`px-4 py-4 ${theme.text.primary}`}>Federal + provincial</td>
                   </tr>
                   <tr className={effectiveDarkMode ? 'bg-gray-800/50' : 'bg-gray-50/50'}>
                     <td className={`px-4 py-4 ${theme.text.primary}`}>Account types</td>
