@@ -73,7 +73,7 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
     }
   }
 
-  const handleSave = async (saveStatus: 'draft' | 'published') => {
+  const handleSave = async () => {
     if (!title || !slug || !excerpt || !content) {
       alert('Please fill in all required fields (title, slug, excerpt, content)')
       return
@@ -90,7 +90,7 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
         content,
         featured_image_url: featuredImageUrl || null,
         cta_text: ctaText || null,
-        status: saveStatus,
+        status,
         publish_date: new Date(publishDate).toISOString(),
         reading_time_minutes: readingTime,
       }
@@ -183,7 +183,7 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
       {/* Featured Image */}
       <div>
         <Label htmlFor="image" className="text-white text-sm font-medium mb-2 block">
-          Featured Image
+          Featured Image <span className="text-gray-400 font-normal">(1200×630px recommended, JPG/PNG/WebP)</span>
         </Label>
         {featuredImageUrl ? (
           <div className="relative">
@@ -212,7 +212,7 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
                 type="button"
                 variant="outline"
                 disabled={isUploading}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700 rounded-lg cursor-pointer"
+                className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600 rounded-lg cursor-pointer"
                 onClick={() => document.getElementById('image')?.click()}
               >
                 <Upload className="w-4 h-4 mr-2" />
@@ -234,7 +234,7 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
             variant="outline"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 rounded-lg"
+            className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600 rounded-lg"
           >
             {showPreview ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
             {showPreview ? 'Hide Preview' : 'Show Preview'}
@@ -242,7 +242,19 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
         </div>
 
         {showPreview ? (
-          <div className="bg-gray-700 border border-gray-600 rounded-xl p-6 prose prose-invert max-w-none">
+          <div className="bg-gray-700 border border-gray-600 rounded-xl p-6 prose prose-lg max-w-none
+            [&>p:first-of-type]:text-xl [&>p:first-of-type]:leading-relaxed [&>p:first-of-type]:font-medium
+            [&_h2]:font-bold [&_h2]:text-3xl [&_h2]:mt-12 [&_h2]:mb-4 [&_h2]:pt-8 [&_h2]:border-t
+            [&_h3]:font-bold [&_h3]:text-2xl [&_h3]:mt-6 [&_h3]:mb-3
+            [&_p]:leading-relaxed [&_p]:mb-6
+            [&_strong]:font-bold
+            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-6
+            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-6
+            [&_li]:mb-2
+            [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:italic
+            [&_code]:px-2 [&_code]:py-1 [&_code]:rounded
+            [&>p:first-of-type]:text-gray-100 [&_h2]:text-gray-100 [&_h2]:border-blue-500/30 [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-orange-400 [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200
+          ">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         ) : (
@@ -291,20 +303,12 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
       {/* Action Buttons */}
       <div className="flex items-center gap-4 pt-6 border-t border-gray-700">
         <Button
-          onClick={() => handleSave('draft')}
-          disabled={isSaving}
-          variant="outline"
-          className="border-gray-600 text-gray-300 hover:bg-gray-700 rounded-xl px-6 py-3"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          Save as Draft
-        </Button>
-        <Button
-          onClick={() => handleSave('published')}
+          onClick={handleSave}
           disabled={isSaving}
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-xl"
         >
-          {isSaving ? 'Saving...' : mode === 'create' ? 'Publish' : 'Update & Publish'}
+          <Save className="w-4 h-4 mr-2" />
+          {isSaving ? 'Saving...' : mode === 'create' ? 'Create Article' : 'Save Changes'}
         </Button>
         <Button
           onClick={() => router.push('/admin/articles')}
