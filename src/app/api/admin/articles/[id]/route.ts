@@ -57,6 +57,7 @@ export async function PUT(
         status: articleData.status,
         publish_date: articleData.publish_date,
         reading_time_minutes: articleData.reading_time_minutes,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
