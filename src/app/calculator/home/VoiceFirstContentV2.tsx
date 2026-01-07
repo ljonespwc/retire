@@ -32,7 +32,7 @@ import { createFrontLoadVariant, createDelayCppOasVariant, createExhaustPortfoli
 import { type FormData } from '@/lib/scenarios/scenario-mapper'
 import { regenerateVariant, getVariantDisplayName, detectVariantTypeFromName, type VariantMetadata, type VariantType, type BaselineSnapshot } from '@/lib/scenarios/variant-metadata'
 import { createClient } from '@/lib/supabase/client'
-import { getVariantsForBaseline } from '@/lib/supabase/queries'
+import { getVariantsForBaseline, deleteScenario } from '@/lib/supabase/queries'
 import { calculateRetirementProjection } from '@/lib/calculations/engine'
 import { Scenario } from '@/types/calculator'
 import { WarmDataField } from '@/components/calculator/WarmDataField'
@@ -1453,6 +1453,39 @@ export function VoiceFirstContentV2() {
     }
   }
 
+  // Delete a saved variant from the database
+  const handleDeleteVariant = async (index: number) => {
+    const scenarioId = variantScenarioIds[index]
+    if (!scenarioId) return
+
+    const supabase = createClient()
+    const { error } = await deleteScenario(supabase, scenarioId)
+
+    if (error) {
+      console.error('Failed to delete variant:', error)
+      return
+    }
+
+    // Reuse handleRemoveVariant to clean up UI state
+    // But DON'T preserve the ID in closedVariantIds (it's deleted, not just closed)
+    setVariantScenarios(prev => prev.filter((_, i) => i !== index))
+    setVariantResultsArray(prev => prev.filter((_, i) => i !== index))
+    setVariantInsights(prev => prev.filter((_, i) => i !== index))
+    setVariantNarratives(prev => prev.filter((_, i) => i !== index))
+    setVariantScenarioIds(prev => prev.filter((_, i) => i !== index))
+    setVariantConfigs(prev => prev.filter((_, i) => i !== index))
+    setVariantShareTokens(prev => prev.filter((_, i) => i !== index))
+    setVariantIsShared(prev => prev.filter((_, i) => i !== index))
+    setVariantNeedsSave(prev => prev.filter((_, i) => i !== index))
+
+    // Adjust active tab
+    if (activeVariantTab >= index && activeVariantTab > 0) {
+      setActiveVariantTab(activeVariantTab - 1)
+    } else if (variantScenarios.length === 1) {
+      setActiveVariantTab(-1)
+    }
+  }
+
   return (
     <div className={`min-h-screen ${theme.background}`}>
       {/* Header */}
@@ -1670,6 +1703,7 @@ export function VoiceFirstContentV2() {
                 onSave={handleSaveVariant}
                 onShareChange={handleShareChange}
                 onRemoveVariant={handleRemoveVariant}
+                onDeleteVariant={handleDeleteVariant}
                 isSavingNarrative={isSavingVariantNarrative}
                 onFeedbackClick={() => setShowFeedbackModal(true)}
               />

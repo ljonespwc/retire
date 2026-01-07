@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Share2, Loader2, X, MessageSquare } from 'lucide-react'
+import { Share2, Loader2, X, MessageSquare, Trash2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { CalculationResults, Scenario } from '@/types/calculator'
 import { formatCompactCurrency, formatCurrency } from '@/lib/calculations/results-formatter'
@@ -44,7 +44,8 @@ interface ScenarioComparisonProps {
   onSave?: (index: number) => void
   onShareChange?: (index: number, shareToken: string | null, isShared: boolean) => void // Notify parent of share changes
   onTryAnother?: () => void
-  onRemoveVariant?: (index: number) => void // Remove a variant tab
+  onRemoveVariant?: (index: number) => void // Remove a variant tab (unsaved)
+  onDeleteVariant?: (index: number) => void // Delete a saved variant from database
   isSavingNarrative?: boolean // Loading state while generating AI narrative for save
   onFeedbackClick?: () => void // Open feedback modal
 }
@@ -73,11 +74,13 @@ export function ScenarioComparison({
   onShareChange,
   onTryAnother,
   onRemoveVariant,
+  onDeleteVariant,
   isSavingNarrative = false,
   onFeedbackClick
 }: ScenarioComparisonProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<number>(0) // 0 = first variant, -1 = baseline
   const [removeConfirmIndex, setRemoveConfirmIndex] = useState<number | null>(null)
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareModalScenarioId, setShareModalScenarioId] = useState<string>('')
   const [shareModalScenarioName, setShareModalScenarioName] = useState<string>('')
@@ -258,31 +261,44 @@ export function ScenarioComparison({
                 >
                   <span>{emoji}</span>
                   <span>{label}</span>
-                  {!variantScenarioIds[index] && (
-                    <span className="text-xs opacity-60">*</span>
-                  )}
                 </button>
-                {/* Close button - always visible on desktop */}
-                {onRemoveVariant && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const hasUnsavedChanges = !variantScenarioIds[index]
-                      if (hasUnsavedChanges) {
+                {/* Close/Delete button - X for unsaved, Trash for saved */}
+                {variantScenarioIds[index] ? (
+                  // Saved variant: show trash icon for delete
+                  onDeleteVariant && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteConfirmIndex(index)
+                      }}
+                      className={`absolute right-1.5 p-0.5 rounded-full transition-colors ${
+                        isDarkMode
+                          ? 'hover:bg-white/20 text-red-400 hover:text-red-300'
+                          : 'hover:bg-black/10 text-red-500 hover:text-red-600'
+                      }`}
+                      title="Delete saved scenario"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )
+                ) : (
+                  // Unsaved variant: show X for close with confirmation
+                  onRemoveVariant && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
                         setRemoveConfirmIndex(index)
-                      } else {
-                        onRemoveVariant(index)
-                      }
-                    }}
-                    className={`absolute right-1.5 p-0.5 rounded-full transition-colors ${
-                      isDarkMode
-                        ? 'hover:bg-white/20 text-current'
-                        : 'hover:bg-black/10 text-current'
-                    }`}
-                    title="Close tab"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                      }}
+                      className={`absolute right-1.5 p-0.5 rounded-full transition-colors ${
+                        isDarkMode
+                          ? 'hover:bg-white/20 text-current'
+                          : 'hover:bg-black/10 text-current'
+                      }`}
+                      title="Close tab"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )
                 )}
               </div>
             )
@@ -308,15 +324,15 @@ export function ScenarioComparison({
               const variantType = variantConfigs[index]?.variant_type
               const emoji = getTabEmoji(variantType, variant.name)
               const label = getFullTabLabel(variant.name)
-              const unsavedMarker = !variantScenarioIds[index] ? ' *' : ''
               return (
                 <option key={index} value={index}>
-                  {emoji} {label}{unsavedMarker}
+                  {emoji} {label}
                 </option>
               )
             })}
           </select>
         </div>
+
       </div>
 
       {/* Tab Content */}
@@ -389,7 +405,7 @@ export function ScenarioComparison({
         isVariant={shareModalIndex >= 0}
       />
 
-      {/* Remove Confirmation Modal */}
+      {/* Remove Confirmation Modal (for unsaved variants) */}
       {removeConfirmIndex !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border shadow-xl p-6 max-w-md mx-4`}>
@@ -422,6 +438,45 @@ export function ScenarioComparison({
                 }`}
               >
                 Close without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal (for saved variants) */}
+      {deleteConfirmIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border shadow-xl p-6 max-w-md mx-4`}>
+            <h3 className={`text-lg font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Delete saved scenario?
+            </h3>
+            <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              "{variantScenarios[deleteConfirmIndex]?.name}" will be permanently deleted. This cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirmIndex(null)}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteVariant?.(deleteConfirmIndex)
+                  setDeleteConfirmIndex(null)
+                }}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  isDarkMode
+                    ? 'bg-red-600 hover:bg-red-500 text-white'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
+              >
+                Delete permanently
               </button>
             </div>
           </div>
