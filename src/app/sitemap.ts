@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://retire.ca'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.canadaretirecalc.com'
   const supabase = await createClient()
 
   // Fetch all published articles

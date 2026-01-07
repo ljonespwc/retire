@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     }
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://retirementcalculator.ca'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.canadaretirecalc.com'
   const articleUrl = `${siteUrl}/articles/${article.slug}`
   const imageUrl = article.featured_image_url || `${siteUrl}/og-image.png`
 
