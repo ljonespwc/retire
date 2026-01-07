@@ -6,7 +6,17 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-const ADMIN_EMAIL = 'lance.jones@precisionnutrition.com'
+const ADMIN_EMAILS = [
+  'lance.jones@precisionnutrition.com',
+  'lancecj@gmail.com',
+]
+
+/**
+ * Check if an email is an admin email
+ */
+export function isAdminEmail(email: string | null | undefined): boolean {
+  return !!email && ADMIN_EMAILS.includes(email)
+}
 
 /**
  * Check if the current user is an admin
@@ -21,7 +31,7 @@ export async function isAdmin(): Promise<boolean> {
     return false
   }
 
-  return user.email === ADMIN_EMAIL
+  return isAdminEmail(user.email)
 }
 
 /**
@@ -32,7 +42,7 @@ export async function getAdminUser() {
 
   const { data: { user }, error } = await supabase.auth.getUser()
 
-  if (error || !user || user.email !== ADMIN_EMAIL) {
+  if (error || !user || !isAdminEmail(user.email)) {
     return null
   }
 
