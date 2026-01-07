@@ -154,7 +154,7 @@ export default function Home() {
 
       {/* ===== SECTION 1: HERO ===== */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-[3fr_2fr] gap-8 lg:gap-12 items-center">
           {/* Left side: Copy and CTA */}
           <div className="text-center lg:text-left">
             <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold ${theme.text.primary} mb-6 leading-tight`}>
@@ -180,6 +180,18 @@ export default function Home() {
 
           {/* Right side: Hero Image */}
           <div className="order-first lg:order-last">
+            {/* Transparent image - 350x700 source displayed at 175x350 for retina */}
+            <div className="relative w-[175px] h-[350px] mx-auto">
+              <Image
+                src="/images/hero-image.png"
+                alt="Retirement planning visualization"
+                width={350}
+                height={700}
+                className="w-full h-full"
+                priority
+              />
+            </div>
+            {/* COMMENTED OUT: Previous card-style container
             <div className={`
               relative aspect-[4/3] rounded-2xl overflow-hidden
               ${effectiveDarkMode
@@ -195,6 +207,7 @@ export default function Home() {
                 priority
               />
             </div>
+            */}
           </div>
         </div>
       </section>
