@@ -1,11 +1,96 @@
 # Development Progress Tracker
 
-**Last Updated**: 2026-01-05
+**Last Updated**: 2026-01-07
 **Current Phase**: Between Phase 1 (Complete) and Phase 2 (70% Complete)
 
 ---
 
 ## Recent Updates
+
+### 2026-01-07: Blog/Article System - Status Audit
+
+**Summary**: Blog feature is ~90% complete per BLOG_PRD.md spec. Core functionality works, minor gaps remain.
+
+#### What's Built
+
+| Feature | Status |
+|---------|--------|
+| Database tables (`articles`, `article_likes`) with RLS | ✅ |
+| Admin article creation/editing (`/admin/articles/*`) | ✅ |
+| Markdown editor with live preview toggle | ✅ |
+| Featured image upload (Supabase storage) | ✅ |
+| Article listings page with gradient cards (`/articles`) | ✅ |
+| Article detail page with ReactMarkdown (`/articles/[slug]`) | ✅ |
+| CTA section at bottom (customizable per article) | ✅ |
+| Like button (50 max per visitor via localStorage) | ✅ |
+| Reading time calculation (~225 WPM) | ✅ |
+| SEO meta tags (OpenGraph, Twitter, JSON-LD structured data) | ✅ |
+| Sitemap generation (dynamic, includes articles) | ✅ |
+| Dark mode support | ✅ |
+| Responsive design (1/2/3 column grid) | ✅ |
+| Breadcrumbs on article pages | ✅ |
+| Draft/Published/Archived status workflow | ✅ |
+| Admin route protection (single admin email) | ✅ |
+
+#### What's Not Built
+
+| Feature | Notes |
+|---------|-------|
+| Navigation menu item | Code exists in `CalculatorHeader.tsx:56-65` but **commented out** ("Hidden until content is ready") |
+| Delete article functionality | No delete button or API route - can only archive via status change |
+| Filter by status in admin | PRD mentions All/Draft/Published filter, not implemented |
+| Sort by publish date or title | Admin list hardcoded to `created_at DESC` |
+| Preview as published page | Has markdown preview toggle, but no full "view as visitor" preview |
+| Dedicated Unpublish button | Can change status via dropdown, but no one-click unpublish |
+| Related articles section | PRD marked as optional for MVP - shows 2-3 recent articles at bottom |
+
+#### File Structure
+
+```
+src/app/articles/
+├── page.tsx                    # Public listings
+└── [slug]/page.tsx             # Article detail
+
+src/app/admin/articles/
+├── page.tsx                    # Admin list
+├── new/page.tsx                # Create form
+└── [id]/edit/page.tsx          # Edit form
+
+src/components/blog/
+├── ArticleCard.tsx             # Gradient card component
+├── LikeButton.tsx              # Client-side like with localStorage
+└── CTASection.tsx              # Calculator CTA block
+
+src/components/admin/
+└── ArticleForm.tsx             # Full admin form with preview
+
+src/lib/blog/
+├── gradients.ts                # 10 gradient presets
+├── reading-time.ts             # Word count → minutes
+└── slug.ts                     # URL slug generator
+
+src/lib/auth/
+└── admin-check.ts              # Admin email verification
+
+src/app/api/articles/[id]/like/route.ts        # POST - increment likes
+src/app/api/admin/articles/route.ts            # POST - create article
+src/app/api/admin/articles/[id]/route.ts       # PUT - update article
+src/app/api/admin/articles/upload-image/route.ts # POST - image upload
+```
+
+#### Database State
+
+- `articles`: 1 row (1 article exists)
+- `article_likes`: 1 row
+
+#### To Complete Blog Launch
+
+1. Uncomment Articles nav link in `CalculatorHeader.tsx`
+2. (Optional) Add delete functionality
+3. (Optional) Add status filter in admin list
+4. Create content (articles)
+
+---
 
 ### 2026-01-05: Home Page Redesign
 

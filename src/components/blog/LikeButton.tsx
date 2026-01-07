@@ -79,7 +79,7 @@ export function LikeButton({ articleId, initialLikes, isDarkMode }: LikeButtonPr
         `}
         title={isMaxed ? "You've used all your likes" : `${remainingLikes} likes remaining`}
       >
-        <Heart className={`w-5 h-5 mr-2 ${isAnimating ? 'fill-current text-red-500' : ''}`} />
+        <Heart className={`w-5 h-5 mr-2 fill-red-500 text-red-500 ${isAnimating ? 'scale-125' : ''} transition-transform`} />
         <span className="text-base font-medium">{likes} Likes</span>
       </Button>
 
