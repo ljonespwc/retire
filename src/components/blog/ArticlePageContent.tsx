@@ -80,29 +80,10 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
         />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          {/* Breadcrumbs */}
-          <nav className="mb-8">
-            <ol className="flex items-center gap-2 text-sm">
-              <li>
-                <Link href="/" className={`hover:underline ${theme.text.muted}`}>
-                  Home
-                </Link>
-              </li>
-              <li className={theme.text.muted}>/</li>
-              <li>
-                <Link href="/articles" className={`hover:underline ${theme.text.muted}`}>
-                  Articles
-                </Link>
-              </li>
-              <li className={theme.text.muted}>/</li>
-              <li className={theme.text.secondary}>{article.title}</li>
-            </ol>
-          </nav>
-
           {/* Back to Articles Link */}
           <Link
             href="/articles"
-            className={`inline-flex items-center gap-2 mb-8 hover:underline ${effectiveDarkMode ? 'text-blue-400' : 'text-blue-600'}`}
+            className={`inline-flex items-center gap-2 mb-8 hover:underline ${effectiveDarkMode ? 'text-blue-400' : 'text-orange-600'}`}
           >
             <ChevronLeft className="w-4 h-4" />
             Back to Articles
@@ -115,12 +96,12 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
                 {article.title}
               </h1>
 
-              <div className={`flex items-center gap-4 mb-6 text-sm ${theme.text.muted}`}>
-                <span>{publishDate}</span>
+              <div className="flex items-center gap-4 mb-6 text-sm">
+                <span className={effectiveDarkMode ? 'text-blue-400' : 'text-orange-600'}>{publishDate}</span>
                 {article.reading_time_minutes && (
                   <>
-                    <span>•</span>
-                    <span>{formatReadingTime(article.reading_time_minutes)}</span>
+                    <span className={effectiveDarkMode ? 'text-gray-500' : 'text-gray-400'}>•</span>
+                    <span className={effectiveDarkMode ? 'text-gray-400' : 'text-gray-600'}>{formatReadingTime(article.reading_time_minutes)}</span>
                   </>
                 )}
               </div>
@@ -144,7 +125,8 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
             <div
               className={`
                 prose prose-lg max-w-none
-                [&_h2]:font-bold [&_h2]:text-3xl [&_h2]:mt-8 [&_h2]:mb-4
+                [&>p:first-of-type]:text-xl [&>p:first-of-type]:leading-relaxed [&>p:first-of-type]:font-medium
+                [&_h2]:font-bold [&_h2]:text-3xl [&_h2]:mt-12 [&_h2]:mb-4 [&_h2]:pt-8 [&_h2]:border-t
                 [&_h3]:font-bold [&_h3]:text-2xl [&_h3]:mt-6 [&_h3]:mb-3
                 [&_p]:leading-relaxed [&_p]:mb-6
                 [&_strong]:font-bold
@@ -154,8 +136,8 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
                 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:italic
                 [&_code]:px-2 [&_code]:py-1 [&_code]:rounded
                 ${effectiveDarkMode
-                  ? '[&_h2]:text-gray-100 [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-white [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200'
-                  : '[&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_a]:text-blue-600 hover:[&_a]:text-blue-700 [&_blockquote]:border-blue-500 [&_code]:bg-gray-100'}
+                  ? '[&>p:first-of-type]:text-gray-100 [&_h2]:text-gray-100 [&_h2]:border-blue-500/30 [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-orange-400 [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200'
+                  : '[&>p:first-of-type]:text-gray-800 [&_h2]:text-gray-900 [&_h2]:border-orange-200 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_strong]:text-orange-600 [&_a]:text-blue-600 hover:[&_a]:text-blue-700 [&_blockquote]:border-blue-500 [&_code]:bg-gray-100'}
               `}
             >
               <ReactMarkdown>{article.content}</ReactMarkdown>

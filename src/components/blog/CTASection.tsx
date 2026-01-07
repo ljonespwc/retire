@@ -9,8 +9,8 @@ interface CTASectionProps {
   isDarkMode: boolean
 }
 
-const DEFAULT_CTA_TEXT = 'See Your Retirement Numbers'
-const DEFAULT_CTA_SUBTITLE = 'Use our free calculator to see how your retirement could look'
+const DEFAULT_CTA_TEXT = 'Try the Calculator'
+const DEFAULT_CTA_SUBTITLE = 'Run the numbers. See what\'s possible.'
 
 export function CTASection({ ctaText, isDarkMode }: CTASectionProps) {
   const buttonText = ctaText || DEFAULT_CTA_TEXT
@@ -27,7 +27,7 @@ export function CTASection({ ctaText, isDarkMode }: CTASectionProps) {
     >
       <div className="max-w-2xl mx-auto text-center">
         <h3 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          Ready to Plan Your Retirement?
+          Can You Retire When You Want?
         </h3>
         <p className={`text-lg mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           {DEFAULT_CTA_SUBTITLE}
@@ -48,13 +48,9 @@ export function CTASection({ ctaText, isDarkMode }: CTASectionProps) {
           </Button>
         </Link>
 
-        <div className={`mt-4 flex items-center justify-center gap-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <span>✓ No signup required</span>
-          <span>•</span>
-          <span>✓ Unlimited scenarios</span>
-          <span>•</span>
-          <span>✓ Free forever</span>
-        </div>
+        <p className={`mt-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Free to use. Anonymous. Accurate.
+        </p>
       </div>
     </div>
   )
