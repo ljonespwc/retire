@@ -158,7 +158,7 @@ export default function Home() {
           {/* Left side: Copy and CTA */}
           <div className="text-center lg:text-left">
             <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold ${theme.text.primary} mb-6 leading-tight`}>
-              Stop guessing if you'll have enough.
+              Stop guessing if you'll have enough to retire.
             </h1>
             <p className={`text-lg sm:text-xl ${theme.text.secondary} mb-8 leading-relaxed`}>
               See your after-tax income, year by year. Canadian taxes, CPP/OAS timing, and what-if scenarios to test your plan.
