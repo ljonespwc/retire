@@ -166,16 +166,16 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
         />
       </div>
 
-      {/* CTA Text */}
+      {/* CTA Heading */}
       <div>
         <Label htmlFor="ctaText" className="text-white text-sm font-medium mb-2 block">
-          CTA Text <span className="text-gray-400 font-normal">(optional, defaults to "See Your Retirement Numbers")</span>
+          CTA Heading <span className="text-gray-400 font-normal">(optional, defaults to "Can You Retire When You Want?")</span>
         </Label>
         <Input
           id="ctaText"
           value={ctaText}
           onChange={(e) => setCtaText(e.target.value)}
-          placeholder="See Your Retirement Numbers"
+          placeholder="Can You Retire When You Want?"
           className="bg-gray-700 border-gray-600 text-white"
         />
       </div>

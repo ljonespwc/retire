@@ -9,11 +9,11 @@ interface CTASectionProps {
   isDarkMode: boolean
 }
 
-const DEFAULT_CTA_TEXT = 'Try the Calculator'
+const DEFAULT_HEADING = 'Can You Retire When You Want?'
 const DEFAULT_CTA_SUBTITLE = 'Run the numbers. See what\'s possible.'
 
 export function CTASection({ ctaText, isDarkMode }: CTASectionProps) {
-  const buttonText = ctaText || DEFAULT_CTA_TEXT
+  const heading = ctaText || DEFAULT_HEADING
 
   return (
     <div
@@ -27,7 +27,7 @@ export function CTASection({ ctaText, isDarkMode }: CTASectionProps) {
     >
       <div className="max-w-2xl mx-auto text-center">
         <h3 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          Can You Retire When You Want?
+          {heading}
         </h3>
         <p className={`text-lg mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           {DEFAULT_CTA_SUBTITLE}
@@ -44,7 +44,7 @@ export function CTASection({ ctaText, isDarkMode }: CTASectionProps) {
             `}
           >
             <Calculator className="w-6 h-6 mr-2" />
-            {buttonText}
+            Try the Calculator
           </Button>
         </Link>
 
