@@ -118,7 +118,7 @@ export default function ArticlesPage() {
             Plan smarter. Retire better.
           </h1>
           <p className={`text-lg sm:text-xl max-w-3xl mx-auto ${theme.text.secondary}`}>
-            Clear, actionable advice on CPP, OAS, RRSPs, and the tax rules that actually matter.
+            Clear, evidence-based thinking on CPP, OAS, and the retirement math that actually matters.
           </p>
         </div>
 
