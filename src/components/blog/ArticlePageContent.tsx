@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import { ArticleWithLikes } from '@/types/blog'
 import { CalculatorHeader } from '@/components/calculator/CalculatorHeader'
 import { LikeButton } from '@/components/blog/LikeButton'
+import { LikeRequestWidget } from '@/components/blog/LikeRequestWidget'
 import { CTASection } from '@/components/blog/CTASection'
 import { formatReadingTime } from '@/lib/blog/reading-time'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -145,6 +146,9 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
 
             {/* Divider */}
             <hr className={`my-12 ${effectiveDarkMode ? 'border-gray-700' : 'border-gray-200'}`} />
+
+            {/* Like Request Widget */}
+            <LikeRequestWidget articleId={article.id} initialLikes={article.likes} isDarkMode={effectiveDarkMode} />
 
             {/* CTA Section */}
             <CTASection ctaText={article.cta_text} isDarkMode={effectiveDarkMode} />
