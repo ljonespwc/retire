@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { Components } from 'react-markdown'
 import { ArticleWithLikes } from '@/types/blog'
 import { CalculatorHeader } from '@/components/calculator/CalculatorHeader'
 import { LikeButton } from '@/components/blog/LikeButton'
@@ -13,6 +13,36 @@ import { formatReadingTime } from '@/lib/blog/reading-time'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoginModal } from '@/components/auth/LoginModal'
+
+// Slug for the long-form guide article with special formatting
+const GUIDE_ARTICLE_SLUG = 'the-ultimate-guide-to-canadian-retirement-calculators-2026'
+
+// Helper to generate URL-friendly IDs from headings
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+}
+
+// Extract H1 headings from markdown content for TOC
+function extractH1Headings(content: string): { text: string; id: string }[] {
+  const headings: { text: string; id: string }[] = []
+  const lines = content.split('\n')
+
+  for (const line of lines) {
+    // Match lines that start with exactly one # followed by space
+    const match = line.match(/^#\s+(.+)$/)
+    if (match) {
+      const text = match[1].trim()
+      headings.push({ text, id: slugify(text) })
+    }
+  }
+
+  return headings
+}
 
 interface ArticlePageContentProps {
   article: ArticleWithLikes
@@ -59,6 +89,68 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
     day: 'numeric',
     year: 'numeric',
   })
+
+  // Check if this is the long-form guide article
+  const isGuideArticle = article.slug === GUIDE_ARTICLE_SLUG
+
+  // Extract H1 headings for TOC (only for guide article)
+  const tocHeadings = useMemo(() => {
+    if (!isGuideArticle) return []
+    return extractH1Headings(article.content)
+  }, [article.content, isGuideArticle])
+
+  // Pre-process content to inject HRs between H1 sections (for guide article only)
+  const processedContent = useMemo(() => {
+    if (!isGuideArticle) return article.content
+
+    // Split by lines and inject --- before each H1 (except the first)
+    const lines = article.content.split('\n')
+    const result: string[] = []
+    let foundFirstH1 = false
+
+    for (const line of lines) {
+      if (line.match(/^#\s+/)) {
+        if (foundFirstH1) {
+          // Add HR before this H1 (not the first one)
+          result.push('', '---', '')
+        }
+        foundFirstH1 = true
+      }
+      result.push(line)
+    }
+
+    return result.join('\n')
+  }, [article.content, isGuideArticle])
+
+  // Custom markdown components for guide article
+  const guideComponents: Components = {
+    h1: ({ children }) => {
+      const text = String(children)
+      const id = slugify(text)
+      return <h1 id={id} className="scroll-mt-24">{children}</h1>
+    },
+    img: ({ src, alt }) => (
+      <img
+        src={src}
+        alt={alt || ''}
+        className="w-full h-auto rounded-xl my-8"
+      />
+    ),
+    hr: () => (
+      <hr className={`my-12 border-t ${effectiveDarkMode ? 'border-gray-600' : 'border-gray-300'}`} />
+    ),
+  }
+
+  // Standard components for regular articles
+  const standardComponents: Components = {
+    img: ({ src, alt }) => (
+      <img
+        src={src}
+        alt={alt || ''}
+        className="w-full h-auto rounded-xl my-8"
+      />
+    ),
+  }
 
   return (
     <>
@@ -120,6 +212,27 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
                   className="w-full h-auto rounded-2xl mb-8"
                 />
               )}
+
+              {/* Table of Contents (Guide Article Only) */}
+              {isGuideArticle && tocHeadings.length > 0 && (
+                <nav className={`mb-10 p-6 rounded-2xl ${effectiveDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                  <h2 className={`text-lg font-semibold mb-4 ${effectiveDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    In This Guide
+                  </h2>
+                  <ol className="space-y-2">
+                    {tocHeadings.map((heading, index) => (
+                      <li key={heading.id}>
+                        <a
+                          href={`#${heading.id}`}
+                          className={`text-sm hover:underline ${effectiveDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-orange-600 hover:text-orange-700'}`}
+                        >
+                          {index + 1}. {heading.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                </nav>
+              )}
             </header>
 
             {/* Article Content (Markdown) */}
@@ -127,7 +240,9 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
               className={`
                 prose prose-lg max-w-none
                 [&>p:first-of-type]:text-xl [&>p:first-of-type]:leading-relaxed [&>p:first-of-type]:font-medium
-                [&_h2]:font-bold [&_h2]:text-3xl [&_h2]:mt-12 [&_h2]:mb-4 [&_h2]:pt-8 [&_h2]:border-t
+                [&_h1]:font-bold [&_h1]:text-4xl [&_h1]:mt-12 [&_h1]:mb-6
+                [&_h2]:font-bold [&_h2]:text-3xl [&_h2]:mt-12 [&_h2]:mb-4
+                ${!isGuideArticle ? '[&_h2]:pt-8 [&_h2]:border-t' : ''}
                 [&_h3]:font-bold [&_h3]:text-2xl [&_h3]:mt-6 [&_h3]:mb-3
                 [&_p]:leading-relaxed [&_p]:mb-6
                 [&_strong]:font-bold
@@ -137,11 +252,13 @@ export function ArticlePageContent({ article, structuredData }: ArticlePageConte
                 [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:italic
                 [&_code]:px-2 [&_code]:py-1 [&_code]:rounded
                 ${effectiveDarkMode
-                  ? '[&>p:first-of-type]:text-gray-100 [&_h2]:text-gray-100 [&_h2]:border-blue-500/30 [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-orange-400 [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200'
-                  : '[&>p:first-of-type]:text-gray-800 [&_h2]:text-gray-900 [&_h2]:border-orange-200 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_strong]:text-orange-600 [&_a]:text-blue-600 hover:[&_a]:text-blue-700 [&_blockquote]:border-blue-500 [&_code]:bg-gray-100'}
+                  ? `[&>p:first-of-type]:text-gray-100 [&_h1]:text-gray-100 [&_h2]:text-gray-100 ${!isGuideArticle ? '[&_h2]:border-blue-500/30' : ''} [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-orange-400 [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200`
+                  : `[&>p:first-of-type]:text-gray-800 [&_h1]:text-gray-900 [&_h2]:text-gray-900 ${!isGuideArticle ? '[&_h2]:border-orange-200' : ''} [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_strong]:text-orange-600 [&_a]:text-blue-600 hover:[&_a]:text-blue-700 [&_blockquote]:border-blue-500 [&_code]:bg-gray-100`}
               `}
             >
-              <ReactMarkdown>{article.content}</ReactMarkdown>
+              <ReactMarkdown components={isGuideArticle ? guideComponents : standardComponents}>
+                {processedContent}
+              </ReactMarkdown>
             </div>
 
             {/* Divider */}

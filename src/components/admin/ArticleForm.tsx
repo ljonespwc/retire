@@ -244,6 +244,7 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
         {showPreview ? (
           <div className="bg-gray-700 border border-gray-600 rounded-xl p-6 prose prose-lg max-w-none
             [&>p:first-of-type]:text-xl [&>p:first-of-type]:leading-relaxed [&>p:first-of-type]:font-medium
+            [&_h1]:font-bold [&_h1]:text-4xl [&_h1]:mt-12 [&_h1]:mb-6
             [&_h2]:font-bold [&_h2]:text-3xl [&_h2]:mt-12 [&_h2]:mb-4 [&_h2]:pt-8 [&_h2]:border-t
             [&_h3]:font-bold [&_h3]:text-2xl [&_h3]:mt-6 [&_h3]:mb-3
             [&_p]:leading-relaxed [&_p]:mb-6
@@ -253,7 +254,8 @@ export function ArticleForm({ initialData, articleId, mode }: ArticleFormProps) 
             [&_li]:mb-2
             [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:italic
             [&_code]:px-2 [&_code]:py-1 [&_code]:rounded
-            [&>p:first-of-type]:text-gray-100 [&_h2]:text-gray-100 [&_h2]:border-blue-500/30 [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-orange-400 [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200
+            [&_img]:w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-8
+            [&>p:first-of-type]:text-gray-100 [&_h1]:text-gray-100 [&_h2]:text-gray-100 [&_h2]:border-blue-500/30 [&_h3]:text-gray-100 [&_p]:text-gray-200 [&_li]:text-gray-200 [&_strong]:text-orange-400 [&_a]:text-blue-400 hover:[&_a]:text-blue-300 [&_blockquote]:border-blue-700 [&_blockquote]:text-gray-300 [&_code]:bg-gray-900 [&_code]:text-gray-200
           ">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
