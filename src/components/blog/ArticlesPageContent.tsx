@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ArticleCard } from '@/components/blog/ArticleCard'
+import { CTASection } from '@/components/blog/CTASection'
 import { ArticleWithLikes } from '@/types/blog'
 import { CalculatorHeader } from '@/components/calculator/CalculatorHeader'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -69,7 +70,7 @@ export function ArticlesPageContent({ articles, structuredData }: ArticlesPageCo
 
         {/* Header */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className={`text-4xl sm:text-5xl font-bold mb-4 ${theme.text.primary}`}>
               Plan smarter. Retire better.
             </h1>
@@ -77,6 +78,9 @@ export function ArticlesPageContent({ articles, structuredData }: ArticlesPageCo
               Clear, evidence-based thinking on CPP, OAS, and the retirement math that actually matters.
             </p>
           </div>
+
+          {/* CTA Section */}
+          <CTASection isDarkMode={effectiveDarkMode} compact />
 
           {/* Articles Grid */}
           {articles.length === 0 ? (
