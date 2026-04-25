@@ -1,12 +1,18 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
+import { isLocalMode } from '@/lib/local/config';
+import { createLocalServerClient } from '@/lib/local/server-client';
 
 /**
  * Creates a Supabase client for use in server components and API routes
  * This client reads and writes cookies to maintain authentication state
  */
-export async function createClient() {
+export async function createClient(): Promise<ReturnType<typeof createServerClient<Database>>> {
+  if (isLocalMode()) {
+    return createLocalServerClient() as any;
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient<Database>(

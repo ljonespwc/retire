@@ -39,6 +39,10 @@ next-env.d.ts
 # local scripts (not for deployment)
 /src/scripts
 
+# local SQLite data
+/data/*.sqlite
+/data/*.sqlite-*
+
 # text files (validation reports, etc.)
 *.txt
 

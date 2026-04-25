@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 const ADMIN_EMAILS = [
   'lance.jones@precisionnutrition.com',
   'lancecj@gmail.com',
+  'local@retire.local',
 ]
 
 /**
